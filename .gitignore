@@ -1,0 +1,6 @@
+vendor/
+.idea/
+
+coverage-all.out
+coverage.out
+glide.lock
