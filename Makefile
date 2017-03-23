@@ -3,7 +3,6 @@ PACKAGES = $(shell go list ./... | grep -v /vendor/)
 build:
 	glide install
 	glide update
-	go build
 
 install:
 	go install
