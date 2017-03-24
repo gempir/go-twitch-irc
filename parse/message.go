@@ -12,7 +12,6 @@ type msgType int
 const (
 	PRIVMSG msgType = iota + 1
 	CLEARCHAT
-	RANDOM
 )
 
 type Message struct {
@@ -23,6 +22,7 @@ type Message struct {
 	DisplayName string
 	UserType    string
 	Color       string
+	Action 		bool
 	Badges      map[string]int
 	Emotes      []*Emote
 	Tags        map[string]string
@@ -47,14 +47,17 @@ func parseMessage(line string) *Message {
 			Text: line,
 		}
 	}
+	action := false
 	tags, middle, text := spl[0], spl[1], spl[2]
-	if strings.HasPrefix(text, "\u0001ACTION") {
-		text = text[8 : len(text)-1]
+	if strings.HasPrefix(text, "\u0001ACTION ") {
+		action = true
+		text = text[8:]
 	}
 	msg := &Message{
 		Time: time.Now(),
 		Text: text,
 		Tags: map[string]string{},
+		Action: action,
 	}
 	parseMiddle(msg, middle)
 	parseTags(msg, tags[1:])
@@ -86,12 +89,10 @@ func parseMiddle(msg *Message, middle string) {
 			} else {
 				typ := middle[start:i]
 				switch typ {
-				case "PRIVMSG":
-					msg.Type = PRIVMSG
-				case "CLEARCHAT":
-					msg.Type = CLEARCHAT
-				default:
-					msg.Type = RANDOM
+					case "PRIVMSG":
+						msg.Type = PRIVMSG
+					case "CLEARCHAT":
+						msg.Type = CLEARCHAT
 				}
 				middle = middle[i:]
 			}
@@ -115,18 +116,18 @@ func parseTags(msg *Message, tagsRaw string) {
 		value = strings.Replace(value, "\\s", " ", -1)
 		value = strings.Replace(value, "\\\\", "\\", -1)
 		switch spl[0] {
-		case "badges":
-			msg.Badges = parseBadges(value)
-		case "color":
-			msg.Color = value
-		case "display-name":
-			msg.DisplayName = value
-		case "emotes":
-			msg.Emotes = parseTwitchEmotes(value, msg.Text)
-		case "user-type":
-			msg.UserType = value
-		default:
-			msg.Tags[spl[0]] = value
+			case "badges":
+				msg.Badges = parseBadges(value)
+			case "color":
+				msg.Color = value
+			case "display-name":
+				msg.DisplayName = value
+			case "emotes":
+				msg.Emotes = parseTwitchEmotes(value, msg.Text)
+			case "user-type":
+				msg.UserType = value
+			default:
+				msg.Tags[spl[0]] = value
 		}
 	}
 }
