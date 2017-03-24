@@ -109,10 +109,10 @@ func parseMiddle(msg *Message, middle string) {
 			} else {
 				typ := middle[start:i]
 				switch typ {
-					case "PRIVMSG":
-						msg.Type = PRIVMSG
-					case "CLEARCHAT":
-						msg.Type = CLEARCHAT
+				case "PRIVMSG":
+					msg.Type = PRIVMSG
+				case "CLEARCHAT":
+					msg.Type = CLEARCHAT
 				}
 				middle = middle[i:]
 			}

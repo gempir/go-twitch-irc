@@ -18,7 +18,7 @@ type Client struct {
 	ircUser      string
 	ircToken     string
 	connection   *net.Conn
-	connActive bool
+	connActive   bool
 	onNewMessage func(message Message)
 }
 
