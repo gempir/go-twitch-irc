@@ -25,18 +25,18 @@ type Message struct {
 	Color       string
 	Action      bool
 	Badges      map[string]int
-	Emotes      []*Emote
+	Emotes      []*emote
 	Tags        map[string]string
 	Text        string
 }
 
-type Emote struct {
+type emote struct {
 	Name  string
 	ID    string
 	Count int
 }
 
-func ParseMessage(line string) *Message {
+func parseMessage(line string) *Message {
 	if !strings.HasPrefix(line, "@") {
 		return &Message{
 			Text: line,
@@ -166,8 +166,8 @@ func parseBadges(badges string) map[string]int {
 	return m
 }
 
-func parseTwitchEmotes(emoteTag, text string) []*Emote {
-	emotes := []*Emote{}
+func parseTwitchEmotes(emoteTag, text string) []*emote {
+	emotes := []*emote{}
 
 	if emoteTag == "" {
 		return emotes
@@ -183,7 +183,7 @@ func parseTwitchEmotes(emoteTag, text string) []*Emote {
 		start, _ := strconv.Atoi(sp[0])
 		end, _ := strconv.Atoi(sp[1])
 		id := spl[0]
-		e := &Emote{
+		e := &emote{
 			ID:    id,
 			Count: strings.Count(emoteSlice[i], "-"),
 			Name:  string(runes[start : end+1]),

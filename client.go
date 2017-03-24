@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	TWITCHIRC = "irc.chat.twitch.tv:6667"
+	twitchIRC = "irc.chat.twitch.tv:6667"
 )
 
 type Client struct {
@@ -26,7 +26,7 @@ func NewClient(username, oauth string) *Client {
 	return &Client{
 		ircUser:    username,
 		ircToken:   oauth,
-		ircAddress: TWITCHIRC,
+		ircAddress: twitchIRC,
 	}
 }
 
@@ -100,7 +100,7 @@ func (c *Client) handleLine(line string) {
 		c.send(fmt.Sprintf(strings.Replace(line, "PING", "PONG", 1)))
 	}
 	if strings.HasPrefix(line, "@") {
-		c.onNewMessage(*ParseMessage(line))
+		c.onNewMessage(*parseMessage(line))
 	}
 }
 
@@ -109,5 +109,5 @@ func (c *Client) OnNewMessage(callback func(message Message)) {
 }
 
 func (c *Client) Join(channel string) {
-	c.send(fmt.Sprintf("JOIN #%s", channel))
+	go c.send(fmt.Sprintf("JOIN #%s", channel))
 }
