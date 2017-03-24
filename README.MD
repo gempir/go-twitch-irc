@@ -8,17 +8,23 @@ This project is not working as intended yet, if you want to use it anyway, keep 
 
 ## Getting Started
 
-	client := NewClient("myUsername", "oauth:123123")
-	
-	go func() {
-		err := client.Connect()
-		fmt.Println(err.Error())
-	}()
-
-	client.Join("gempir")
-	
-	client.OnNewMessage(func(message Message) {
-		fmt.Println(message.Text)
-	})
+	package main
+    
+    import (
+    	"github.com/gempir/go-twitch-irc"
+    	"fmt"
+    )
+    
+    func main() {
+    	client := twitch.NewClient("justinfan123123", "oauth:123123123")
+    
+    	client.OnNewMessage(func(message twitch.Message) {
+    		fmt.Println(message.Text)
+    	})
+    
+    	client.Join("gempir")
+    
+    	client.Connect()
+    }
 
 	
