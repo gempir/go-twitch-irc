@@ -1,4 +1,4 @@
-package parse
+package twitch
 
 import (
 	"fmt"
@@ -12,6 +12,7 @@ type msgType int
 const (
 	PRIVMSG msgType = iota + 1
 	CLEARCHAT
+	ROOMSTATE
 )
 
 type Message struct {
@@ -22,7 +23,7 @@ type Message struct {
 	DisplayName string
 	UserType    string
 	Color       string
-	Action 		bool
+	Action      bool
 	Badges      map[string]int
 	Emotes      []*Emote
 	Tags        map[string]string
@@ -35,7 +36,7 @@ type Emote struct {
 	Count int
 }
 
-func parseMessage(line string) *Message {
+func ParseMessage(line string) *Message {
 	if !strings.HasPrefix(line, "@") {
 		return &Message{
 			Text: line,
@@ -43,9 +44,7 @@ func parseMessage(line string) *Message {
 	}
 	spl := strings.SplitN(line, " :", 3)
 	if len(spl) < 3 {
-		return &Message{
-			Text: line,
-		}
+		return getRoomstateMessage(line)
 	}
 	action := false
 	tags, middle, text := spl[0], spl[1], spl[2]
@@ -54,9 +53,9 @@ func parseMessage(line string) *Message {
 		text = text[8:]
 	}
 	msg := &Message{
-		Time: time.Now(),
-		Text: text,
-		Tags: map[string]string{},
+		Time:   time.Now(),
+		Text:   text,
+		Tags:   map[string]string{},
 		Action: action,
 	}
 	parseMiddle(msg, middle)
@@ -71,6 +70,27 @@ func parseMessage(line string) *Message {
 			time.Duration(time.Duration(seconds)*time.Second),
 			msg.Tags["ban-reason"])
 	}
+	return msg
+}
+func getRoomstateMessage(line string) *Message {
+
+	msg := &Message{}
+	msg.Type = ROOMSTATE
+	msg.Tags = make(map[string]string)
+
+	tagsString := strings.Split(strings.TrimPrefix(line, "@"), " :tmi.twitch.tv ROOMSTATE")
+	tags := strings.Split(tagsString[0], ";")
+	for _, tag := range tags {
+		tagSplit := strings.Split(tag, "=")
+
+		value := ""
+		if len(tagSplit) > 1 {
+			value = tagSplit[1]
+		}
+
+		msg.Tags[tagSplit[0]] = value
+	}
+
 	return msg
 }
 
@@ -116,18 +136,18 @@ func parseTags(msg *Message, tagsRaw string) {
 		value = strings.Replace(value, "\\s", " ", -1)
 		value = strings.Replace(value, "\\\\", "\\", -1)
 		switch spl[0] {
-			case "badges":
-				msg.Badges = parseBadges(value)
-			case "color":
-				msg.Color = value
-			case "display-name":
-				msg.DisplayName = value
-			case "emotes":
-				msg.Emotes = parseTwitchEmotes(value, msg.Text)
-			case "user-type":
-				msg.UserType = value
-			default:
-				msg.Tags[spl[0]] = value
+		case "badges":
+			msg.Badges = parseBadges(value)
+		case "color":
+			msg.Color = value
+		case "display-name":
+			msg.DisplayName = value
+		case "emotes":
+			msg.Emotes = parseTwitchEmotes(value, msg.Text)
+		case "user-type":
+			msg.UserType = value
+		default:
+			msg.Tags[spl[0]] = value
 		}
 	}
 }

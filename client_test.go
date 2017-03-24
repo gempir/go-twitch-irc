@@ -1,4 +1,4 @@
-package main
+package twitch
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -6,7 +6,7 @@ import (
 )
 
 func TestCanCreateClient(t *testing.T) {
-	client := NewClient()
+	client := NewClient("username", "oauth:1123123")
 
 	assert.IsType(t, Client{}, *client)
 }

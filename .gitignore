@@ -4,3 +4,5 @@ vendor/
 coverage-all.out
 coverage.out
 glide.lock
+
+go-twitch-irc
