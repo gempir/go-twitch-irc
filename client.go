@@ -34,7 +34,7 @@ func (c *Client) SetIrcAddress(address string) {
 	c.ircAddress = address
 }
 
-func (c *Client) Say(channel, text, responseType string) {
+func (c *Client) Say(channel, text string) {
 	c.send(fmt.Sprintf("PRIVMSG #%s :%s", channel, text))
 }
 
