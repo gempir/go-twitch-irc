@@ -22,12 +22,12 @@ type User struct {
 }
 
 type Message struct {
-	Type        msgType
-	Time        time.Time
-	Action      bool
-	Emotes      []*emote
-	Tags        map[string]string
-	Text        string
+	Type   msgType
+	Time   time.Time
+	Action bool
+	Emotes []*emote
+	Tags   map[string]string
+	Text   string
 }
 
 type Client struct {
@@ -124,20 +124,20 @@ func (c *Client) handleLine(line string) {
 		Channel := message.Channel
 
 		User := User{
-			Username: message.Username,
+			Username:    message.Username,
 			DisplayName: message.DisplayName,
-			UserType: message.UserType,
-			Color: message.Color,
-			Badges: message.Badges,
+			UserType:    message.UserType,
+			Color:       message.Color,
+			Badges:      message.Badges,
 		}
 
 		clientMessage := Message{
-			Type: message.Type,
-			Time: message.Time,
+			Type:   message.Type,
+			Time:   message.Time,
 			Action: message.Action,
 			Emotes: message.Emotes,
-			Tags: message.Tags,
-			Text: message.Text,
+			Tags:   message.Tags,
+			Text:   message.Text,
 		}
 
 		switch message.Type {
