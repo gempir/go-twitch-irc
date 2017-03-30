@@ -142,14 +142,18 @@ func (c *Client) handleLine(line string) {
 
 		switch message.Type {
 		case PRIVMSG:
-			c.onNewMessage(Channel, *User, *clientMessage)
+			if c.OnNewMessage != nil {
+				c.onNewMessage(Channel, *User, *clientMessage)
+			}
 			break
 		case ROOMSTATE:
-			c.onNewRoomstateMessage(Channel, *User, *clientMessage)
-			break
+			if c.onNewRoomstateMessage != nil {
+				c.onNewRoomstateMessage(Channel, *User, *clientMessage)
+			}
 		case CLEARCHAT:
-			c.onNewClearchatMessage(Channel, *User, *clientMessage)
-			break
+			if c.onNewRoomstateMessage != nil {
+				c.onNewClearchatMessage(Channel, *User, *clientMessage)
+			}
 		}
 	}
 }
