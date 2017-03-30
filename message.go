@@ -15,7 +15,7 @@ const (
 	ROOMSTATE
 )
 
-type Message struct {
+type message struct {
 	Type        msgType
 	Time        time.Time
 	Channel     string
@@ -36,9 +36,9 @@ type emote struct {
 	Count int
 }
 
-func parseMessage(line string) *Message {
+func parseMessage(line string) *message {
 	if !strings.HasPrefix(line, "@") {
-		return &Message{
+		return &message{
 			Text: line,
 		}
 	}
@@ -52,13 +52,13 @@ func parseMessage(line string) *Message {
 		action = true
 		text = text[8:]
 	}
-	msg := &Message{
+	msg := &message{
 		Time:   time.Now(),
 		Text:   text,
 		Tags:   map[string]string{},
 		Action: action,
 	}
-	parseMiddle(msg, middle)
+	msg.Username, msg.Type, msg.Channel = parseMiddle(middle)
 	parseTags(msg, tags[1:])
 	if msg.Type == CLEARCHAT {
 		msg.Username = "twitch"
@@ -72,9 +72,9 @@ func parseMessage(line string) *Message {
 	}
 	return msg
 }
-func getRoomstateMessage(line string) *Message {
+func getRoomstateMessage(line string) *message {
 
-	msg := &Message{}
+	msg := &message{}
 	msg.Type = ROOMSTATE
 	msg.Tags = make(map[string]string)
 
@@ -94,10 +94,14 @@ func getRoomstateMessage(line string) *Message {
 	return msg
 }
 
-func parseMiddle(msg *Message, middle string) {
+func parseMiddle(middle string) (string, msgType, string) {
+	var username string
+	var msgType msgType
+	var channel string
+
 	for i, c := range middle {
 		if c == '!' {
-			msg.Username = middle[:i]
+			username = middle[:i]
 			middle = middle[i:]
 		}
 	}
@@ -110,9 +114,9 @@ func parseMiddle(msg *Message, middle string) {
 				typ := middle[start:i]
 				switch typ {
 				case "PRIVMSG":
-					msg.Type = PRIVMSG
+					msgType = PRIVMSG
 				case "CLEARCHAT":
-					msg.Type = CLEARCHAT
+					msgType = CLEARCHAT
 				}
 				middle = middle[i:]
 			}
@@ -120,12 +124,14 @@ func parseMiddle(msg *Message, middle string) {
 	}
 	for i, c := range middle {
 		if c == '#' {
-			msg.Channel = middle[i+1:]
+			channel = middle[i+1:]
 		}
 	}
+
+	return username, msgType, channel
 }
 
-func parseTags(msg *Message, tagsRaw string) {
+func parseTags(msg *message, tagsRaw string) {
 	tags := strings.Split(tagsRaw, ";")
 	for _, tag := range tags {
 		spl := strings.SplitN(tag, "=", 2)

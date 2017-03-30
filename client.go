@@ -10,23 +10,42 @@ import (
 )
 
 const (
-	twitchIRC = "irc.chat.twitch.tv:6667"
+	IRCTWITCH = "irc.chat.twitch.tv:6667"
 )
 
+type User struct {
+	Username    string
+	DisplayName string
+	UserType    string
+	Color       string
+	Badges      map[string]int
+}
+
+type Message struct {
+	Type        msgType
+	Time        time.Time
+	Action      bool
+	Emotes      []*emote
+	Tags        map[string]string
+	Text        string
+}
+
 type Client struct {
-	ircAddress   string
-	ircUser      string
-	ircToken     string
-	connection   *net.Conn
-	connActive   bool
-	onNewMessage func(message Message)
+	ircAddress            string
+	ircUser               string
+	ircToken              string
+	connection            *net.Conn
+	connActive            bool
+	onNewMessage          func(channel string, user User, message Message)
+	onNewRoomstateMessage func(channel string, user User, message Message)
+	onNewClearchatMessage func(channel string, user User, message Message)
 }
 
 func NewClient(username, oauth string) *Client {
 	return &Client{
 		ircUser:    username,
 		ircToken:   oauth,
-		ircAddress: twitchIRC,
+		ircAddress: IRCTWITCH,
 	}
 }
 
@@ -100,12 +119,51 @@ func (c *Client) handleLine(line string) {
 		c.send(fmt.Sprintf(strings.Replace(line, "PING", "PONG", 1)))
 	}
 	if strings.HasPrefix(line, "@") {
-		c.onNewMessage(*parseMessage(line))
+		message := parseMessage(line)
+
+		Channel := message.Channel
+
+		User := User{
+			Username: message.Username,
+			DisplayName: message.DisplayName,
+			UserType: message.UserType,
+			Color: message.Color,
+			Badges: message.Badges,
+		}
+
+		clientMessage := Message{
+			Type: message.Type,
+			Time: message.Time,
+			Action: message.Action,
+			Emotes: message.Emotes,
+			Tags: message.Tags,
+			Text: message.Text,
+		}
+
+		switch message.Type {
+		case PRIVMSG:
+			c.onNewMessage(Channel, User, clientMessage)
+			break
+		case ROOMSTATE:
+			c.onNewRoomstateMessage(Channel, User, clientMessage)
+			break
+		case CLEARCHAT:
+			c.onNewClearchatMessage(Channel, User, clientMessage)
+			break
+		}
 	}
 }
 
-func (c *Client) OnNewMessage(callback func(message Message)) {
+func (c *Client) OnNewMessage(callback func(channel string, user User, message Message)) {
 	c.onNewMessage = callback
+}
+
+func (c *Client) OnNewRoomstateMessage(callback func(channel string, user User, message Message)) {
+	c.onNewRoomstateMessage = callback
+}
+
+func (c *Client) OnNewClearchatMessage(callback func(channel string, user User, message Message)) {
+	c.onNewClearchatMessage = callback
 }
 
 func (c *Client) Join(channel string) {
