@@ -123,7 +123,7 @@ func (c *Client) handleLine(line string) {
 
 		Channel := message.Channel
 
-		User := User{
+		User := &User{
 			Username:    message.Username,
 			DisplayName: message.DisplayName,
 			UserType:    message.UserType,
@@ -131,7 +131,7 @@ func (c *Client) handleLine(line string) {
 			Badges:      message.Badges,
 		}
 
-		clientMessage := Message{
+		clientMessage := &Message{
 			Type:   message.Type,
 			Time:   message.Time,
 			Action: message.Action,
@@ -142,13 +142,13 @@ func (c *Client) handleLine(line string) {
 
 		switch message.Type {
 		case PRIVMSG:
-			c.onNewMessage(Channel, User, clientMessage)
+			c.onNewMessage(Channel, *User, *clientMessage)
 			break
 		case ROOMSTATE:
-			c.onNewRoomstateMessage(Channel, User, clientMessage)
+			c.onNewRoomstateMessage(Channel, *User, *clientMessage)
 			break
 		case CLEARCHAT:
-			c.onNewClearchatMessage(Channel, User, clientMessage)
+			c.onNewClearchatMessage(Channel, *User, *clientMessage)
 			break
 		}
 	}
