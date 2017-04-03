@@ -27,25 +27,21 @@ This is an irc client for connecting to twitch. It handles the annoying stuff li
 
 The 2 structs twitch.User and twitch.Message look like this:
 
-	type message struct {
-    	Type        msgType
-    	Time        time.Time
-    	Channel     string
+	type User struct {
     	Username    string
     	DisplayName string
     	UserType    string
     	Color       string
-    	Action      bool
     	Badges      map[string]int
-    	Emotes      []*emote
-    	Tags        map[string]string
-    	Text        string
     }
     
-    type emote struct {
-    	Name  string
-    	ID    string
-    	Count int
+    type Message struct {
+    	Type   msgType
+    	Time   time.Time
+    	Action bool
+    	Emotes []*emote
+    	Tags   map[string]string
+    	Text   string
     }
 
 Channel is just a string like "lirik", note the absent #.
@@ -61,6 +57,6 @@ These are the 3 mayor message types currently supported
 	
 And their corresponding functions 
 
-	onNewMessage          func(channel string, user User, message Message)
-	onNewRoomstateMessage func(channel string, user User, message Message)
-	onNewClearchatMessage func(channel string, user User, message Message)
+	OnNewMessage          func(channel string, user User, message Message)
+	OnNewRoomstateMessage func(channel string, user User, message Message)
+	OnNewClearchatMessage func(channel string, user User, message Message)
