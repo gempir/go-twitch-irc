@@ -2,13 +2,10 @@ PACKAGES = $(shell go list ./... | grep -v /vendor/)
 
 build:
 	glide install
-	glide update
-
-install:
-	go install
+	go build
 
 test:
-	go test -v $(shell go list ./... | grep -v /vendor/)
+	go test -v $(PACKAGES)
 
 cover:
 	echo "mode: count" > coverage-all.out
@@ -16,6 +13,3 @@ cover:
 		go test -coverprofile=coverage.out -covermode=count $(pkg);\
 		tail -n +2 coverage.out >> coverage-all.out;)
 	go tool cover -html=coverage-all.out
-
-fmt:
-	go fmt ./... 2>&1 | grep -v ^vendor
