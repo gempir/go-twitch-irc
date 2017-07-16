@@ -10,9 +10,11 @@ import (
 )
 
 const (
+	// IRCTWITCH constant for irc chat address
 	IRCTWITCH = "irc.chat.twitch.tv:6667"
 )
 
+// User data you receive from tmi
 type User struct {
 	Username    string
 	DisplayName string
@@ -21,6 +23,7 @@ type User struct {
 	Badges      map[string]int
 }
 
+// Message data you receive from tmi
 type Message struct {
 	Type   msgType
 	Time   time.Time
@@ -30,6 +33,7 @@ type Message struct {
 	Text   string
 }
 
+// Client client to control your connection and attach callbacks
 type Client struct {
 	ircAddress            string
 	ircUser               string
@@ -41,6 +45,7 @@ type Client struct {
 	onNewClearchatMessage func(channel string, user User, message Message)
 }
 
+// NewClient to create a new client
 func NewClient(username, oauth string) *Client {
 	return &Client{
 		ircUser:    username,
@@ -49,14 +54,17 @@ func NewClient(username, oauth string) *Client {
 	}
 }
 
+// SetIrcAddress overwrite the standard tmi irc address
 func (c *Client) SetIrcAddress(address string) {
 	c.ircAddress = address
 }
 
+// Say write something in a chat
 func (c *Client) Say(channel, text string) {
 	c.send(fmt.Sprintf("PRIVMSG #%s :%s", channel, text))
 }
 
+// Connect open a connection to the tmi irc address set
 func (c *Client) Connect() error {
 	for {
 		conn, err := net.Dial("tcp", c.ircAddress)
@@ -74,7 +82,6 @@ func (c *Client) Connect() error {
 			continue
 		}
 	}
-	return nil
 }
 
 func (c *Client) readConnection(conn net.Conn) error {
@@ -158,18 +165,22 @@ func (c *Client) handleLine(line string) {
 	}
 }
 
+// OnNewMessage attach callback to new standard chat messages
 func (c *Client) OnNewMessage(callback func(channel string, user User, message Message)) {
 	c.onNewMessage = callback
 }
 
+// OnNewRoomstateMessage attach callback to new messages such as submode enabled
 func (c *Client) OnNewRoomstateMessage(callback func(channel string, user User, message Message)) {
 	c.onNewRoomstateMessage = callback
 }
 
+// OnNewClearchatMessage attach callback to new messages such as timeouts
 func (c *Client) OnNewClearchatMessage(callback func(channel string, user User, message Message)) {
 	c.onNewClearchatMessage = callback
 }
 
+// Join enter a twitch channel to read more messages
 func (c *Client) Join(channel string) {
 	go c.send(fmt.Sprintf("JOIN #%s", channel))
 }

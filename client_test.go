@@ -1,12 +1,37 @@
 package twitch
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCanCreateClient(t *testing.T) {
 	client := NewClient("username", "oauth:1123123")
 
 	assert.IsType(t, Client{}, *client)
+}
+
+func TestCanConnect(t *testing.T) {
+	client := NewClient("username", "oauth:123123132")
+
+	go client.Connect()
+	time.Sleep(time.Second)
+	assert.True(t, true)
+}
+
+func TestCanJoinChannel(t *testing.T) {
+	client := NewClient("username", "oauth:123123132")
+
+	client.Join("gempir")
+	time.Sleep(time.Second)
+	assert.True(t, true)
+}
+
+func TestFailsWhenUsingInvalidIrcAddress(t *testing.T) {
+	client := NewClient("username", "oauth:123123132")
+	client.SetIrcAddress("someweird.address.com")
+
+	assert.Error(t, client.Connect())
 }

@@ -10,8 +10,11 @@ import (
 type msgType int
 
 const (
+	// PRIVMSG standard chat message
 	PRIVMSG msgType = iota + 1
+	// CLEARCHAT timeout messages
 	CLEARCHAT
+	// ROOMSTATE changes like sub mode
 	ROOMSTATE
 )
 
@@ -72,6 +75,7 @@ func parseMessage(line string) *message {
 	}
 	return msg
 }
+
 func getRoomstateMessage(line string) *message {
 
 	msg := &message{}
