@@ -1,4 +1,0 @@
-package: github.com/gempir/go-twitch-irc
-import:
-- package: github.com/stretchr/testify
-  version: ^1.1.4

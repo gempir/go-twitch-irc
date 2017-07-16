@@ -1,7 +1,11 @@
 PACKAGES = $(shell go list ./... | grep -v /vendor/)
 
+default: install build
+
+install:
+	go get github.com/stretchr/testify/assert
+
 build:
-	glide install
 	go build
 
 test:

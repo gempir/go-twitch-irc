@@ -5,3 +5,4 @@ coverage-all.out
 coverage.out
 
 go-twitch-irc
+debug.test
