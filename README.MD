@@ -2,6 +2,8 @@
 
 This is an irc client for connecting to twitch. It handles the annoying stuff like irc tag parsing.
 
+godoc: https://godoc.org/github.com/gempir/go-twitch-irc
+
 ## Getting Started
 
 	package main
