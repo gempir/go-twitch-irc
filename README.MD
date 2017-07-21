@@ -56,9 +56,3 @@ These are the 3 mayor message types currently supported
 	PRIVMSG
 	ROOMSTATE
 	CLEARCHAT
-	
-And their corresponding functions 
-
-	OnNewMessage          func(channel string, user User, message Message)
-	OnNewRoomstateMessage func(channel string, user User, message Message)
-	OnNewClearchatMessage func(channel string, user User, message Message)
