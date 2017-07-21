@@ -28,12 +28,13 @@ type message struct {
 	Color       string
 	Action      bool
 	Badges      map[string]int
-	Emotes      []*emote
+	Emotes      []*Emote
 	Tags        map[string]string
 	Text        string
 }
 
-type emote struct {
+// Emote twitch emotes
+type Emote struct {
 	Name  string
 	ID    string
 	Count int
@@ -176,8 +177,8 @@ func parseBadges(badges string) map[string]int {
 	return m
 }
 
-func parseTwitchEmotes(emoteTag, text string) []*emote {
-	emotes := []*emote{}
+func parseTwitchEmotes(emoteTag, text string) []*Emote {
+	emotes := []*Emote{}
 
 	if emoteTag == "" {
 		return emotes
@@ -193,7 +194,7 @@ func parseTwitchEmotes(emoteTag, text string) []*emote {
 		start, _ := strconv.Atoi(sp[0])
 		end, _ := strconv.Atoi(sp[1])
 		id := spl[0]
-		e := &emote{
+		e := &Emote{
 			ID:    id,
 			Count: strings.Count(emoteSlice[i], "-"),
 			Name:  string(runes[start : end+1]),
