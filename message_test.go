@@ -1,8 +1,9 @@
 package twitch
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCanParseMessage(t *testing.T) {

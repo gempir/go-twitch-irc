@@ -1,5 +1,3 @@
-PACKAGES = $(shell go list ./... | grep -v /vendor/)
-
 default: install build
 
 install:
@@ -9,11 +7,9 @@ build:
 	go build
 
 test:
-	go test -v $(PACKAGES)
+	@go test -v
 
 cover:
-	echo "mode: count" > coverage-all.out
-	$(foreach pkg,$(PACKAGES),\
-		go test -coverprofile=coverage.out -covermode=count $(pkg);\
-		tail -n +2 coverage.out >> coverage-all.out;)
-	go tool cover -html=coverage-all.out
+	@go test -coverprofile=coverage.out -covermode=count
+	@go tool cover -html=coverage.out
+    

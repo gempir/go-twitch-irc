@@ -2,8 +2,8 @@ vendor/
 .idea/
 .vscode/
 
-coverage-all.out
 coverage.out
+coverage.html
 
 go-twitch-irc
 debug.test
