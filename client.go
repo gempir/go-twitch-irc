@@ -93,7 +93,7 @@ func (c *Client) Connect() {
 		conn, err := net.Dial("tcp", c.ircAddress)
 		c.connection = &conn
 		if err != nil {
-			fmt.Println("Dialing failed trying again in 1s")
+			fmt.Printf("Dialing failed trying again in 1s. Error: %s", err.Error())
 			time.Sleep(time.Second)
 			continue
 		}
@@ -102,7 +102,7 @@ func (c *Client) Connect() {
 
 		err = c.readConnection(conn)
 		if err != nil {
-			fmt.Println("Connection read error, reconnecting...")
+			fmt.Printf("Connection read error, reconnecting. Error: %s", err.Error())
 			continue
 		}
 	}
