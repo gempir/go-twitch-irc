@@ -87,20 +87,22 @@ func (c *Client) Join(channel string) {
 	go c.send(fmt.Sprintf("JOIN #%s", channel))
 }
 
-// Connect open a connection to the tmi irc address set
-func (c *Client) Connect() error {
+// Connect connect the client to the irc server
+func (c *Client) Connect() {
 	for {
 		conn, err := net.Dial("tcp", c.ircAddress)
 		c.connection = &conn
 		if err != nil {
-			return err
+			fmt.Println("Dialing failed trying again in 1s")
+			time.Sleep(time.Second)
+			continue
 		}
 
 		go c.setupConnection()
 
 		err = c.readConnection(conn)
 		if err != nil {
-			fmt.Println("connection read error, reconnecting...")
+			fmt.Println("Connection read error, reconnecting...")
 			continue
 		}
 	}
@@ -168,7 +170,7 @@ func (c *Client) handleLine(line string) {
 
 		switch message.Type {
 		case PRIVMSG:
-			if c.OnNewMessage != nil {
+			if c.onNewMessage != nil {
 				c.onNewMessage(Channel, *User, *clientMessage)
 			}
 		case ROOMSTATE:
