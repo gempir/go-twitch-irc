@@ -1,10 +1,7 @@
-default: install build
-
-install:
-	go get github.com/stretchr/testify/assert
+default: build
 
 build:
-	go build
+	@go build
 
 test:
 	@go test -v

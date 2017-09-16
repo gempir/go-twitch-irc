@@ -1,16 +1,17 @@
 package twitch
 
 import (
+	"reflect"
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestCanCreateClient(t *testing.T) {
 	client := NewClient("justinfan123123", "oauth:1123123")
 
-	assert.IsType(t, Client{}, *client)
+	if reflect.TypeOf(*client) != reflect.TypeOf(Client{}) {
+		t.Error("client is not of type Client")
+	}
 }
 
 func TestCanConnect(t *testing.T) {
@@ -19,8 +20,7 @@ func TestCanConnect(t *testing.T) {
 	client.SetIrcAddress("irc.chat.twitch.tv:6667")
 
 	go client.Connect()
-	time.Sleep(time.Second)
-	assert.True(t, true)
+	time.Sleep(time.Millisecond * 100)
 }
 
 func TestCanJoinChannel(t *testing.T) {
@@ -39,6 +39,5 @@ func TestCanJoinChannel(t *testing.T) {
 	})
 
 	client.Join("gempir")
-	time.Sleep(time.Second)
-	assert.True(t, true)
+	time.Sleep(time.Millisecond * 100)
 }

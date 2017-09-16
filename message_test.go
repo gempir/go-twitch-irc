@@ -2,42 +2,44 @@ package twitch
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestCanParseMessage(t *testing.T) {
 	testMessage := "@badges=subscriber/6,premium/1;color=#FF0000;display-name=Redflamingo13;emotes=;id=2a31a9df-d6ff-4840-b211-a2547c7e656e;mod=0;room-id=11148817;subscriber=1;tmi-sent-ts=1490382457309;turbo=0;user-id=78424343;user-type= :redflamingo13!redflamingo13@redflamingo13.tmi.twitch.tv PRIVMSG #pajlada :Thrashh5, FeelsWayTooAmazingMan kinda"
 	message := parseMessage(testMessage)
 
-	assert.Equal(t, "pajlada", message.Channel)
-	assert.Equal(t, 6, message.Badges["subscriber"])
-	assert.Equal(t, "#FF0000", message.Color)
-	assert.Equal(t, "Redflamingo13", message.DisplayName)
-	assert.Equal(t, 0, len(message.Emotes))
-	assert.Equal(t, "0", message.Tags["mod"])
-	assert.Equal(t, "Thrashh5, FeelsWayTooAmazingMan kinda", message.Text)
-	assert.Equal(t, PRIVMSG, message.Type)
-	assert.Equal(t, "redflamingo13", message.Username)
-	assert.Equal(t, "", message.UserType)
-	assert.False(t, message.Action)
+	assertStringsEqual(t, "pajlada", message.Channel)
+	assertIntsEqual(t, 6, message.Badges["subscriber"])
+	assertStringsEqual(t, "#FF0000", message.Color)
+	assertStringsEqual(t, "Redflamingo13", message.DisplayName)
+	assertIntsEqual(t, 0, len(message.Emotes))
+	assertStringsEqual(t, "0", message.Tags["mod"])
+	assertStringsEqual(t, "Thrashh5, FeelsWayTooAmazingMan kinda", message.Text)
+	if message.Type != PRIVMSG {
+		t.Error("parsing message type failed")
+	}
+	assertStringsEqual(t, "redflamingo13", message.Username)
+	assertStringsEqual(t, "", message.UserType)
+	assertFalse(t, message.Action, "parsing action failed")
 }
 
 func TestCanParseActionMessage(t *testing.T) {
 	testMessage := "@badges=subscriber/6,premium/1;color=#FF0000;display-name=Redflamingo13;emotes=;id=2a31a9df-d6ff-4840-b211-a2547c7e656e;mod=0;room-id=11148817;subscriber=1;tmi-sent-ts=1490382457309;turbo=0;user-id=78424343;user-type= :redflamingo13!redflamingo13@redflamingo13.tmi.twitch.tv PRIVMSG #pajlada :\u0001ACTION Thrashh5, FeelsWayTooAmazingMan kinda"
 	message := parseMessage(testMessage)
 
-	assert.Equal(t, "pajlada", message.Channel)
-	assert.Equal(t, 6, message.Badges["subscriber"])
-	assert.Equal(t, "#FF0000", message.Color)
-	assert.Equal(t, "Redflamingo13", message.DisplayName)
-	assert.Equal(t, 0, len(message.Emotes))
-	assert.Equal(t, "0", message.Tags["mod"])
-	assert.Equal(t, "Thrashh5, FeelsWayTooAmazingMan kinda", message.Text)
-	assert.Equal(t, PRIVMSG, message.Type)
-	assert.Equal(t, "redflamingo13", message.Username)
-	assert.Equal(t, "", message.UserType)
-	assert.True(t, message.Action)
+	assertStringsEqual(t, "pajlada", message.Channel)
+	assertIntsEqual(t, 6, message.Badges["subscriber"])
+	assertStringsEqual(t, "#FF0000", message.Color)
+	assertStringsEqual(t, "Redflamingo13", message.DisplayName)
+	assertIntsEqual(t, 0, len(message.Emotes))
+	assertStringsEqual(t, "0", message.Tags["mod"])
+	assertStringsEqual(t, "Thrashh5, FeelsWayTooAmazingMan kinda", message.Text)
+	if message.Type != PRIVMSG {
+		t.Error("parsing message type failed")
+	}
+	assertStringsEqual(t, "redflamingo13", message.Username)
+	assertStringsEqual(t, "", message.UserType)
+	assertTrue(t, message.Action, "parsing action failed")
 }
 
 func TestCantParseNoTagsMessage(t *testing.T) {
@@ -45,7 +47,7 @@ func TestCantParseNoTagsMessage(t *testing.T) {
 
 	message := parseMessage(testMessage)
 
-	assert.Equal(t, testMessage, message.Text)
+	assertStringsEqual(t, testMessage, message.Text)
 }
 
 func TestCantParseInvalidMessage(t *testing.T) {
@@ -53,7 +55,7 @@ func TestCantParseInvalidMessage(t *testing.T) {
 
 	message := parseMessage(testMessage)
 
-	assert.Equal(t, "", message.Text)
+	assertStringsEqual(t, "", message.Text)
 }
 
 func TestCanParseClearChatMessage(t *testing.T) {
@@ -61,7 +63,9 @@ func TestCanParseClearChatMessage(t *testing.T) {
 
 	message := parseMessage(testMessage)
 
-	assert.Equal(t, CLEARCHAT, message.Type)
+	if message.Type != CLEARCHAT {
+		t.Error("parsing CLEARCHAT message failed")
+	}
 }
 
 func TestCanParseEmoteMessage(t *testing.T) {
@@ -69,5 +73,5 @@ func TestCanParseEmoteMessage(t *testing.T) {
 
 	message := parseMessage(testMessage)
 
-	assert.Equal(t, 1, len(message.Emotes))
+	assertIntsEqual(t, 1, len(message.Emotes))
 }
