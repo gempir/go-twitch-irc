@@ -1,7 +1,10 @@
 package twitch
 
 import (
+	"bufio"
+	"net"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -14,30 +17,37 @@ func TestCanCreateClient(t *testing.T) {
 	}
 }
 
-func TestCanConnect(t *testing.T) {
+func TestCanConnectAndAuthenticate(t *testing.T) {
+	var nicknameMsg string
+	var oauthMsg string
+
+	go func() {
+		ln, _ := net.Listen("tcp", ":4321")
+		conn, _ := ln.Accept()
+
+		for {
+			message, _ := bufio.NewReader(conn).ReadString('\n')
+			message = strings.Replace(message, "\r\n", "", 1)
+			if strings.HasPrefix(message, "NICK") {
+				nicknameMsg = message
+			}
+			if strings.HasPrefix(message, "PASS") {
+				oauthMsg = message
+			}
+			if nicknameMsg != "" && oauthMsg != "" {
+				ln.Close()
+			}
+		}
+	}()
+
 	client := NewClient("justinfan123123", "oauth:123123132")
-
-	client.SetIrcAddress("irc.chat.twitch.tv:6667")
-
+	client.SetIrcAddress("127.0.0.1:4321")
 	go client.Connect()
-	time.Sleep(time.Millisecond * 100)
-}
 
-func TestCanJoinChannel(t *testing.T) {
-	client := NewClient("justinfan123123", "oauth:123123132")
+	// wait for client to connect and server to read messages
+	time.Sleep(time.Second)
 
-	client.OnNewMessage(func(channel string, user User, message Message) {
-
-	})
-
-	client.OnNewRoomstateMessage(func(channel string, user User, message Message) {
-
-	})
-
-	client.OnNewClearchatMessage(func(channel string, user User, message Message) {
-
-	})
-
-	client.Join("gempir")
-	time.Sleep(time.Millisecond * 100)
+	if nicknameMsg != "NICK justinfan123123" || oauthMsg != "PASS oauth:123123132" {
+		t.Fatalf("invalid authentication data: username: %s, oauth: %s", nicknameMsg, oauthMsg)
+	}
 }
