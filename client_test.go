@@ -47,7 +47,7 @@ func TestCanConnectAndAuthenticate(t *testing.T) {
 	go client.Connect()
 
 	// wait for client to connect and server to read messages
-	time.Sleep(time.Millisecond * 500)
+	time.Sleep(time.Second)
 
 	if nicknameMsg != "NICK justinfan123123" || oauthMsg != "PASS oauth:123123132" {
 		t.Fatalf("invalid authentication data: username: %s, oauth: %s", nicknameMsg, oauthMsg)
