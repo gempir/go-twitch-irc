@@ -39,13 +39,15 @@ func TestCanConnectAndAuthenticate(t *testing.T) {
 			}
 		}
 	}()
+	// wait for server to start
+	time.Sleep(time.Millisecond * 100)
 
 	client := NewClient("justinfan123123", "oauth:123123132")
 	client.SetIrcAddress(":4321")
 	go client.Connect()
 
 	// wait for client to connect and server to read messages
-	time.Sleep(time.Second)
+	time.Sleep(time.Millisecond * 500)
 
 	if nicknameMsg != "NICK justinfan123123" || oauthMsg != "PASS oauth:123123132" {
 		t.Fatalf("invalid authentication data: username: %s, oauth: %s", nicknameMsg, oauthMsg)
