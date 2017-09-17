@@ -41,7 +41,7 @@ func TestCanConnectAndAuthenticate(t *testing.T) {
 	}()
 
 	client := NewClient("justinfan123123", "oauth:123123132")
-	client.SetIrcAddress("127.0.0.1:4321")
+	client.SetIrcAddress(":4321")
 	go client.Connect()
 
 	// wait for client to connect and server to read messages
