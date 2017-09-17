@@ -18,24 +18,25 @@ func TestCanCreateClient(t *testing.T) {
 }
 
 func TestCanConnectAndAuthenticate(t *testing.T) {
-	var nicknameMsg string
 	var oauthMsg string
 
 	go func() {
-		ln, _ := net.Listen("tcp", ":4321")
-		conn, _ := ln.Accept()
+		ln, err := net.Listen("tcp", ":4321")
+		if err != nil {
+			t.Fatal(err)
+		}
+		conn, err := ln.Accept()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer ln.Close()
+		defer conn.Close()
 
 		for {
 			message, _ := bufio.NewReader(conn).ReadString('\n')
 			message = strings.Replace(message, "\r\n", "", 1)
-			if strings.HasPrefix(message, "NICK") {
-				nicknameMsg = message
-			}
 			if strings.HasPrefix(message, "PASS") {
 				oauthMsg = message
-			}
-			if nicknameMsg != "" && oauthMsg != "" {
-				ln.Close()
 			}
 		}
 	}()
@@ -49,7 +50,7 @@ func TestCanConnectAndAuthenticate(t *testing.T) {
 	// wait for client to connect and server to read messages
 	time.Sleep(time.Second)
 
-	if nicknameMsg != "NICK justinfan123123" || oauthMsg != "PASS oauth:123123132" {
-		t.Fatalf("invalid authentication data: username: %s, oauth: %s", nicknameMsg, oauthMsg)
+	if oauthMsg != "PASS oauth:123123132" {
+		t.Fatalf("invalid authentication data: oauth: %s", oauthMsg)
 	}
 }
