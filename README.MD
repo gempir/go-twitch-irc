@@ -5,46 +5,50 @@ This is an irc client for connecting to twitch. It handles the annoying stuff li
 godoc: https://godoc.org/github.com/gempir/go-twitch-irc
 
 ## Getting Started
+```go
+package main
 
-	package main
-    
-    import (
-    	"github.com/gempir/go-twitch-irc"
-    	"fmt"
-    )
-    
-    func main() {
-    	client := twitch.NewClient("justinfan123123", "oauth:123123123")
-    
-    	client.OnNewMessage(func(channel string, user twitch.User, message twitch.Message) {
-    		fmt.Println(message.Text)
-    	})
-    
-    	client.Join("gempir")
-    
-    	client.Connect()
-    }
+import (
+	"fmt"
+	"github.com/gempir/go-twitch-irc"
+)
+
+func main() {
+	client := twitch.NewClient("justinfan123123", "oauth:123123123")
+
+	client.OnNewMessage(func(channel string, user twitch.User, message twitch.Message) {
+		fmt.Println(message.Text)
+	})
+
+	client.Join("gempir")
+
+	client.Connect()
+}
+
+```
 
 ### Available Data
 
 The 2 structs twitch.User and twitch.Message look like this:
 
-	type User struct {
-    	Username    string
-    	DisplayName string
-    	UserType    string
-    	Color       string
-    	Badges      map[string]int
-    }
-    
-    type Message struct {
-    	Type   msgType
-    	Time   time.Time
-    	Action bool
-    	Emotes []*emote
-    	Tags   map[string]string
-    	Text   string
-    }
+```go
+type User struct {
+	Username    string
+	DisplayName string
+	UserType    string
+	Color       string
+	Badges      map[string]int
+}
+
+type Message struct {
+	Type   msgType
+	Time   time.Time
+	Action bool
+	Emotes []*emote
+	Tags   map[string]string
+	Text   string
+}
+```
 
 Channel is just a string like "lirik", note the absent #.
 
