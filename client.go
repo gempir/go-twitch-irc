@@ -35,11 +35,13 @@ type Message struct {
 
 // Client client to control your connection and attach callbacks
 type Client struct {
+	Errors                chan (string)
 	ircAddress            string
 	ircUser               string
 	ircToken              string
 	connection            *net.Conn
 	connActive            bool
+	closingConn           bool
 	onNewMessage          MessageCallback
 	onNewRoomstateMessage MessageCallback
 	onNewClearchatMessage MessageCallback
@@ -93,7 +95,7 @@ func (c *Client) Connect() {
 		conn, err := net.Dial("tcp", c.ircAddress)
 		c.connection = &conn
 		if err != nil {
-			fmt.Printf("Dialing failed trying again in 1s. Error: %s", err.Error())
+			c.Errors <- fmt.Sprintf("Dialing failed trying again in 1s. Error: %s", err.Error())
 			time.Sleep(time.Second)
 			continue
 		}
@@ -102,7 +104,7 @@ func (c *Client) Connect() {
 
 		err = c.readConnection(conn)
 		if err != nil {
-			fmt.Printf("Connection read error, reconnecting. Error: %s", err.Error())
+			c.Errors <- fmt.Sprintf("Dialing failed trying again in 1s. Error: %s", err.Error())
 			continue
 		}
 	}
@@ -178,7 +180,7 @@ func (c *Client) handleLine(line string) {
 				c.onNewRoomstateMessage(Channel, *User, *clientMessage)
 			}
 		case CLEARCHAT:
-			if c.onNewRoomstateMessage != nil {
+			if c.onNewClearchatMessage != nil {
 				c.onNewClearchatMessage(Channel, *User, *clientMessage)
 			}
 		}

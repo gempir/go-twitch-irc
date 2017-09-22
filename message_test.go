@@ -59,7 +59,7 @@ func TestCantParseInvalidMessage(t *testing.T) {
 }
 
 func TestCanParseClearChatMessage(t *testing.T) {
-	testMessage := `@ban-duration=1;ban-reason=testing\sxd;room-id=11148817;target-user-id=40910607 :tmi.twitch.tv CLEARCHAT #pajlada :ampzyh"`
+	testMessage := `@ban-duration=1;ban-reason=testing\sxd;room-id=11148817;target-user-id=40910607 :tmi.twitch.tv CLEARCHAT #pajlada :ampzyh`
 
 	message := parseMessage(testMessage)
 
