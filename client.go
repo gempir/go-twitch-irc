@@ -35,8 +35,7 @@ type Message struct {
 
 // Client client to control your connection and attach callbacks
 type Client struct {
-	Errors                chan (string)
-	ircAddress            string
+	IrcAddress            string
 	ircUser               string
 	ircToken              string
 	connection            *net.Conn
@@ -55,13 +54,8 @@ func NewClient(username, oauth string) *Client {
 	return &Client{
 		ircUser:    username,
 		ircToken:   oauth,
-		ircAddress: ircTwitch,
+		IrcAddress: ircTwitch,
 	}
-}
-
-// SetIrcAddress overwrite the standard tmi irc address
-func (c *Client) SetIrcAddress(address string) {
-	c.ircAddress = address
 }
 
 // OnNewMessage attach callback to new standard chat messages
@@ -86,13 +80,13 @@ func (c *Client) Say(channel, text string) {
 
 // Join enter a twitch channel to read more messages
 func (c *Client) Join(channel string) {
-	go c.send(fmt.Sprintf("JOIN #%s", channel))
+	c.send(fmt.Sprintf("JOIN #%s", channel))
 }
 
 // Connect connect the client to the irc server
 func (c *Client) Connect() error {
 	for {
-		conn, err := net.Dial("tcp", c.ircAddress)
+		conn, err := net.Dial("tcp", c.IrcAddress)
 		c.connection = &conn
 		if err != nil {
 			return err
@@ -102,7 +96,7 @@ func (c *Client) Connect() error {
 
 		err = c.readConnection(conn)
 		if err != nil {
-			c.Errors <- fmt.Sprintf("Error reading connection, reconnecting in 1s. Error: %s", err.Error())
+			time.Sleep(time.Millisecond * 200)
 			continue
 		}
 	}
@@ -133,13 +127,15 @@ func (c *Client) setupConnection() {
 	fmt.Fprint(*c.connection, "CAP REQ :twitch.tv/commands\r\n")
 }
 
-// @TODO rethink recursion here, if the connection stays inactive we will run into an endless loop
 func (c *Client) send(line string) {
-	if !c.connActive {
-		c.send(line)
+	for i := 0; i < 1000; i++ {
+		if !c.connActive {
+			time.Sleep(time.Millisecond * 2)
+			continue
+		}
+		fmt.Fprint(*c.connection, line+"\r\n")
 		return
 	}
-	fmt.Fprint(*c.connection, line+"\r\n")
 }
 
 func (c *Client) handleLine(line string) {

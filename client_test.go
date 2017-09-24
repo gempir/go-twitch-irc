@@ -60,7 +60,7 @@ func TestCanConnectAndAuthenticate(t *testing.T) {
 	}
 
 	client := NewClient("justinfan123123", "oauth:123123132")
-	client.SetIrcAddress(":4321")
+	client.IrcAddress = ":4321"
 	go client.Connect()
 
 	select {
@@ -102,7 +102,7 @@ func TestCanReceivePRIVMSGMessage(t *testing.T) {
 	}
 
 	client := NewClient("justinfan123123", "oauth:123123132")
-	client.SetIrcAddress(":4322")
+	client.IrcAddress = ":4322"
 	go client.Connect()
 
 	waitMsg := make(chan string)
@@ -153,7 +153,7 @@ func TestCanReceiveCLEARCHATMessage(t *testing.T) {
 	}
 
 	client := NewClient("justinfan123123", "oauth:123123132")
-	client.SetIrcAddress(":4323")
+	client.IrcAddress = ":4323"
 	go client.Connect()
 
 	waitMsg := make(chan string)
@@ -202,7 +202,7 @@ func TestCanReceiveROOMSTATEMessage(t *testing.T) {
 	}
 
 	client := NewClient("justinfan123123", "oauth:123123132")
-	client.SetIrcAddress(":4324")
+	client.IrcAddress = ":4324"
 	go client.Connect()
 
 	waitMsg := make(chan string)
@@ -270,8 +270,7 @@ func TestCanSayMessage(t *testing.T) {
 	}
 
 	client := NewClient("justinfan123123", "oauth:123123132")
-	client.SetIrcAddress(":4325")
-
+	client.IrcAddress = ":4325"
 	go client.Connect()
 
 	client.Say("gempir", testMessage)
@@ -332,8 +331,7 @@ func TestCanJoinChannel(t *testing.T) {
 	}
 
 	client := NewClient("justinfan123123", "oauth:123123132")
-	client.SetIrcAddress(":4326")
-
+	client.IrcAddress = ":4326"
 	go client.Connect()
 
 	client.Join("gempir")
@@ -395,8 +393,7 @@ func TestCanPong(t *testing.T) {
 	}
 
 	client := NewClient("justinfan123123", "oauth:123123132")
-	client.SetIrcAddress(":4327")
-
+	client.IrcAddress = ":4327"
 	go client.Connect()
 
 	// wait for server to receive message
@@ -411,7 +408,7 @@ func TestCanPong(t *testing.T) {
 
 func TestCanNotDialInvalidAddress(t *testing.T) {
 	client := NewClient("justinfan123123", "oauth:123123132")
-	client.SetIrcAddress("127.0.0.1:123123123123")
+	client.IrcAddress = "127.0.0.1:123123123123"
 
 	err := client.Connect()
 	if !strings.Contains(err.Error(), "invalid port") {
