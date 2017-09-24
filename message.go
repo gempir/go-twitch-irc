@@ -140,9 +140,6 @@ func parseTags(msg *message, tagsRaw string) {
 	tags := strings.Split(tagsRaw, ";")
 	for _, tag := range tags {
 		spl := strings.SplitN(tag, "=", 2)
-		if len(spl) < 2 {
-			return
-		}
 		value := strings.Replace(spl[1], "\\:", ";", -1)
 		value = strings.Replace(value, "\\s", " ", -1)
 		value = strings.Replace(value, "\\\\", "\\", -1)

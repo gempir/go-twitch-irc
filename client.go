@@ -90,21 +90,19 @@ func (c *Client) Join(channel string) {
 }
 
 // Connect connect the client to the irc server
-func (c *Client) Connect() {
+func (c *Client) Connect() error {
 	for {
 		conn, err := net.Dial("tcp", c.ircAddress)
 		c.connection = &conn
 		if err != nil {
-			c.Errors <- fmt.Sprintf("Dialing failed trying again in 1s. Error: %s", err.Error())
-			time.Sleep(time.Second)
-			continue
+			return err
 		}
 
 		go c.setupConnection()
 
 		err = c.readConnection(conn)
 		if err != nil {
-			c.Errors <- fmt.Sprintf("Dialing failed trying again in 1s. Error: %s", err.Error())
+			c.Errors <- fmt.Sprintf("Error reading connection, reconnecting in 1s. Error: %s", err.Error())
 			continue
 		}
 	}
@@ -135,9 +133,9 @@ func (c *Client) setupConnection() {
 	fmt.Fprint(*c.connection, "CAP REQ :twitch.tv/commands\r\n")
 }
 
+// @TODO rethink recursion here, if the connection stays inactive we will run into an endless loop
 func (c *Client) send(line string) {
 	if !c.connActive {
-		time.Sleep(time.Second * 1)
 		c.send(line)
 		return
 	}

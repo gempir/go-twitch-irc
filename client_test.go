@@ -285,3 +285,136 @@ func TestCanSayMessage(t *testing.T) {
 
 	assertStringsEqual(t, "PRIVMSG #gempir :"+testMessage, receivedMsg)
 }
+
+func TestCanJoinChannel(t *testing.T) {
+	wait := make(chan struct{})
+
+	waitEnd := make(chan struct{})
+	var receivedMsg string
+
+	go func() {
+		ln, err := net.Listen("tcp", ":4326")
+		if err != nil {
+			t.Fatal(err)
+		}
+		close(wait)
+		conn, err := ln.Accept()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer ln.Close()
+		defer conn.Close()
+
+		reader := bufio.NewReader(conn)
+		tp := textproto.NewReader(reader)
+
+		for {
+			message, err := tp.ReadLine()
+			if err != nil {
+				t.Fatal(err)
+			}
+			message = strings.Replace(message, "\r\n", "", 1)
+			if strings.HasPrefix(message, "NICK") {
+				fmt.Fprintf(conn, ":tmi.twitch.tv 001 justinfan123123 :Welcome, GLHF!\r\n")
+			}
+			if strings.HasPrefix(message, "JOIN") {
+				receivedMsg = message
+				close(waitEnd)
+			}
+		}
+	}()
+
+	// wait for server to start
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("testserver didn't start")
+	}
+
+	client := NewClient("justinfan123123", "oauth:123123132")
+	client.SetIrcAddress(":4326")
+
+	go client.Connect()
+
+	client.Join("gempir")
+
+	// wait for server to receive message
+	select {
+	case <-waitEnd:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no join message received")
+	}
+
+	assertStringsEqual(t, "JOIN #gempir", receivedMsg)
+}
+
+func TestCanPong(t *testing.T) {
+	wait := make(chan struct{})
+
+	waitEnd := make(chan struct{})
+	var receivedMsg string
+
+	go func() {
+		ln, err := net.Listen("tcp", ":4327")
+		if err != nil {
+			t.Fatal(err)
+		}
+		close(wait)
+		conn, err := ln.Accept()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer ln.Close()
+		defer conn.Close()
+
+		reader := bufio.NewReader(conn)
+		tp := textproto.NewReader(reader)
+
+		for {
+			message, err := tp.ReadLine()
+			if err != nil {
+				t.Fatal(err)
+			}
+			message = strings.Replace(message, "\r\n", "", 1)
+			if strings.HasPrefix(message, "NICK") {
+				fmt.Fprintf(conn, ":tmi.twitch.tv 001 justinfan123123 :Welcome, GLHF!\r\n")
+				fmt.Fprintf(conn, "PING hello\r\n")
+			}
+			if strings.HasPrefix(message, "PONG") {
+				receivedMsg = message
+				close(waitEnd)
+			}
+		}
+	}()
+
+	// wait for server to start
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("testserver didn't start")
+	}
+
+	client := NewClient("justinfan123123", "oauth:123123132")
+	client.SetIrcAddress(":4327")
+
+	go client.Connect()
+
+	// wait for server to receive message
+	select {
+	case <-waitEnd:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no join message received")
+	}
+
+	assertStringsEqual(t, "PONG hello", receivedMsg)
+}
+
+func TestCanNotDialInvalidAddress(t *testing.T) {
+	client := NewClient("justinfan123123", "oauth:123123132")
+	client.SetIrcAddress("127.0.0.1:123123123123")
+
+	err := client.Connect()
+	if err.Error() != "dial tcp: address 123123123123: invalid port" {
+		t.Fatal("invalid dial error message")
+	}
+}
