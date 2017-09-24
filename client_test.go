@@ -414,5 +414,7 @@ func TestCanNotDialInvalidAddress(t *testing.T) {
 	client.SetIrcAddress("127.0.0.1:123123123123")
 
 	err := client.Connect()
-	assertStringsEqual(t, "dial tcp: address 123123123123: invalid port", err.Error())
+	if !strings.Contains(err.Error(), "invalid port") {
+		t.Fatal("invalid Connect() error")
+	}
 }
