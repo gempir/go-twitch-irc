@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"net/textproto"
 	"reflect"
 	"strings"
 	"testing"
@@ -34,8 +35,15 @@ func TestCanConnectAndAuthenticate(t *testing.T) {
 		}
 		defer ln.Close()
 		defer conn.Close()
+
+		reader := bufio.NewReader(conn)
+		tp := textproto.NewReader(reader)
+
 		for {
-			message, _ := bufio.NewReader(conn).ReadString('\n')
+			message, err := tp.ReadLine()
+			if err != nil {
+				t.Fatal(err)
+			}
 			message = strings.Replace(message, "\r\n", "", 1)
 			if strings.HasPrefix(message, "PASS") {
 				oauthMsg = message
@@ -213,4 +221,67 @@ func TestCanReceiveROOMSTATEMessage(t *testing.T) {
 	}
 
 	assertStringsEqual(t, "10", receivedTag)
+}
+
+func TestCanSayMessage(t *testing.T) {
+	testMessage := "Do not go gentle into that good night."
+	wait := make(chan struct{})
+
+	waitEnd := make(chan struct{})
+	var receivedMsg string
+
+	go func() {
+		ln, err := net.Listen("tcp", ":4325")
+		if err != nil {
+			t.Fatal(err)
+		}
+		close(wait)
+		conn, err := ln.Accept()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer ln.Close()
+		defer conn.Close()
+
+		reader := bufio.NewReader(conn)
+		tp := textproto.NewReader(reader)
+
+		for {
+			message, err := tp.ReadLine()
+			if err != nil {
+				t.Fatal(err)
+			}
+			message = strings.Replace(message, "\r\n", "", 1)
+			if strings.HasPrefix(message, "NICK") {
+				fmt.Fprintf(conn, ":tmi.twitch.tv 001 justinfan123123 :Welcome, GLHF!\r\n")
+			}
+			if strings.HasPrefix(message, "PRIVMSG") {
+				receivedMsg = message
+				close(waitEnd)
+			}
+		}
+	}()
+
+	// wait for server to start
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("testserver didn't start")
+	}
+
+	client := NewClient("justinfan123123", "oauth:123123132")
+	client.SetIrcAddress(":4325")
+
+	go client.Connect()
+
+	client.Say("gempir", testMessage)
+
+	// wait for server to receive message
+	select {
+	case <-waitEnd:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no privmsg received")
+	}
+
+	assertStringsEqual(t, "PRIVMSG #gempir :"+testMessage, receivedMsg)
 }

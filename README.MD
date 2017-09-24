@@ -5,7 +5,7 @@ This is an irc client for connecting to twitch. It handles the annoying stuff li
 godoc: https://godoc.org/github.com/gempir/go-twitch-irc
 
 ## Getting Started
-
+```go
 	package main
     
     import (
@@ -24,11 +24,11 @@ godoc: https://godoc.org/github.com/gempir/go-twitch-irc
     
     	client.Connect()
     }
-
+```
 ### Available Data
 
 The 2 structs twitch.User and twitch.Message look like this:
-
+```go
 	type User struct {
     	Username    string
     	DisplayName string
@@ -45,7 +45,7 @@ The 2 structs twitch.User and twitch.Message look like this:
     	Tags   map[string]string
     	Text   string
     }
-
+```
 Channel is just a string like "lirik", note the absent #.
 
 ### Message Types
