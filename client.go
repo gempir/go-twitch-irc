@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	// ircTwitch constant for irc chat address
+	// ircTwitch constant for twitch irc chat address
 	ircTwitch = "irc.chat.twitch.tv:6667"
 )
 
@@ -40,14 +40,10 @@ type Client struct {
 	ircToken              string
 	connection            *net.Conn
 	connActive            bool
-	closingConn           bool
-	onNewMessage          MessageCallback
-	onNewRoomstateMessage MessageCallback
-	onNewClearchatMessage MessageCallback
+	onNewMessage          func(channel string, user User, message Message)
+	onNewRoomstateMessage func(channel string, user User, message Message)
+	onNewClearchatMessage func(channel string, user User, message Message)
 }
-
-// MessageCallback is called when a new message is received
-type MessageCallback func(channel string, user User, message Message)
 
 // NewClient to create a new client
 func NewClient(username, oauth string) *Client {
@@ -59,17 +55,17 @@ func NewClient(username, oauth string) *Client {
 }
 
 // OnNewMessage attach callback to new standard chat messages
-func (c *Client) OnNewMessage(callback MessageCallback) {
+func (c *Client) OnNewMessage(callback func(channel string, user User, message Message)) {
 	c.onNewMessage = callback
 }
 
 // OnNewRoomstateMessage attach callback to new messages such as submode enabled
-func (c *Client) OnNewRoomstateMessage(callback MessageCallback) {
+func (c *Client) OnNewRoomstateMessage(callback func(channel string, user User, message Message)) {
 	c.onNewRoomstateMessage = callback
 }
 
 // OnNewClearchatMessage attach callback to new messages such as timeouts
-func (c *Client) OnNewClearchatMessage(callback MessageCallback) {
+func (c *Client) OnNewClearchatMessage(callback func(channel string, user User, message Message)) {
 	c.onNewClearchatMessage = callback
 }
 
