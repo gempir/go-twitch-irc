@@ -41,7 +41,7 @@ type Message struct {
 	Type   msgType
 	Time   time.Time
 	Action bool
-	Emotes []*emote
+	Emotes []*Emote
 	Tags   map[string]string
 	Text   string
 }
