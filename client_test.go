@@ -2,8 +2,9 @@ package twitch
 
 import (
 	"bufio"
+	"crypto/tls"
 	"fmt"
-	"net"
+	"log"
 	"net/textproto"
 	"reflect"
 	"strings"
@@ -24,7 +25,15 @@ func TestCanConnectAndAuthenticate(t *testing.T) {
 	wait := make(chan struct{})
 	waitPass := make(chan struct{})
 	go func() {
-		ln, err := net.Listen("tcp", ":4321")
+		cer, err := tls.LoadX509KeyPair("server.crt", "server.key")
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		config := &tls.Config{
+			Certificates: []tls.Certificate{cer},
+		}
+		ln, err := tls.Listen("tcp", ":4321", config)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -79,7 +88,15 @@ func TestCanReceivePRIVMSGMessage(t *testing.T) {
 	wait := make(chan struct{})
 
 	go func() {
-		ln, err := net.Listen("tcp", ":4322")
+		cer, err := tls.LoadX509KeyPair("server.crt", "server.key")
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		config := &tls.Config{
+			Certificates: []tls.Certificate{cer},
+		}
+		ln, err := tls.Listen("tcp", ":4322", config)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -130,7 +147,15 @@ func TestCanReceiveCLEARCHATMessage(t *testing.T) {
 	wait := make(chan struct{})
 
 	go func() {
-		ln, err := net.Listen("tcp", ":4323")
+		cer, err := tls.LoadX509KeyPair("server.crt", "server.key")
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		config := &tls.Config{
+			Certificates: []tls.Certificate{cer},
+		}
+		ln, err := tls.Listen("tcp", ":4323", config)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -179,7 +204,15 @@ func TestCanReceiveROOMSTATEMessage(t *testing.T) {
 	wait := make(chan struct{})
 
 	go func() {
-		ln, err := net.Listen("tcp", ":4324")
+		cer, err := tls.LoadX509KeyPair("server.crt", "server.key")
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		config := &tls.Config{
+			Certificates: []tls.Certificate{cer},
+		}
+		ln, err := tls.Listen("tcp", ":4324", config)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -231,7 +264,15 @@ func TestCanSayMessage(t *testing.T) {
 	var receivedMsg string
 
 	go func() {
-		ln, err := net.Listen("tcp", ":4325")
+		cer, err := tls.LoadX509KeyPair("server.crt", "server.key")
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		config := &tls.Config{
+			Certificates: []tls.Certificate{cer},
+		}
+		ln, err := tls.Listen("tcp", ":4325", config)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -292,7 +333,15 @@ func TestCanJoinChannel(t *testing.T) {
 	var receivedMsg string
 
 	go func() {
-		ln, err := net.Listen("tcp", ":4326")
+		cer, err := tls.LoadX509KeyPair("server.crt", "server.key")
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		config := &tls.Config{
+			Certificates: []tls.Certificate{cer},
+		}
+		ln, err := tls.Listen("tcp", ":4326", config)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -353,7 +402,15 @@ func TestCanPong(t *testing.T) {
 	var receivedMsg string
 
 	go func() {
-		ln, err := net.Listen("tcp", ":4327")
+		cer, err := tls.LoadX509KeyPair("server.crt", "server.key")
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		config := &tls.Config{
+			Certificates: []tls.Certificate{cer},
+		}
+		ln, err := tls.Listen("tcp", ":4327", config)
 		if err != nil {
 			t.Fatal(err)
 		}
