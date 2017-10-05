@@ -138,7 +138,6 @@ func (c *Client) send(line string) {
 			time.Sleep(time.Millisecond * 2)
 			continue
 		}
-		//fmt.Fprint(*c.connection, line+"\r\n")
 		c.connection.Write([]byte(line + "\r\n"))
 		return
 	}
