@@ -2,8 +2,8 @@ package twitch
 
 import (
 	"bufio"
+	"crypto/tls"
 	"fmt"
-	"net"
 	"net/textproto"
 	"strings"
 	"time"
@@ -11,7 +11,7 @@ import (
 
 const (
 	// ircTwitch constant for twitch irc chat address
-	ircTwitch = "irc.chat.twitch.tv:6667"
+	ircTwitch = "irc.chat.twitch.tv:443"
 )
 
 // User data you receive from tmi
@@ -38,7 +38,7 @@ type Client struct {
 	IrcAddress            string
 	ircUser               string
 	ircToken              string
-	connection            *net.Conn
+	connection            *tls.Conn
 	connActive            bool
 	onNewMessage          func(channel string, user User, message Message)
 	onNewRoomstateMessage func(channel string, user User, message Message)
@@ -81,9 +81,18 @@ func (c *Client) Join(channel string) {
 
 // Connect connect the client to the irc server
 func (c *Client) Connect() error {
+	var conf *tls.Config
+	// This means we are connecting to "localhost". Disable certificate chain check
+	if strings.HasPrefix(c.IrcAddress, ":") {
+		conf = &tls.Config{
+			InsecureSkipVerify: true,
+		}
+	} else {
+		conf = &tls.Config{}
+	}
 	for {
-		conn, err := net.Dial("tcp", c.IrcAddress)
-		c.connection = &conn
+		conn, err := tls.Dial("tcp", c.IrcAddress, conf)
+		c.connection = conn
 		if err != nil {
 			return err
 		}
@@ -98,7 +107,7 @@ func (c *Client) Connect() error {
 	}
 }
 
-func (c *Client) readConnection(conn net.Conn) error {
+func (c *Client) readConnection(conn *tls.Conn) error {
 	reader := bufio.NewReader(conn)
 	tp := textproto.NewReader(reader)
 	for {
@@ -117,10 +126,10 @@ func (c *Client) readConnection(conn net.Conn) error {
 }
 
 func (c *Client) setupConnection() {
-	fmt.Fprintf(*c.connection, "PASS %s\r\n", c.ircToken)
-	fmt.Fprintf(*c.connection, "NICK %s\r\n", c.ircUser)
-	fmt.Fprint(*c.connection, "CAP REQ :twitch.tv/tags\r\n")
-	fmt.Fprint(*c.connection, "CAP REQ :twitch.tv/commands\r\n")
+	c.connection.Write([]byte("PASS " + c.ircToken + "\r\n"))
+	c.connection.Write([]byte("NICK " + c.ircUser + "\r\n"))
+	c.connection.Write([]byte("CAP REQ :twitch.tv/tags\r\n"))
+	c.connection.Write([]byte("CAP REQ :twitch.tv/commands\r\n"))
 }
 
 func (c *Client) send(line string) {
@@ -129,7 +138,7 @@ func (c *Client) send(line string) {
 			time.Sleep(time.Millisecond * 2)
 			continue
 		}
-		fmt.Fprint(*c.connection, line+"\r\n")
+		c.connection.Write([]byte(line + "\r\n"))
 		return
 	}
 }
