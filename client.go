@@ -81,8 +81,14 @@ func (c *Client) Join(channel string) {
 
 // Connect connect the client to the irc server
 func (c *Client) Connect() error {
-	conf := &tls.Config{
-	//InsecureSkipVerify: true,
+	var conf *tls.Config
+	// This means we are connecting to "localhost". Disable certificate chain check
+	if strings.HasPrefix(c.IrcAddress, ":") {
+		conf = &tls.Config{
+			InsecureSkipVerify: true,
+		}
+	} else {
+		conf = &tls.Config{}
 	}
 	for {
 		conn, err := tls.Dial("tcp", c.IrcAddress, conf)
