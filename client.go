@@ -120,10 +120,6 @@ func (c *Client) readConnection(conn *tls.Conn) error {
 }
 
 func (c *Client) setupConnection() {
-	// fmt.Fprintf(*c.connection, "PASS %s\r\n", c.ircToken)
-	// fmt.Fprintf(*c.connection, "NICK %s\r\n", c.ircUser)
-	// fmt.Fprint(*c.connection, "CAP REQ :twitch.tv/tags\r\n")
-	// fmt.Fprint(*c.connection, "CAP REQ :twitch.tv/commands\r\n")
 	c.connection.Write([]byte("PASS " + c.ircToken + "\r\n"))
 	c.connection.Write([]byte("NICK " + c.ircUser + "\r\n"))
 	c.connection.Write([]byte("CAP REQ :twitch.tv/tags\r\n"))
