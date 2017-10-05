@@ -117,7 +117,7 @@ func (c *Client) readConnection(conn *tls.Conn) error {
 		}
 		messages := strings.Split(line, "\r\n")
 		for _, msg := range messages {
-			if !c.connActive && strings.HasPrefix(msg, ":tmi.twitch.tv 001") {
+			if !c.connActive && strings.Contains(msg, ":tmi.twitch.tv 001") {
 				c.connActive = true
 			}
 			c.handleLine(msg)
