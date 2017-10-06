@@ -40,6 +40,7 @@ type Client struct {
 	ircToken              string
 	connection            *tls.Conn
 	connActive            bool
+	ErrChan               chan error
 	onNewMessage          func(channel string, user User, message Message)
 	onNewRoomstateMessage func(channel string, user User, message Message)
 	onNewClearchatMessage func(channel string, user User, message Message)
@@ -80,7 +81,7 @@ func (c *Client) Join(channel string) {
 }
 
 // Connect connect the client to the irc server
-func (c *Client) Connect() error {
+func (c *Client) Connect() {
 	var conf *tls.Config
 	// This means we are connecting to "localhost". Disable certificate chain check
 	if strings.HasPrefix(c.IrcAddress, ":") {
@@ -94,10 +95,12 @@ func (c *Client) Connect() error {
 		conn, err := tls.Dial("tcp", c.IrcAddress, conf)
 		c.connection = conn
 		if err != nil {
-			return err
+			c.ErrChan <- err
+			return
 		}
+		c.ErrChan <- nil
 
-		go c.setupConnection()
+		c.setupConnection()
 
 		err = c.readConnection(conn)
 		if err != nil {
@@ -117,7 +120,7 @@ func (c *Client) readConnection(conn *tls.Conn) error {
 		}
 		messages := strings.Split(line, "\r\n")
 		for _, msg := range messages {
-			if !c.connActive && strings.Contains(msg, ":tmi.twitch.tv 001") {
+			if !c.connActive && strings.HasPrefix(msg, ":tmi.twitch.tv 001") {
 				c.connActive = true
 			}
 			c.handleLine(msg)
