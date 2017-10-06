@@ -15,14 +15,23 @@ import (
 
 func main() {
 	client := twitch.NewClient("justinfan123123", "oauth:123123123")
+	client.ErrChan = make(chan error)
 
 	client.OnNewMessage(func(channel string, user twitch.User, message twitch.Message) {
 		fmt.Println(message.Text)
 	})
-
-	client.Join("gempir")
-
-	client.Connect()
+	go client.Connect()
+ConnectionLoop:
+	for {
+		select {
+		case error := <-client.ErrChan:
+			fmt.Println(error.Error())
+			break ConnectionLoop
+		default:
+			break
+		}
+		client.Join("gempir")
+	}
 }
 ```
 ### Available Data
