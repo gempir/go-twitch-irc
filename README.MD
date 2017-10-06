@@ -21,17 +21,29 @@ func main() {
 		fmt.Println(message.Text)
 	})
 	go client.Connect()
-ConnectionLoop:
-	for {
-		select {
-		case error := <-client.ErrChan:
-			fmt.Println(error.Error())
-			break ConnectionLoop
-		default:
-			break
-		}
-		client.Join("gempir")
-	}
+	client.Join("gempir")
+	client.Say("gempir", "Hello!")
+
+	// If you wish to read an input message from the command line and then send it to the chat, you could do the following:
+	//
+	// 	scanner := bufio.NewScanner(os.Stdin)
+	// ConnectionLoop:
+	// 	for {
+	// 		select {
+	// 		case error := <-client.ErrChan:
+	// 			fmt.Println(error.Error())
+	// 			break ConnectionLoop
+	// 		default:
+	// 			break
+	// 		}
+	// 		for scanner.Scan() {
+	// 			s := scanner.Text()
+	// 			client.Say("gempir", s)
+	// 		}
+	// 		if err := scanner.Err(); err != nil {
+	// 			os.Exit(1)
+	// 		}
+	//	}
 }
 ```
 ### Available Data
