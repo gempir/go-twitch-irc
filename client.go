@@ -80,7 +80,7 @@ func (c *Client) Join(channel string) {
 	c.send(fmt.Sprintf("JOIN #%s", channel))
 }
 
-// Connect connect the client to the irc server
+// Connect connect the client to the irc server - NOTE: must be used as a go routine!
 func (c *Client) Connect() {
 	var conf *tls.Config
 	// This means we are connecting to "localhost". Disable certificate chain check
@@ -98,7 +98,6 @@ func (c *Client) Connect() {
 			c.ErrChan <- err
 			return
 		}
-		c.ErrChan <- nil
 
 		c.setupConnection()
 
