@@ -15,14 +15,35 @@ import (
 
 func main() {
 	client := twitch.NewClient("justinfan123123", "oauth:123123123")
+	client.ErrChan = make(chan error)
 
 	client.OnNewMessage(func(channel string, user twitch.User, message twitch.Message) {
 		fmt.Println(message.Text)
 	})
-
+	go client.Connect()
 	client.Join("gempir")
+	client.Say("gempir", "Hello!")
 
-	client.Connect()
+	// If you wish to read an input message from the command line and then send it to the chat, you could do the following:
+	//
+	// 	scanner := bufio.NewScanner(os.Stdin)
+	// ConnectionLoop:
+	// 	for {
+	// 		select {
+	// 		case error := <-client.ErrChan:
+	// 			fmt.Println(error.Error())
+	// 			break ConnectionLoop
+	// 		default:
+	// 			break
+	// 		}
+	// 		for scanner.Scan() {
+	// 			s := scanner.Text()
+	// 			client.Say("gempir", s)
+	// 		}
+	// 		if err := scanner.Err(); err != nil {
+	// 			os.Exit(1)
+	// 		}
+	//	}
 }
 ```
 ### Available Data
