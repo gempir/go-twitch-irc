@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"log"
+	"net"
 	"net/textproto"
 	"reflect"
 	"strings"
@@ -24,27 +25,9 @@ func TestCanConnectAndAuthenticate(t *testing.T) {
 	var oauthMsg string
 	wait := make(chan struct{})
 	waitPass := make(chan struct{})
-	go func() {
-		cer, err := tls.LoadX509KeyPair("test_resources/server.crt", "test_resources/server.key")
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		config := &tls.Config{
-			Certificates: []tls.Certificate{cer},
-		}
-		ln, err := tls.Listen("tcp", ":4321", config)
-		if err != nil {
-			t.Fatal(err)
-		}
-		close(wait)
-		conn, err := ln.Accept()
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer ln.Close()
-		defer conn.Close()
 
+	var conn net.Conn
+	go createServer(t, ":4321", &conn, wait, func() {
 		reader := bufio.NewReader(conn)
 		tp := textproto.NewReader(reader)
 
@@ -59,7 +42,7 @@ func TestCanConnectAndAuthenticate(t *testing.T) {
 				close(waitPass)
 			}
 		}
-	}()
+	})
 
 	// wait for server to start
 	select {
@@ -87,29 +70,10 @@ func TestCanReceivePRIVMSGMessage(t *testing.T) {
 	testMessage := "@badges=subscriber/6,premium/1;color=#FF0000;display-name=Redflamingo13;emotes=;id=2a31a9df-d6ff-4840-b211-a2547c7e656e;mod=0;room-id=11148817;subscriber=1;tmi-sent-ts=1490382457309;turbo=0;user-id=78424343;user-type= :redflamingo13!redflamingo13@redflamingo13.tmi.twitch.tv PRIVMSG #pajlada :Thrashh5, FeelsWayTooAmazingMan kinda"
 	wait := make(chan struct{})
 
-	go func() {
-		cer, err := tls.LoadX509KeyPair("test_resources/server.crt", "test_resources/server.key")
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		config := &tls.Config{
-			Certificates: []tls.Certificate{cer},
-		}
-		ln, err := tls.Listen("tcp", ":4322", config)
-		if err != nil {
-			t.Fatal(err)
-		}
-		close(wait)
-		conn, err := ln.Accept()
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer ln.Close()
-		defer conn.Close()
-
+	var conn net.Conn
+	go createServer(t, ":4322", &conn, wait, func() {
 		fmt.Fprintf(conn, "%s\r\n", testMessage)
-	}()
+	})
 
 	// wait for server to start
 	select {
@@ -146,29 +110,10 @@ func TestCanReceiveCLEARCHATMessage(t *testing.T) {
 	testMessage := `@ban-duration=1;ban-reason=testing\sxd;room-id=11148817;target-user-id=40910607 :tmi.twitch.tv CLEARCHAT #pajlada :ampzyh`
 	wait := make(chan struct{})
 
-	go func() {
-		cer, err := tls.LoadX509KeyPair("test_resources/server.crt", "test_resources/server.key")
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		config := &tls.Config{
-			Certificates: []tls.Certificate{cer},
-		}
-		ln, err := tls.Listen("tcp", ":4323", config)
-		if err != nil {
-			t.Fatal(err)
-		}
-		close(wait)
-		conn, err := ln.Accept()
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer ln.Close()
-		defer conn.Close()
-
+	var conn net.Conn
+	go createServer(t, ":4323", &conn, wait, func() {
 		fmt.Fprintf(conn, "%s\r\n", testMessage)
-	}()
+	})
 
 	// wait for server to start
 	select {
@@ -203,29 +148,10 @@ func TestCanReceiveROOMSTATEMessage(t *testing.T) {
 	testMessage := `@slow=10 :tmi.twitch.tv ROOMSTATE #gempir`
 	wait := make(chan struct{})
 
-	go func() {
-		cer, err := tls.LoadX509KeyPair("test_resources/server.crt", "test_resources/server.key")
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		config := &tls.Config{
-			Certificates: []tls.Certificate{cer},
-		}
-		ln, err := tls.Listen("tcp", ":4324", config)
-		if err != nil {
-			t.Fatal(err)
-		}
-		close(wait)
-		conn, err := ln.Accept()
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer ln.Close()
-		defer conn.Close()
-
+	var conn net.Conn
+	go createServer(t, ":4324", &conn, wait, func() {
 		fmt.Fprintf(conn, "%s\r\n", testMessage)
-	}()
+	})
 
 	// wait for server to start
 	select {
@@ -263,27 +189,8 @@ func TestCanSayMessage(t *testing.T) {
 	waitEnd := make(chan struct{})
 	var receivedMsg string
 
-	go func() {
-		cer, err := tls.LoadX509KeyPair("test_resources/server.crt", "test_resources/server.key")
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		config := &tls.Config{
-			Certificates: []tls.Certificate{cer},
-		}
-		ln, err := tls.Listen("tcp", ":4325", config)
-		if err != nil {
-			t.Fatal(err)
-		}
-		close(wait)
-		conn, err := ln.Accept()
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer ln.Close()
-		defer conn.Close()
-
+	var conn net.Conn
+	go createServer(t, ":4325", &conn, wait, func() {
 		reader := bufio.NewReader(conn)
 		tp := textproto.NewReader(reader)
 
@@ -301,7 +208,7 @@ func TestCanSayMessage(t *testing.T) {
 				close(waitEnd)
 			}
 		}
-	}()
+	})
 
 	// wait for server to start
 	select {
@@ -332,27 +239,8 @@ func TestCanJoinChannel(t *testing.T) {
 	waitEnd := make(chan struct{})
 	var receivedMsg string
 
-	go func() {
-		cer, err := tls.LoadX509KeyPair("test_resources/server.crt", "test_resources/server.key")
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		config := &tls.Config{
-			Certificates: []tls.Certificate{cer},
-		}
-		ln, err := tls.Listen("tcp", ":4326", config)
-		if err != nil {
-			t.Fatal(err)
-		}
-		close(wait)
-		conn, err := ln.Accept()
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer ln.Close()
-		defer conn.Close()
-
+	var conn net.Conn
+	go createServer(t, ":4326", &conn, wait, func() {
 		reader := bufio.NewReader(conn)
 		tp := textproto.NewReader(reader)
 
@@ -370,7 +258,7 @@ func TestCanJoinChannel(t *testing.T) {
 				close(waitEnd)
 			}
 		}
-	}()
+	})
 
 	// wait for server to start
 	select {
@@ -401,27 +289,8 @@ func TestCanPong(t *testing.T) {
 	waitEnd := make(chan struct{})
 	var receivedMsg string
 
-	go func() {
-		cer, err := tls.LoadX509KeyPair("test_resources/server.crt", "test_resources/server.key")
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		config := &tls.Config{
-			Certificates: []tls.Certificate{cer},
-		}
-		ln, err := tls.Listen("tcp", ":4327", config)
-		if err != nil {
-			t.Fatal(err)
-		}
-		close(wait)
-		conn, err := ln.Accept()
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer ln.Close()
-		defer conn.Close()
-
+	var conn net.Conn
+	go createServer(t, ":4327", &conn, wait, func() {
 		reader := bufio.NewReader(conn)
 		tp := textproto.NewReader(reader)
 
@@ -440,7 +309,7 @@ func TestCanPong(t *testing.T) {
 				close(waitEnd)
 			}
 		}
-	}()
+	})
 
 	// wait for server to start
 	select {
@@ -471,4 +340,32 @@ func TestCanNotDialInvalidAddress(t *testing.T) {
 	if !strings.Contains(err.Error(), "invalid port") {
 		t.Fatal("invalid Connect() error")
 	}
+}
+
+func createServer(t *testing.T, port string, conn *net.Conn, wait chan struct{}, extra func()) {
+	cer, err := tls.LoadX509KeyPair("test_resources/server.crt", "test_resources/server.key")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	config := &tls.Config{
+		Certificates: []tls.Certificate{cer},
+	}
+	ln, err := tls.Listen("tcp", port, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	close(wait)
+
+	*conn, err = ln.Accept()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer ln.Close()
+	defer (*conn).Close()
+
+	extra()
 }
