@@ -25,7 +25,7 @@ func TestCanConnectAndAuthenticate(t *testing.T) {
 	wait := make(chan struct{})
 	waitPass := make(chan struct{})
 	go func() {
-		cer, err := tls.LoadX509KeyPair("server.crt", "server.key")
+		cer, err := tls.LoadX509KeyPair("test_resources/server.crt", "test_resources/server.key")
 		if err != nil {
 			log.Println(err)
 			return
@@ -88,7 +88,7 @@ func TestCanReceivePRIVMSGMessage(t *testing.T) {
 	wait := make(chan struct{})
 
 	go func() {
-		cer, err := tls.LoadX509KeyPair("server.crt", "server.key")
+		cer, err := tls.LoadX509KeyPair("test_resources/server.crt", "test_resources/server.key")
 		if err != nil {
 			log.Println(err)
 			return
@@ -147,7 +147,7 @@ func TestCanReceiveCLEARCHATMessage(t *testing.T) {
 	wait := make(chan struct{})
 
 	go func() {
-		cer, err := tls.LoadX509KeyPair("server.crt", "server.key")
+		cer, err := tls.LoadX509KeyPair("test_resources/server.crt", "test_resources/server.key")
 		if err != nil {
 			log.Println(err)
 			return
@@ -204,7 +204,7 @@ func TestCanReceiveROOMSTATEMessage(t *testing.T) {
 	wait := make(chan struct{})
 
 	go func() {
-		cer, err := tls.LoadX509KeyPair("server.crt", "server.key")
+		cer, err := tls.LoadX509KeyPair("test_resources/server.crt", "test_resources/server.key")
 		if err != nil {
 			log.Println(err)
 			return
@@ -264,7 +264,7 @@ func TestCanSayMessage(t *testing.T) {
 	var receivedMsg string
 
 	go func() {
-		cer, err := tls.LoadX509KeyPair("server.crt", "server.key")
+		cer, err := tls.LoadX509KeyPair("test_resources/server.crt", "test_resources/server.key")
 		if err != nil {
 			log.Println(err)
 			return
@@ -333,7 +333,7 @@ func TestCanJoinChannel(t *testing.T) {
 	var receivedMsg string
 
 	go func() {
-		cer, err := tls.LoadX509KeyPair("server.crt", "server.key")
+		cer, err := tls.LoadX509KeyPair("test_resources/server.crt", "test_resources/server.key")
 		if err != nil {
 			log.Println(err)
 			return
@@ -402,7 +402,7 @@ func TestCanPong(t *testing.T) {
 	var receivedMsg string
 
 	go func() {
-		cer, err := tls.LoadX509KeyPair("server.crt", "server.key")
+		cer, err := tls.LoadX509KeyPair("test_resources/server.crt", "test_resources/server.key")
 		if err != nil {
 			log.Println(err)
 			return

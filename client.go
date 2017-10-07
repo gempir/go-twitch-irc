@@ -76,7 +76,7 @@ func (c *Client) Say(channel, text string) {
 
 // Join enter a twitch channel to read more messages
 func (c *Client) Join(channel string) {
-	c.send(fmt.Sprintf("JOIN #%s", channel))
+	go c.send(fmt.Sprintf("JOIN #%s", channel))
 }
 
 // Connect connect the client to the irc server
