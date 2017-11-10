@@ -22,7 +22,10 @@ func main() {
 
 	client.Join("gempir")
 
-	client.Connect()
+	err := client.Connect()
+	if err != nil {
+		panic(err)
+	}
 }
 ```
 ### Available Data
