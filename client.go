@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/textproto"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -39,7 +40,7 @@ type Client struct {
 	ircUser               string
 	ircToken              string
 	connection            *tls.Conn
-	connActive            bool
+	connActive            tAtomBool
 	onNewMessage          func(channel string, user User, message Message)
 	onNewRoomstateMessage func(channel string, user User, message Message)
 	onNewClearchatMessage func(channel string, user User, message Message)
@@ -117,8 +118,8 @@ func (c *Client) readConnection(conn *tls.Conn) error {
 		}
 		messages := strings.Split(line, "\r\n")
 		for _, msg := range messages {
-			if !c.connActive && strings.Contains(msg, ":tmi.twitch.tv 001") {
-				c.connActive = true
+			if !c.connActive.get() && strings.Contains(msg, ":tmi.twitch.tv 001") {
+				c.connActive.set(true)
 			}
 			c.handleLine(msg)
 		}
@@ -134,7 +135,7 @@ func (c *Client) setupConnection() {
 
 func (c *Client) send(line string) {
 	for i := 0; i < 1000; i++ {
-		if !c.connActive {
+		if !c.connActive.get() {
 			time.Sleep(time.Millisecond * 2)
 			continue
 		}
@@ -184,4 +185,22 @@ func (c *Client) handleLine(line string) {
 			}
 		}
 	}
+}
+
+// tAtomBool atomic bool for writing/reading across threads
+type tAtomBool struct{ flag int32 }
+
+func (b *tAtomBool) set(value bool) {
+	var i int32
+	if value {
+		i = 1
+	}
+	atomic.StoreInt32(&(b.flag), int32(i))
+}
+
+func (b *tAtomBool) get() bool {
+	if atomic.LoadInt32(&(b.flag)) != 0 {
+		return true
+	}
+	return false
 }
