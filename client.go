@@ -3,6 +3,7 @@ package twitch
 import (
 	"bufio"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net/textproto"
 	"strings"
@@ -78,6 +79,15 @@ func (c *Client) Say(channel, text string) {
 // Join enter a twitch channel to read more messages
 func (c *Client) Join(channel string) {
 	go c.send(fmt.Sprintf("JOIN #%s", channel))
+}
+
+// Disconnect closes current connection
+func (c *Client) Disconnect() error {
+	c.connActive.set(false)
+	if c.connection != nil {
+		return c.connection.Close()
+	}
+	return errors.New("connection not open")
 }
 
 // Connect connect the client to the irc server
