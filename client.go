@@ -169,7 +169,8 @@ func (c *Client) handleLine(line string) {
 			Tags:   message.Tags,
 			Text:   message.Text,
 		}
-
+	fmt.Println("MESSAGE TYPE: ")
+	fmt.Println(message.Type)
 		switch message.Type {
 		case WHISPER:
 			if c.onNewMessage != nil {
