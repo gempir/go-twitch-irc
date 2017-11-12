@@ -12,6 +12,8 @@ type msgType int
 const (
 	// PRIVMSG standard chat message
 	PRIVMSG msgType = iota + 1
+	// Whisper
+	WHISPER
 	// CLEARCHAT timeout messages
 	CLEARCHAT
 	// ROOMSTATE changes like sub mode
