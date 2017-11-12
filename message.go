@@ -10,10 +10,10 @@ import (
 type msgType int
 
 const (
+	// Whisper
+        WHISPER msgType = 0
 	// PRIVMSG standard chat message
 	PRIVMSG msgType = iota + 1
-	// Whisper
-	WHISPER
 	// CLEARCHAT timeout messages
 	CLEARCHAT
 	// ROOMSTATE changes like sub mode
