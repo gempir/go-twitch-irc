@@ -171,6 +171,10 @@ func (c *Client) handleLine(line string) {
 		}
 
 		switch message.Type {
+		case WHISPER:
+			if c.onNewMessage != nil {
+                                c.onNewMessage(Channel, *User, *clientMessage)
+                        }
 		case PRIVMSG:
 			if c.onNewMessage != nil {
 				c.onNewMessage(Channel, *User, *clientMessage)
