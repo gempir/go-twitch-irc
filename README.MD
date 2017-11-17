@@ -54,8 +54,9 @@ Channel is just a string like "lirik", note the absent #.
 ### Message Types
 
 If you ever need more than basic PRIVMSG this might be for you.
-These are the 3 mayor message types currently supported
+These are the 4 major message types currently supported
 
 	PRIVMSG
+	WHISPER
 	ROOMSTATE
 	CLEARCHAT

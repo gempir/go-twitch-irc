@@ -41,7 +41,7 @@ type Client struct {
 	ircToken              string
 	connection            *tls.Conn
 	connActive            tAtomBool
-	onNewWhisper          func(channel string, user User, message Message)
+	onNewWhisper          func(user User, message Message)
 	onNewMessage          func(channel string, user User, message Message)
 	onNewRoomstateMessage func(channel string, user User, message Message)
 	onNewClearchatMessage func(channel string, user User, message Message)
@@ -57,7 +57,7 @@ func NewClient(username, oauth string) *Client {
 }
 
 // OnNewWhisper attach callback to new whisper
-func (c *Client) OnNewWhisper(callback func(channel string, user User, message Message)) {
+func (c *Client) OnNewWhisper(callback func(user User, message Message)) {
         c.onNewWhisper = callback
 }
 
@@ -177,14 +177,14 @@ func (c *Client) handleLine(line string) {
 		}
 		
 		switch message.Type {
-		case WHISPER:
-			if c.onNewWhisper != nil {
-                                c.onNewWhisper(Channel, *User, *clientMessage)
-                        }
 		case PRIVMSG:
 			if c.onNewMessage != nil {
 				c.onNewMessage(Channel, *User, *clientMessage)
 			}
+		case WHISPER:
+                        if c.onNewWhisper != nil {
+                                c.onNewWhisper(*User, *clientMessage)
+                        }
 		case ROOMSTATE:
 			if c.onNewRoomstateMessage != nil {
 				c.onNewRoomstateMessage(Channel, *User, *clientMessage)
