@@ -10,6 +10,8 @@ import (
 type msgType int
 
 const (
+	// Whisper
+        WHISPER msgType = 0
 	// PRIVMSG standard chat message
 	PRIVMSG msgType = iota + 1
 	// CLEARCHAT timeout messages
