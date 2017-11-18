@@ -10,14 +10,14 @@ import (
 type msgType int
 
 const (
-	// Whisper
-        WHISPER msgType = 0
+	// WHISPER private messages
+	WHISPER msgType = 0
 	// PRIVMSG standard chat message
-	PRIVMSG msgType = iota + 1
+	PRIVMSG msgType = 1
 	// CLEARCHAT timeout messages
-	CLEARCHAT
+	CLEARCHAT = 2
 	// ROOMSTATE changes like sub mode
-	ROOMSTATE
+	ROOMSTATE = 3
 )
 
 type message struct {
@@ -122,6 +122,8 @@ func parseMiddle(middle string) (string, msgType, string) {
 				switch typ {
 				case "PRIVMSG":
 					msgType = PRIVMSG
+				case "WHISPER":
+					msgType = WHISPER
 				case "CLEARCHAT":
 					msgType = CLEARCHAT
 				}

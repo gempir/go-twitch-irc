@@ -42,6 +42,23 @@ func TestCanParseActionMessage(t *testing.T) {
 	assertTrue(t, message.Action, "parsing action failed")
 }
 
+func TestCanParseWhisper(t *testing.T) {
+	testMessage := "@badges=;color=#00FF7F;display-name=Danielps1;emotes=;message-id=20;thread-id=32591953_77829817;turbo=0;user-id=32591953;user-type= :danielps1!danielps1@danielps1.tmi.twitch.tv WHISPER gempir :i like memes"
+	message := parseMessage(testMessage)
+
+	assertIntsEqual(t, 0, message.Badges["subscriber"])
+	assertStringsEqual(t, "#00FF7F", message.Color)
+	assertStringsEqual(t, "Danielps1", message.DisplayName)
+	assertIntsEqual(t, 0, len(message.Emotes))
+	assertStringsEqual(t, "", message.Tags["mod"])
+	assertStringsEqual(t, "i like memes", message.Text)
+	if message.Type != WHISPER {
+		t.Error("parsing message type failed")
+	}
+	assertStringsEqual(t, "danielps1", message.Username)
+	assertFalse(t, message.Action, "parsing action failed")
+}
+
 func TestCantParseNoTagsMessage(t *testing.T) {
 	testMessage := "my test message"
 

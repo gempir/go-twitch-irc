@@ -78,9 +78,7 @@ func TestCanConnectAndAuthenticate(t *testing.T) {
 		t.Fatal("no oauth read")
 	}
 
-	if oauthMsg != "PASS oauth:123123132" {
-		t.Fatalf("invalid authentication data: oauth: %s", oauthMsg)
-	}
+	assertStringsEqual(t, "PASS oauth:123123132", oauthMsg)
 }
 
 func TestCanDisconnect(t *testing.T) {
@@ -204,9 +202,64 @@ func TestCanReceivePRIVMSGMessage(t *testing.T) {
 		t.Fatal("no message sent")
 	}
 
-	if receivedMsg != "Thrashh5, FeelsWayTooAmazingMan kinda" {
-		t.Fatal("invalid message text received")
+	assertStringsEqual(t, "Thrashh5, FeelsWayTooAmazingMan kinda", receivedMsg)
+}
+
+func TestCanReceiveWHISPERMessage(t *testing.T) {
+	testMessage := "@badges=;color=#00FF7F;display-name=Danielps1;emotes=;message-id=20;thread-id=32591953_77829817;turbo=0;user-id=32591953;user-type= :danielps1!danielps1@danielps1.tmi.twitch.tv WHISPER gempir :i like memes"
+	wait := make(chan struct{})
+
+	go func() {
+		cer, err := tls.LoadX509KeyPair("test_resources/server.crt", "test_resources/server.key")
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		config := &tls.Config{
+			Certificates: []tls.Certificate{cer},
+		}
+		ln, err := tls.Listen("tcp", ":4330", config)
+		if err != nil {
+			t.Fatal(err)
+		}
+		close(wait)
+		conn, err := ln.Accept()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer ln.Close()
+		defer conn.Close()
+
+		fmt.Fprintf(conn, "%s\r\n", testMessage)
+	}()
+
+	// wait for server to start
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("server didn't start")
 	}
+
+	client := NewClient("justinfan123123", "oauth:123123132")
+	client.IrcAddress = ":4330"
+	go client.Connect()
+
+	waitMsg := make(chan string)
+	var receivedMsg string
+
+	client.OnNewWhisper(func(user User, message Message) {
+		receivedMsg = message.Text
+		close(waitMsg)
+	})
+
+	// wait for server to start
+	select {
+	case <-waitMsg:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no message sent")
+	}
+
+	assertStringsEqual(t, "i like memes", receivedMsg)
 }
 
 func TestCanReceiveCLEARCHATMessage(t *testing.T) {
@@ -391,6 +444,76 @@ func TestCanSayMessage(t *testing.T) {
 	}
 
 	assertStringsEqual(t, "PRIVMSG #gempir :"+testMessage, receivedMsg)
+}
+
+func TestCanWhisperMessage(t *testing.T) {
+	testMessage := "Do not go gentle into that good night."
+	wait := make(chan struct{})
+
+	waitEnd := make(chan struct{})
+	var receivedMsg string
+
+	go func() {
+		cer, err := tls.LoadX509KeyPair("test_resources/server.crt", "test_resources/server.key")
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		config := &tls.Config{
+			Certificates: []tls.Certificate{cer},
+		}
+		ln, err := tls.Listen("tcp", ":4329", config)
+		if err != nil {
+			t.Fatal(err)
+		}
+		close(wait)
+		conn, err := ln.Accept()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer ln.Close()
+		defer conn.Close()
+
+		reader := bufio.NewReader(conn)
+		tp := textproto.NewReader(reader)
+
+		for {
+			message, err := tp.ReadLine()
+			if err != nil {
+				t.Fatal(err)
+			}
+			message = strings.Replace(message, "\r\n", "", 1)
+			if strings.HasPrefix(message, "NICK") {
+				fmt.Fprintf(conn, ":tmi.twitch.tv 001 justinfan123123 :Welcome, GLHF!\r\n")
+			}
+			if strings.HasPrefix(message, "PRIVMSG") {
+				receivedMsg = message
+				close(waitEnd)
+			}
+		}
+	}()
+
+	// wait for server to start
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("server didn't start")
+	}
+
+	client := NewClient("justinfan123123", "oauth:123123132")
+	client.IrcAddress = ":4329"
+	go client.Connect()
+
+	client.Whisper("gempir", testMessage)
+
+	// wait for server to receive message
+	select {
+	case <-waitEnd:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no privmsg received")
+	}
+
+	assertStringsEqual(t, "PRIVMSG #jtv :/w gempir "+testMessage, receivedMsg)
 }
 
 func TestCanJoinChannel(t *testing.T) {
