@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"net"
 	"net/textproto"
 	"strings"
 	"sync/atomic"
@@ -106,6 +107,11 @@ func (c *Client) Disconnect() error {
 
 // Connect connect the client to the irc server
 func (c *Client) Connect() error {
+
+	dialer := &net.Dialer{
+		KeepAlive: time.Second * 10,
+	}
+
 	var conf *tls.Config
 	// This means we are connecting to "localhost". Disable certificate chain check
 	if strings.HasPrefix(c.IrcAddress, ":") {
@@ -116,7 +122,7 @@ func (c *Client) Connect() error {
 		conf = &tls.Config{}
 	}
 	for {
-		conn, err := tls.Dial("tcp", c.IrcAddress, conf)
+		conn, err := tls.DialWithDialer(dialer, "tcp", c.IrcAddress, conf)
 		c.connection = conn
 		if err != nil {
 			return err
