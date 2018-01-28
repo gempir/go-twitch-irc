@@ -38,15 +38,16 @@ type Message struct {
 
 // Client client to control your connection and attach callbacks
 type Client struct {
-	IrcAddress            string
-	ircUser               string
-	ircToken              string
-	connection            *tls.Conn
-	connActive            tAtomBool
-	onNewWhisper          func(user User, message Message)
-	onNewMessage          func(channel string, user User, message Message)
-	onNewRoomstateMessage func(channel string, user User, message Message)
-	onNewClearchatMessage func(channel string, user User, message Message)
+	IrcAddress             string
+	ircUser                string
+	ircToken               string
+	connection             *tls.Conn
+	connActive             tAtomBool
+	onNewWhisper           func(user User, message Message)
+	onNewMessage           func(channel string, user User, message Message)
+	onNewRoomstateMessage  func(channel string, user User, message Message)
+	onNewClearchatMessage  func(channel string, user User, message Message)
+	onNewUsernoticeMessage func(channel string, user User, message Message)
 }
 
 // NewClient to create a new client
@@ -76,6 +77,11 @@ func (c *Client) OnNewRoomstateMessage(callback func(channel string, user User, 
 // OnNewClearchatMessage attach callback to new messages such as timeouts
 func (c *Client) OnNewClearchatMessage(callback func(channel string, user User, message Message)) {
 	c.onNewClearchatMessage = callback
+}
+
+// OnNewUsernoticeMessage attach callback to new usernotice message such as sub, resub, and raids
+func (c *Client) OnNewUsernoticeMessage(callback func(channel string, user User, message Message)) {
+	c.onNewUsernoticeMessage = callback
 }
 
 // Say write something in a chat
@@ -216,6 +222,10 @@ func (c *Client) handleLine(line string) {
 		case CLEARCHAT:
 			if c.onNewClearchatMessage != nil {
 				c.onNewClearchatMessage(Channel, *User, *clientMessage)
+			}
+		case USERNOTICE:
+			if c.onNewUsernoticeMessage != nil {
+				c.onNewUsernoticeMessage(Channel, *User, *clientMessage)
 			}
 		}
 	}

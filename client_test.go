@@ -376,6 +376,63 @@ func TestCanReceiveROOMSTATEMessage(t *testing.T) {
 	assertStringsEqual(t, "10", receivedTag)
 }
 
+func TestCanReceiveUSERNOTICEMessage(t *testing.T) {
+	testMessage := `@badges=subscriber/12,premium/1;color=#5F9EA0;display-name=blahh;emotes=;id=9154ac04-c9ad-46d5-97ad-15d2dbf244f0;login=deliquid;mod=0;msg-id=resub;msg-param-months=16;msg-param-sub-plan-name=Channel\sSubscription\s(NOTHING);msg-param-sub-plan=Prime;room-id=23161357;subscriber=1;system-msg=blahh\sjust\ssubscribed\swith\sTwitch\sPrime.\sblahh\ssubscribed\sfor\s16\smonths\sin\sa\srow!;tmi-sent-ts=1517165351175;turbo=0;user-id=1234567890;user-type= :tmi.twitch.tv USERNOTICE #nothing`
+	wait := make(chan struct{})
+
+	go func() {
+		cer, err := tls.LoadX509KeyPair("test_resources/server.crt", "test_resources/server.key")
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		config := &tls.Config{
+			Certificates: []tls.Certificate{cer},
+		}
+		ln, err := tls.Listen("tcp", ":4324", config)
+		if err != nil {
+			t.Fatal(err)
+		}
+		close(wait)
+		conn, err := ln.Accept()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer ln.Close()
+		defer conn.Close()
+
+		fmt.Fprintf(conn, "%s\r\n", testMessage)
+	}()
+
+	// wait for server to start
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("server didn't start")
+	}
+
+	client := NewClient("justinfan123123", "oauth:123123132")
+	client.IrcAddress = ":4324"
+	go client.Connect()
+
+	waitMsg := make(chan string)
+	var receivedTag string
+
+	client.OnNewUsernoticeMessage(func(channel string, user User, message Message) {
+		receivedTag = message.Tags["msg-param-months"]
+		close(waitMsg)
+	})
+
+	// wait for server to start
+	select {
+	case <-waitMsg:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no message sent")
+	}
+
+	assertStringsEqual(t, "16", receivedTag)
+}
+
 func TestCanSayMessage(t *testing.T) {
 	testMessage := "Do not go gentle into that good night."
 	wait := make(chan struct{})
