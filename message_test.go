@@ -9,6 +9,7 @@ func TestCanParseMessage(t *testing.T) {
 	message := parseMessage(testMessage)
 
 	assertStringsEqual(t, "pajlada", message.Channel)
+	assertInts64Equal(t, 78424343, message.UserID)
 	assertIntsEqual(t, 6, message.Badges["subscriber"])
 	assertStringsEqual(t, "#FF0000", message.Color)
 	assertStringsEqual(t, "Redflamingo13", message.DisplayName)
