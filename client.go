@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"net"
 	"net/textproto"
 	"strings"
 	"sync/atomic"
@@ -43,6 +44,7 @@ type Client struct {
 	ircToken              string
 	connection            *tls.Conn
 	connActive            tAtomBool
+	onNewWhisper          func(user User, message Message)
 	onNewMessage          func(channel string, user User, message Message)
 	onNewRoomstateMessage func(channel string, user User, message Message)
 	onNewClearchatMessage func(channel string, user User, message Message)
@@ -55,6 +57,11 @@ func NewClient(username, oauth string) *Client {
 		ircToken:   oauth,
 		IrcAddress: ircTwitch,
 	}
+}
+
+// OnNewWhisper attach callback to new whisper
+func (c *Client) OnNewWhisper(callback func(user User, message Message)) {
+	c.onNewWhisper = callback
 }
 
 // OnNewMessage attach callback to new standard chat messages
@@ -77,12 +84,20 @@ func (c *Client) Say(channel, text string) {
 	c.send(fmt.Sprintf("PRIVMSG #%s :%s", channel, text))
 }
 
+// Whisper write something in private to someone on twitch
+// whispers are heavily spam protected
+// so your message might get blocked because of this
+// verify your bot to prevent this
+func (c *Client) Whisper(username, text string) {
+	c.send(fmt.Sprintf("PRIVMSG #jtv :/w %s %s", username, text))
+}
+
 // Join enter a twitch channel to read more messages
 func (c *Client) Join(channel string) {
 	go c.send(fmt.Sprintf("JOIN #%s", channel))
 }
 
-// Disconnect closes current connection
+// Disconnect close current connection
 func (c *Client) Disconnect() error {
 	c.connActive.set(false)
 	if c.connection != nil {
@@ -93,6 +108,11 @@ func (c *Client) Disconnect() error {
 
 // Connect connect the client to the irc server
 func (c *Client) Connect() error {
+
+	dialer := &net.Dialer{
+		KeepAlive: time.Second * 10,
+	}
+
 	var conf *tls.Config
 	// This means we are connecting to "localhost". Disable certificate chain check
 	if strings.HasPrefix(c.IrcAddress, ":") {
@@ -103,7 +123,7 @@ func (c *Client) Connect() error {
 		conf = &tls.Config{}
 	}
 	for {
-		conn, err := tls.Dial("tcp", c.IrcAddress, conf)
+		conn, err := tls.DialWithDialer(dialer, "tcp", c.IrcAddress, conf)
 		c.connection = conn
 		if err != nil {
 			return err
@@ -186,6 +206,10 @@ func (c *Client) handleLine(line string) {
 		case PRIVMSG:
 			if c.onNewMessage != nil {
 				c.onNewMessage(Channel, *User, *clientMessage)
+			}
+		case WHISPER:
+			if c.onNewWhisper != nil {
+				c.onNewWhisper(*User, *clientMessage)
 			}
 		case ROOMSTATE:
 			if c.onNewRoomstateMessage != nil {
