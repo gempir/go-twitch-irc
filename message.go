@@ -26,6 +26,7 @@ type message struct {
 	Type        msgType
 	Time        time.Time
 	Channel     string
+	UserID      int64
 	Username    string
 	DisplayName string
 	UserType    string
@@ -68,6 +69,7 @@ func parseMessage(line string) *message {
 	}
 	msg.Username, msg.Type, msg.Channel = parseMiddle(middle)
 	parseTags(msg, tags[1:])
+	msg.UserID, _ = strconv.ParseInt(msg.Tags["user-id"], 10, 64)
 	if msg.Type == CLEARCHAT {
 		msg.Username = "twitch"
 		targetUser := msg.Text

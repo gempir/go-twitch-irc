@@ -19,6 +19,7 @@ const (
 
 // User data you receive from tmi
 type User struct {
+	UserID      int64
 	Username    string
 	DisplayName string
 	UserType    string
@@ -190,6 +191,7 @@ func (c *Client) handleLine(line string) {
 		Channel := message.Channel
 
 		User := &User{
+			UserID:      message.UserID,
 			Username:    message.Username,
 			DisplayName: message.DisplayName,
 			UserType:    message.UserType,
