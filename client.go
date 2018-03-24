@@ -207,6 +207,7 @@ func (c *Client) send(line string) {
 
 func (c *Client) handleLine(line string) {
 	if strings.HasPrefix(line, "PING") {
+		fmt.Println("Twitch pinged!")
 		c.send(strings.Replace(line, "PING", "PONG", 1))
 		c.wasPinged.set(true)
 	}
