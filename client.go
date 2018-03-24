@@ -179,7 +179,9 @@ func (c *Client) keepConnectionAlive() {
 		for {
 			select {
 			case <-ticker.C:
+				fmt.Println(c.wasPinged.get())
 				if !c.wasPinged.get() {
+					fmt.Println("restarting connection")
 					c.Disconnect()
 					c.Connect()
 				}
