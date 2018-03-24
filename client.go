@@ -173,7 +173,7 @@ func (c *Client) setupConnection() {
 }
 
 func (c *Client) keepConnectionAlive() {
-	ticker := time.NewTicker(60 * time.Second)
+	ticker := time.NewTicker(500 * time.Second)
 	quit := make(chan struct{})
 	go func() {
 		for {
