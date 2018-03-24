@@ -179,9 +179,7 @@ func (c *Client) keepConnectionAlive() {
 		for {
 			select {
 			case <-ticker.C:
-				fmt.Println(c.wasPinged.get())
 				if !c.wasPinged.get() {
-					fmt.Println("restarting connection")
 					c.Disconnect()
 					c.Connect()
 				}
@@ -207,7 +205,6 @@ func (c *Client) send(line string) {
 
 func (c *Client) handleLine(line string) {
 	if strings.HasPrefix(line, "PING") {
-		fmt.Println("Twitch pinged!")
 		c.send(strings.Replace(line, "PING", "PONG", 1))
 		c.wasPinged.set(true)
 	}
