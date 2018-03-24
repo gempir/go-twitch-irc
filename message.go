@@ -18,6 +18,8 @@ const (
 	CLEARCHAT = 2
 	// ROOMSTATE changes like sub mode
 	ROOMSTATE = 3
+	// USERNOTICE messages like subs, resubs, raids, etc
+	USERNOTICE = 4
 )
 
 type message struct {
@@ -51,7 +53,7 @@ func parseMessage(line string) *message {
 	}
 	spl := strings.SplitN(line, " :", 3)
 	if len(spl) < 3 {
-		return getRoomstateMessage(line)
+		return parseOtherMessage(line)
 	}
 	action := false
 	tags, middle, text := spl[0], spl[1], spl[2]
@@ -81,13 +83,19 @@ func parseMessage(line string) *message {
 	return msg
 }
 
-func getRoomstateMessage(line string) *message {
-
+func parseOtherMessage(line string) *message {
 	msg := &message{}
-	msg.Type = ROOMSTATE
+	split := strings.Split(line, " ")
+
+	switch split[2] {
+	case "ROOMSTATE":
+		msg.Type = ROOMSTATE
+	case "USERNOTICE":
+		msg.Type = USERNOTICE
+	}
 	msg.Tags = make(map[string]string)
 
-	tagsString := strings.Split(strings.TrimPrefix(line, "@"), " :tmi.twitch.tv ROOMSTATE")
+	tagsString := strings.Fields(strings.TrimPrefix(split[0], "@"))
 	tags := strings.Split(tagsString[0], ";")
 	for _, tag := range tags {
 		tagSplit := strings.Split(tag, "=")
@@ -99,7 +107,6 @@ func getRoomstateMessage(line string) *message {
 
 		msg.Tags[tagSplit[0]] = value
 	}
-
 	return msg
 }
 
