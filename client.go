@@ -44,6 +44,7 @@ type Client struct {
 	ircToken               string
 	connection             *tls.Conn
 	connActive             tAtomBool
+	wasPinged              tAtomBool
 	onNewWhisper           func(user User, message Message)
 	onNewMessage           func(channel string, user User, message Message)
 	onNewRoomstateMessage  func(channel string, user User, message Message)
@@ -168,6 +169,27 @@ func (c *Client) setupConnection() {
 	c.connection.Write([]byte("NICK " + c.ircUser + "\r\n"))
 	c.connection.Write([]byte("CAP REQ :twitch.tv/tags\r\n"))
 	c.connection.Write([]byte("CAP REQ :twitch.tv/commands\r\n"))
+	go c.keepConnectionAlive()
+}
+
+func (c *Client) keepConnectionAlive() {
+	ticker := time.NewTicker(60 * time.Second)
+	quit := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				if !c.wasPinged.get() {
+					c.Disconnect()
+					c.Connect()
+				}
+				c.wasPinged.set(false)
+			case <-quit:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
 }
 
 func (c *Client) send(line string) {
@@ -184,6 +206,7 @@ func (c *Client) send(line string) {
 func (c *Client) handleLine(line string) {
 	if strings.HasPrefix(line, "PING") {
 		c.send(strings.Replace(line, "PING", "PONG", 1))
+		c.wasPinged.set(true)
 	}
 	if strings.HasPrefix(line, "@") {
 		message := parseMessage(line)
