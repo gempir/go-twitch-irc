@@ -761,6 +761,7 @@ func TestCanCreateReconnectMessage(t *testing.T) {
 	client := NewClient("justinfan123123", "oauth:123123132")
 	client.IrcAddress = ":4331"
 	client.KeepAliveInterval = 1 * time.Second
+	client.AutoReconnect = true
 
 	client.OnNewReconnectMessage(func() {
 		reconnections++
@@ -818,6 +819,7 @@ func TestCanReceiveReconnectMessage(t *testing.T) {
 
 	client := NewClient("justinfan123123", "oauth:123123132")
 	client.IrcAddress = ":4332"
+	client.AutoReconnect = true
 	go client.Connect()
 
 	waitMsg := make(chan string)
