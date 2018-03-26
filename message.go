@@ -20,6 +20,8 @@ const (
 	ROOMSTATE = 3
 	// USERNOTICE messages like subs, resubs, raids, etc
 	USERNOTICE = 4
+	// RECONNECT message
+	RECONNECT = 5
 )
 
 type message struct {
@@ -86,7 +88,10 @@ func parseMessage(line string) *message {
 func parseOtherMessage(line string) *message {
 	msg := &message{}
 	split := strings.Split(line, " ")
-
+	if split[1] == "RECONNECT" {
+		msg.Type = RECONNECT
+		return msg
+	}
 	switch split[2] {
 	case "ROOMSTATE":
 		msg.Type = ROOMSTATE
