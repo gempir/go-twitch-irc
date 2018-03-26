@@ -88,14 +88,15 @@ func parseMessage(line string) *message {
 func parseOtherMessage(line string) *message {
 	msg := &message{}
 	split := strings.Split(line, " ")
-
+	if split[1] == "RECONNECT" {
+		msg.Type = RECONNECT
+		return msg
+	}
 	switch split[2] {
 	case "ROOMSTATE":
 		msg.Type = ROOMSTATE
 	case "USERNOTICE":
 		msg.Type = USERNOTICE
-	case "RECONNECT":
-		msg.Type = RECONNECT
 	}
 	msg.Tags = make(map[string]string)
 

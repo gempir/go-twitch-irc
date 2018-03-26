@@ -218,6 +218,14 @@ func (c *Client) send(line string) {
 }
 
 func (c *Client) handleLine(line string) {
+	if line == ":tmi.twitch.tv RECONNECT" {
+		if c.onNewReconnectMessage != nil {
+			c.onNewReconnectMessage()
+		}
+		c.Disconnect()
+		c.Connect()
+		return
+	}
 	if strings.HasPrefix(line, "PING") {
 		c.send(strings.Replace(line, "PING", "PONG", 1))
 		c.wasPinged.set(true)
@@ -265,10 +273,6 @@ func (c *Client) handleLine(line string) {
 		case USERNOTICE:
 			if c.onNewUsernoticeMessage != nil {
 				c.onNewUsernoticeMessage(Channel, *User, *clientMessage)
-			}
-		case RECONNECT:
-			if c.onNewReconnectMessage != nil {
-				c.onNewReconnectMessage()
 			}
 		}
 	}

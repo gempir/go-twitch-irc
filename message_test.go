@@ -113,3 +113,13 @@ func TestCanParseRoomstateMessage(t *testing.T) {
 		t.Error("parsing ROOMSTATE message failed")
 	}
 }
+func TestCanParseReconnectMessage(t *testing.T) {
+	testMessage := `:tmi.twitch.tv RECONNECT`
+
+	message := parseOtherMessage(testMessage)
+
+	if message.Type != RECONNECT {
+		t.Error("parsing RECONNECT message failed")
+	}
+	assertIntsEqual(t, 5, int(message.Type))
+}

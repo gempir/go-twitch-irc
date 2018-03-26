@@ -723,64 +723,6 @@ func TestCanNotDialInvalidAddress(t *testing.T) {
 	}
 }
 
-func TestCanParseReconnectMessage(t *testing.T) {
-	var reconnections int
-	keepAliveInterval = 3 * time.Second
-	testMessage := ":tmi.twitch.tv RECONNECT :server is going down"
-	wait := make(chan struct{})
-
-	go func() {
-		cer, err := tls.LoadX509KeyPair("test_resources/server.crt", "test_resources/server.key")
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		config := &tls.Config{
-			Certificates: []tls.Certificate{cer},
-		}
-		ln, err := tls.Listen("tcp", ":4331", config)
-		if err != nil {
-			t.Fatal(err)
-		}
-		close(wait)
-		conn, err := ln.Accept()
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer ln.Close()
-		defer conn.Close()
-
-		fmt.Fprintf(conn, "%s\r\n", testMessage)
-	}()
-
-	// wait for server to start
-	select {
-	case <-wait:
-	case <-time.After(time.Second * 9):
-		t.Fatal("server didn't start")
-	}
-
-	client := NewClient("justinfan123123", "oauth:123123132")
-	client.IrcAddress = ":4331"
-
-	client.OnNewReconnectMessage(func() {
-		reconnections++
-	})
-
-	go client.Connect()
-
-	waitMsg := make(chan string)
-
-	// wait for server to start
-	select {
-	case <-waitMsg:
-	case <-time.After(time.Second * 6):
-		if reconnections >= 1 {
-			t.Fatal("failed to reconnect after a RECONNECT message")
-		}
-	}
-}
-
 func TestCanCreateReconnectMessage(t *testing.T) {
 	var reconnections int
 	keepAliveInterval = 3 * time.Second
@@ -837,4 +779,60 @@ func TestCanCreateReconnectMessage(t *testing.T) {
 			t.Fatal("failed to a recieve onReconnectEvent event")
 		}
 	}
+}
+
+func TestCanReceiveReconnectMessage(t *testing.T) {
+	var reconnections int
+	testMessage := ":tmi.twitch.tv RECONNECT"
+	wait := make(chan struct{})
+
+	go func() {
+		cer, err := tls.LoadX509KeyPair("test_resources/server.crt", "test_resources/server.key")
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		config := &tls.Config{
+			Certificates: []tls.Certificate{cer},
+		}
+		ln, err := tls.Listen("tcp", ":4332", config)
+		if err != nil {
+			t.Fatal(err)
+		}
+		close(wait)
+		conn, err := ln.Accept()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer ln.Close()
+		defer conn.Close()
+
+		fmt.Fprintf(conn, "%s\r\n", testMessage)
+	}()
+
+	// wait for server to start
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("server didn't start")
+	}
+
+	client := NewClient("justinfan123123", "oauth:123123132")
+	client.IrcAddress = ":4332"
+	go client.Connect()
+
+	waitMsg := make(chan string)
+
+	client.OnNewReconnectMessage(func() {
+		reconnections++
+		close(waitMsg)
+	})
+
+	// wait for server to start
+	select {
+	case <-waitMsg:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no message sent")
+	}
+	assertIntsEqual(t, 1, reconnections)
 }
