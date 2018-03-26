@@ -20,6 +20,8 @@ const (
 	ROOMSTATE = 3
 	// USERNOTICE messages like subs, resubs, raids, etc
 	USERNOTICE = 4
+	// RECONNECT message
+	RECONNECT = 5
 )
 
 type message struct {
@@ -92,6 +94,8 @@ func parseOtherMessage(line string) *message {
 		msg.Type = ROOMSTATE
 	case "USERNOTICE":
 		msg.Type = USERNOTICE
+	case "RECONNECT":
+		msg.Type = RECONNECT
 	}
 	msg.Tags = make(map[string]string)
 
