@@ -62,3 +62,10 @@ These are the 6 major message types currently supported
 	CLEARCHAT
 	USERNOTICE
 	RECONNECT
+
+### Options
+
+You can configure the client before you call client.Connect()
+
+	client.IrcAddress = "irc.chat.twitch.tv:443" // set the default irc address, keep in my we only use TLS
+	client.AutoReconnect = false // When true it checks for a ping from twitch every 360 seconds if no ping happend, the connection will reset
