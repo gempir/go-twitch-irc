@@ -50,6 +50,8 @@ type Client struct {
 	onNewRoomstateMessage  func(channel string, user User, message Message)
 	onNewClearchatMessage  func(channel string, user User, message Message)
 	onNewUsernoticeMessage func(channel string, user User, message Message)
+	onNewReconnectMessage  func()
+	quitKeepAlive          chan struct{}
 }
 
 // NewClient to create a new client
@@ -86,6 +88,12 @@ func (c *Client) OnNewUsernoticeMessage(callback func(channel string, user User,
 	c.onNewUsernoticeMessage = callback
 }
 
+// OnNewReconnectMessage attach callback to new reconnect message
+// or when a PING timeout causes keepConnectionAlive() to reconnect
+func (c *Client) OnNewReconnectMessage(callback func()) {
+	c.onNewReconnectMessage = callback
+}
+
 // Say write something in a chat
 func (c *Client) Say(channel, text string) {
 	c.send(fmt.Sprintf("PRIVMSG #%s :%s", channel, text))
@@ -107,6 +115,9 @@ func (c *Client) Join(channel string) {
 // Disconnect close current connection
 func (c *Client) Disconnect() error {
 	c.connActive.set(false)
+	if c.quitKeepAlive != nil {
+		close(c.quitKeepAlive)
+	}
 	if c.connection != nil {
 		return c.connection.Close()
 	}
@@ -172,9 +183,12 @@ func (c *Client) setupConnection() {
 	go c.keepConnectionAlive()
 }
 
+// keepAliveInterval is for decreasing the duration tests
+var keepAliveInterval = 500 * time.Second
+
 func (c *Client) keepConnectionAlive() {
-	ticker := time.NewTicker(500 * time.Second)
-	quit := make(chan struct{})
+	ticker := time.NewTicker(keepAliveInterval)
+	c.quitKeepAlive = make(chan struct{})
 	go func() {
 		for {
 			select {
@@ -184,7 +198,7 @@ func (c *Client) keepConnectionAlive() {
 					c.Connect()
 				}
 				c.wasPinged.set(false)
-			case <-quit:
+			case <-c.quitKeepAlive:
 				ticker.Stop()
 				return
 			}
@@ -204,6 +218,14 @@ func (c *Client) send(line string) {
 }
 
 func (c *Client) handleLine(line string) {
+	if line == ":tmi.twitch.tv RECONNECT" {
+		if c.onNewReconnectMessage != nil {
+			c.onNewReconnectMessage()
+		}
+		c.Disconnect()
+		c.Connect()
+		return
+	}
 	if strings.HasPrefix(line, "PING") {
 		c.send(strings.Replace(line, "PING", "PONG", 1))
 		c.wasPinged.set(true)
