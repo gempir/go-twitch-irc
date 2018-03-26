@@ -83,8 +83,6 @@ func TestCanConnectAndAuthenticate(t *testing.T) {
 }
 
 func TestCanDisconnect(t *testing.T) {
-	keepAliveInterval = 9999 * time.Second
-
 	testMessage := "@badges=subscriber/6,premium/1;color=#FF0000;display-name=Redflamingo13;emotes=;id=2a31a9df-d6ff-4840-b211-a2547c7e656e;mod=0;room-id=11148817;subscriber=1;tmi-sent-ts=1490382457309;turbo=0;user-id=78424343;user-type= :redflamingo13!redflamingo13@redflamingo13.tmi.twitch.tv PRIVMSG #pajlada :Thrashh5, FeelsWayTooAmazingMan kinda"
 	wait := make(chan struct{})
 
@@ -121,6 +119,7 @@ func TestCanDisconnect(t *testing.T) {
 
 	client := NewClient("justinfan123123", "oauth:123123132")
 	client.IrcAddress = ":4328"
+	client.KeepAliveInterval = 9999 * time.Second
 	go client.Connect()
 
 	waitMsg := make(chan string)
@@ -725,7 +724,6 @@ func TestCanNotDialInvalidAddress(t *testing.T) {
 
 func TestCanCreateReconnectMessage(t *testing.T) {
 	var reconnections int
-	keepAliveInterval = 3 * time.Second
 	testMessage := "@badges=subscriber/6,premium/1;color=#FF0000;display-name=Redflamingo13;emotes=;id=2a31a9df-d6ff-4840-b211-a2547c7e656e;mod=0;room-id=11148817;subscriber=1;tmi-sent-ts=1490382457309;turbo=0;user-id=78424343;user-type= :redflamingo13!redflamingo13@redflamingo13.tmi.twitch.tv PRIVMSG #pajlada :Thrashh5, FeelsWayTooAmazingMan kinda"
 	wait := make(chan struct{})
 
@@ -762,6 +760,7 @@ func TestCanCreateReconnectMessage(t *testing.T) {
 
 	client := NewClient("justinfan123123", "oauth:123123132")
 	client.IrcAddress = ":4331"
+	client.KeepAliveInterval = 1 * time.Second
 
 	client.OnNewReconnectMessage(func() {
 		reconnections++
@@ -774,7 +773,7 @@ func TestCanCreateReconnectMessage(t *testing.T) {
 	// wait for server to start
 	select {
 	case <-waitMsg:
-	case <-time.After(time.Second * 6):
+	case <-time.After(time.Second * 2):
 		if reconnections >= 1 {
 			t.Fatal("failed to a recieve onReconnectEvent event")
 		}

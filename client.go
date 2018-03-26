@@ -38,8 +38,14 @@ type Message struct {
 }
 
 // Client client to control your connection and attach callbacks
+// AutoReconnect makes the connection reset if we don't receive a ping in the KeepAliveInterval
+// KeepAliveInternal should almost never be overwritten. If we don't receive
+// a ping from twitch in that interval the connection will reset
+// IrcAddress can be overwritten to connect to a custom IrcServer
 type Client struct {
 	IrcAddress             string
+	AutoReconnect          bool
+	KeepAliveInterval      time.Duration
 	ircUser                string
 	ircToken               string
 	connection             *tls.Conn
@@ -57,9 +63,11 @@ type Client struct {
 // NewClient to create a new client
 func NewClient(username, oauth string) *Client {
 	return &Client{
-		ircUser:    username,
-		ircToken:   oauth,
-		IrcAddress: ircTwitch,
+		ircUser:           username,
+		ircToken:          oauth,
+		IrcAddress:        ircTwitch,
+		AutoReconnect:     false,
+		KeepAliveInterval: 360 * time.Second,
 	}
 }
 
@@ -180,14 +188,14 @@ func (c *Client) setupConnection() {
 	c.connection.Write([]byte("NICK " + c.ircUser + "\r\n"))
 	c.connection.Write([]byte("CAP REQ :twitch.tv/tags\r\n"))
 	c.connection.Write([]byte("CAP REQ :twitch.tv/commands\r\n"))
-	go c.keepConnectionAlive()
+
+	if c.AutoReconnect {
+		go c.keepConnectionAlive()
+	}
 }
 
-// keepAliveInterval is for decreasing the duration tests
-var keepAliveInterval = 500 * time.Second
-
 func (c *Client) keepConnectionAlive() {
-	ticker := time.NewTicker(keepAliveInterval)
+	ticker := time.NewTicker(c.KeepAliveInterval)
 	c.quitKeepAlive = make(chan struct{})
 	go func() {
 		for {
