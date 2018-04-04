@@ -54,9 +54,9 @@ func parseMessage(line string) *message {
 	}
 	action := false
 	tags, middle, text := spl[0], spl[1], spl[2]
-	if strings.HasPrefix(text, "\u0001ACTION ") {
+	if strings.HasPrefix(text, "\u0001ACTION ") && strings.HasSuffix(text, "\u0001"){
 		action = true
-		text = text[8:]
+		text = text[8:len(text)-1]
 	}
 	msg := &message{
 		Time:   time.Now(),
