@@ -38,36 +38,25 @@ type Message struct {
 }
 
 // Client client to control your connection and attach callbacks
-// AutoReconnect makes the connection reset if we don't receive a ping in the KeepAliveInterval
-// KeepAliveInternal should almost never be overwritten. If we don't receive
-// a ping from twitch in that interval the connection will reset
-// IrcAddress can be overwritten to connect to a custom IrcServer
 type Client struct {
 	IrcAddress             string
-	AutoReconnect          bool
-	KeepAliveInterval      time.Duration
 	ircUser                string
 	ircToken               string
 	connection             *tls.Conn
 	connActive             tAtomBool
-	wasPinged              tAtomBool
 	onNewWhisper           func(user User, message Message)
 	onNewMessage           func(channel string, user User, message Message)
 	onNewRoomstateMessage  func(channel string, user User, message Message)
 	onNewClearchatMessage  func(channel string, user User, message Message)
 	onNewUsernoticeMessage func(channel string, user User, message Message)
-	onNewReconnectMessage  func()
-	quitKeepAlive          chan struct{}
 }
 
 // NewClient to create a new client
 func NewClient(username, oauth string) *Client {
 	return &Client{
-		ircUser:           username,
-		ircToken:          oauth,
-		IrcAddress:        ircTwitch,
-		AutoReconnect:     false,
-		KeepAliveInterval: 360 * time.Second,
+		ircUser:    username,
+		ircToken:   oauth,
+		IrcAddress: ircTwitch,
 	}
 }
 
@@ -96,12 +85,6 @@ func (c *Client) OnNewUsernoticeMessage(callback func(channel string, user User,
 	c.onNewUsernoticeMessage = callback
 }
 
-// OnNewReconnectMessage attach callback to new reconnect message
-// or when a PING timeout causes keepConnectionAlive() to reconnect
-func (c *Client) OnNewReconnectMessage(callback func()) {
-	c.onNewReconnectMessage = callback
-}
-
 // Say write something in a chat
 func (c *Client) Say(channel, text string) {
 	c.send(fmt.Sprintf("PRIVMSG #%s :%s", channel, text))
@@ -123,9 +106,6 @@ func (c *Client) Join(channel string) {
 // Disconnect close current connection
 func (c *Client) Disconnect() error {
 	c.connActive.set(false)
-	if c.quitKeepAlive != nil {
-		close(c.quitKeepAlive)
-	}
 	if c.connection != nil {
 		return c.connection.Close()
 	}
@@ -188,30 +168,6 @@ func (c *Client) setupConnection() {
 	c.connection.Write([]byte("NICK " + c.ircUser + "\r\n"))
 	c.connection.Write([]byte("CAP REQ :twitch.tv/tags\r\n"))
 	c.connection.Write([]byte("CAP REQ :twitch.tv/commands\r\n"))
-
-	if c.AutoReconnect {
-		go c.keepConnectionAlive()
-	}
-}
-
-func (c *Client) keepConnectionAlive() {
-	ticker := time.NewTicker(c.KeepAliveInterval)
-	c.quitKeepAlive = make(chan struct{})
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				if !c.wasPinged.get() {
-					c.Disconnect()
-					c.Connect()
-				}
-				c.wasPinged.set(false)
-			case <-c.quitKeepAlive:
-				ticker.Stop()
-				return
-			}
-		}
-	}()
 }
 
 func (c *Client) send(line string) {
@@ -226,17 +182,8 @@ func (c *Client) send(line string) {
 }
 
 func (c *Client) handleLine(line string) {
-	if line == ":tmi.twitch.tv RECONNECT" {
-		if c.onNewReconnectMessage != nil {
-			c.onNewReconnectMessage()
-		}
-		c.Disconnect()
-		c.Connect()
-		return
-	}
 	if strings.HasPrefix(line, "PING") {
 		c.send(strings.Replace(line, "PING", "PONG", 1))
-		c.wasPinged.set(true)
 	}
 	if strings.HasPrefix(line, "@") {
 		message := parseMessage(line)
