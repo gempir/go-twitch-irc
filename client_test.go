@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"crypto/tls"
 	"fmt"
-	"io"
 	"log"
 	"net/textproto"
 	"reflect"
@@ -51,7 +50,7 @@ func TestCanConnectAndAuthenticate(t *testing.T) {
 
 		for {
 			message, err := tp.ReadLine()
-			if err != nil && err != io.EOF {
+			if err != nil {
 				t.Fatal(err)
 			}
 			message = strings.Replace(message, "\r\n", "", 1)
@@ -119,7 +118,6 @@ func TestCanDisconnect(t *testing.T) {
 
 	client := NewClient("justinfan123123", "oauth:123123132")
 	client.IrcAddress = ":4328"
-	client.KeepAliveInterval = 9999 * time.Second
 	go client.Connect()
 
 	waitMsg := make(chan string)
@@ -468,7 +466,7 @@ func TestCanSayMessage(t *testing.T) {
 
 		for {
 			message, err := tp.ReadLine()
-			if err != nil && err != io.EOF {
+			if err != nil {
 				t.Fatal(err)
 			}
 			message = strings.Replace(message, "\r\n", "", 1)
@@ -538,7 +536,7 @@ func TestCanWhisperMessage(t *testing.T) {
 
 		for {
 			message, err := tp.ReadLine()
-			if err != nil && err != io.EOF {
+			if err != nil {
 				t.Fatal(err)
 			}
 			message = strings.Replace(message, "\r\n", "", 1)
@@ -607,7 +605,7 @@ func TestCanJoinChannel(t *testing.T) {
 
 		for {
 			message, err := tp.ReadLine()
-			if err != nil && err != io.EOF {
+			if err != nil {
 				t.Fatal(err)
 			}
 			message = strings.Replace(message, "\r\n", "", 1)
@@ -676,7 +674,7 @@ func TestCanPong(t *testing.T) {
 
 		for {
 			message, err := tp.ReadLine()
-			if err != nil && err != io.EOF {
+			if err != nil {
 				t.Fatal(err)
 			}
 			message = strings.Replace(message, "\r\n", "", 1)
@@ -720,120 +718,4 @@ func TestCanNotDialInvalidAddress(t *testing.T) {
 	if !strings.Contains(err.Error(), "invalid port") {
 		t.Fatal("invalid Connect() error")
 	}
-}
-
-func TestCanCreateReconnectMessage(t *testing.T) {
-	var reconnections int
-	testMessage := "@badges=subscriber/6,premium/1;color=#FF0000;display-name=Redflamingo13;emotes=;id=2a31a9df-d6ff-4840-b211-a2547c7e656e;mod=0;room-id=11148817;subscriber=1;tmi-sent-ts=1490382457309;turbo=0;user-id=78424343;user-type= :redflamingo13!redflamingo13@redflamingo13.tmi.twitch.tv PRIVMSG #pajlada :Thrashh5, FeelsWayTooAmazingMan kinda"
-	wait := make(chan struct{})
-
-	go func() {
-		cer, err := tls.LoadX509KeyPair("test_resources/server.crt", "test_resources/server.key")
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		config := &tls.Config{
-			Certificates: []tls.Certificate{cer},
-		}
-		ln, err := tls.Listen("tcp", ":4331", config)
-		if err != nil {
-			t.Fatal(err)
-		}
-		close(wait)
-		conn, err := ln.Accept()
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer ln.Close()
-		defer conn.Close()
-
-		fmt.Fprintf(conn, "%s\r\n", testMessage)
-	}()
-
-	// wait for server to start
-	select {
-	case <-wait:
-	case <-time.After(time.Second * 9):
-		t.Fatal("server didn't start")
-	}
-
-	client := NewClient("justinfan123123", "oauth:123123132")
-	client.IrcAddress = ":4331"
-	client.KeepAliveInterval = 1 * time.Second
-	client.AutoReconnect = true
-
-	client.OnNewReconnectMessage(func() {
-		reconnections++
-	})
-
-	go client.Connect()
-
-	waitMsg := make(chan string)
-
-	// wait for server to start
-	select {
-	case <-waitMsg:
-	case <-time.After(time.Second * 2):
-		if reconnections >= 1 {
-			t.Fatal("failed to a recieve onReconnectEvent event")
-		}
-	}
-}
-
-func TestCanReceiveReconnectMessage(t *testing.T) {
-	var reconnections int
-	testMessage := ":tmi.twitch.tv RECONNECT"
-	wait := make(chan struct{})
-
-	go func() {
-		cer, err := tls.LoadX509KeyPair("test_resources/server.crt", "test_resources/server.key")
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		config := &tls.Config{
-			Certificates: []tls.Certificate{cer},
-		}
-		ln, err := tls.Listen("tcp", ":4332", config)
-		if err != nil {
-			t.Fatal(err)
-		}
-		close(wait)
-		conn, err := ln.Accept()
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer ln.Close()
-		defer conn.Close()
-
-		fmt.Fprintf(conn, "%s\r\n", testMessage)
-	}()
-
-	// wait for server to start
-	select {
-	case <-wait:
-	case <-time.After(time.Second * 3):
-		t.Fatal("server didn't start")
-	}
-
-	client := NewClient("justinfan123123", "oauth:123123132")
-	client.IrcAddress = ":4332"
-	client.AutoReconnect = true
-	go client.Connect()
-
-	waitMsg := make(chan string)
-
-	client.OnNewReconnectMessage(func() {
-		reconnections++
-		close(waitMsg)
-	})
-
-	// wait for server to start
-	select {
-	case <-waitMsg:
-	case <-time.After(time.Second * 3):
-		t.Fatal("no message sent")
-	}
-	assertIntsEqual(t, 1, reconnections)
 }

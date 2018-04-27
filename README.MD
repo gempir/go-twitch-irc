@@ -54,18 +54,10 @@ Channel is just a string like "lirik", note the absent #.
 ### Message Types
 
 If you ever need more than basic PRIVMSG this might be for you.
-These are the 6 major message types currently supported
+These are the 5 major message types currently supported
 
 	PRIVMSG
 	WHISPER
 	ROOMSTATE
 	CLEARCHAT
 	USERNOTICE
-	RECONNECT
-
-### Options
-
-You can configure the client before you call client.Connect()
-
-	client.IrcAddress = "irc.chat.twitch.tv:443" // set the default irc address, keep in my we only use TLS
-	client.AutoReconnect = false // When true it checks for a ping from twitch every 360 seconds if no ping happend, the connection will reset
