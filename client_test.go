@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"crypto/tls"
 	"fmt"
+	"io"
 	"log"
 	"net/textproto"
 	"reflect"
@@ -50,7 +51,7 @@ func TestCanConnectAndAuthenticate(t *testing.T) {
 
 		for {
 			message, err := tp.ReadLine()
-			if err != nil {
+			if err != nil && err != io.EOF {
 				t.Fatal(err)
 			}
 			message = strings.Replace(message, "\r\n", "", 1)
@@ -466,7 +467,7 @@ func TestCanSayMessage(t *testing.T) {
 
 		for {
 			message, err := tp.ReadLine()
-			if err != nil {
+			if err != nil && err != io.EOF {
 				t.Fatal(err)
 			}
 			message = strings.Replace(message, "\r\n", "", 1)
@@ -536,7 +537,7 @@ func TestCanWhisperMessage(t *testing.T) {
 
 		for {
 			message, err := tp.ReadLine()
-			if err != nil {
+			if err != nil && err != io.EOF {
 				t.Fatal(err)
 			}
 			message = strings.Replace(message, "\r\n", "", 1)
@@ -605,7 +606,7 @@ func TestCanJoinChannel(t *testing.T) {
 
 		for {
 			message, err := tp.ReadLine()
-			if err != nil {
+			if err != nil && err != io.EOF {
 				t.Fatal(err)
 			}
 			message = strings.Replace(message, "\r\n", "", 1)
@@ -674,7 +675,7 @@ func TestCanPong(t *testing.T) {
 
 		for {
 			message, err := tp.ReadLine()
-			if err != nil {
+			if err != nil && err != io.EOF {
 				t.Fatal(err)
 			}
 			message = strings.Replace(message, "\r\n", "", 1)
