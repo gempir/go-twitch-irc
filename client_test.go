@@ -658,7 +658,7 @@ func TestCanDepartChannel(t *testing.T) {
 		config := &tls.Config{
 			Certificates: []tls.Certificate{cer},
 		}
-		ln, err := tls.Listen("tcp", ":4328", config)
+		ln, err := tls.Listen("tcp", ":4331", config)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -697,7 +697,7 @@ func TestCanDepartChannel(t *testing.T) {
 	}
 
 	client := NewClient("justinfan123123", "oauth:123123132")
-	client.IrcAddress = ":4328"
+	client.IrcAddress = ":4331"
 	go client.Connect()
 
 	client.Depart("gempir")
