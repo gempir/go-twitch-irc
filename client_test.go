@@ -643,6 +643,75 @@ func TestCanJoinChannel(t *testing.T) {
 	assertStringsEqual(t, "JOIN #gempir", receivedMsg)
 }
 
+func TestCanDepartChannel(t *testing.T) {
+	wait := make(chan struct{})
+
+	waitEnd := make(chan struct{})
+	var receivedMsg string
+
+	go func() {
+		cer, err := tls.LoadX509KeyPair("test_resources/server.crt", "test_resources/server.key")
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		config := &tls.Config{
+			Certificates: []tls.Certificate{cer},
+		}
+		ln, err := tls.Listen("tcp", ":4331", config)
+		if err != nil {
+			t.Fatal(err)
+		}
+		close(wait)
+		conn, err := ln.Accept()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer ln.Close()
+		defer conn.Close()
+
+		reader := bufio.NewReader(conn)
+		tp := textproto.NewReader(reader)
+
+		for {
+			message, err := tp.ReadLine()
+			if err != nil && err != io.EOF {
+				t.Fatal(err)
+			}
+			message = strings.Replace(message, "\r\n", "", 1)
+			if strings.HasPrefix(message, "NICK") {
+				fmt.Fprintf(conn, ":tmi.twitch.tv 001 justinfan123123 :Welcome, GLHF!\r\n")
+			}
+			if strings.HasPrefix(message, "PART") {
+				receivedMsg = message
+				close(waitEnd)
+			}
+		}
+	}()
+
+	// wait for server to start
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("testserver didn't start")
+	}
+
+	client := NewClient("justinfan123123", "oauth:123123132")
+	client.IrcAddress = ":4331"
+	go client.Connect()
+
+	client.Depart("gempir")
+
+	// wait for server to receive message
+	select {
+	case <-waitEnd:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no depart message received")
+	}
+
+	assertStringsEqual(t, "PART #gempir", receivedMsg)
+}
+
 func TestCanPong(t *testing.T) {
 	wait := make(chan struct{})
 
