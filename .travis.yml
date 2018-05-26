@@ -6,10 +6,12 @@ go:
  - 1.8.x
  - 1.9.x
  - 1.10.x
+env:
+ - COVERALLS_PARALLEL=true
 before_install:
   - go get github.com/mattn/goveralls
-script:
- - $HOME/gopath/bin/goveralls -service=travis-ci
+notifications:
+  webhooks: https://coveralls.io/webhook
 
 
   
