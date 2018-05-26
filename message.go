@@ -95,7 +95,9 @@ func parseOtherMessage(line string) *message {
 	}
 	msg.Tags = make(map[string]string)
 
+	// Parse out channel if it exists in this line
 	if len(split) >= 4 && len(split[3]) > 1 && split[3][0] == '#' {
+		// Remove # from channel
 		msg.Channel = split[3][1:]
 	}
 
