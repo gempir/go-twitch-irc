@@ -92,6 +92,8 @@ func parseOtherMessage(line string) *message {
 		msg.Type = ROOMSTATE
 	case "USERNOTICE":
 		msg.Type = USERNOTICE
+	case "CLEARCHAT":
+		msg.Type = CLEARCHAT
 	}
 	msg.Tags = make(map[string]string)
 
@@ -106,6 +108,10 @@ func parseOtherMessage(line string) *message {
 		}
 
 		msg.Tags[tagSplit[0]] = value
+	}
+
+	if msg.Type == CLEARCHAT {
+		msg.Text = "Chat has been cleared by a moderator"
 	}
 	return msg
 }
