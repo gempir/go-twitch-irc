@@ -84,6 +84,20 @@ func TestCanParseClearChatMessage(t *testing.T) {
 	if message.Type != CLEARCHAT {
 		t.Error("parsing CLEARCHAT message failed")
 	}
+
+	assertStringsEqual(t, message.Channel, "pajlada")
+}
+
+func TestCanParseClearChatMessage2(t *testing.T) {
+	testMessage := `@room-id=11148817;tmi-sent-ts=1527342985836 :tmi.twitch.tv CLEARCHAT #pajlada`
+
+	message := parseMessage(testMessage)
+
+	if message.Type != CLEARCHAT {
+		t.Error("parsing CLEARCHAT message failed")
+	}
+
+	assertStringsEqual(t, message.Channel, "pajlada")
 }
 
 func TestCanParseEmoteMessage(t *testing.T) {
