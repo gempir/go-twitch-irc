@@ -95,6 +95,10 @@ func parseOtherMessage(line string) *message {
 	}
 	msg.Tags = make(map[string]string)
 
+	if len(split) >= 4 && len(split[3]) > 1 && split[3][0] == '#' {
+		msg.Channel = split[3][1:]
+	}
+
 	tagsString := strings.Fields(strings.TrimPrefix(split[0], "@"))
 	tags := strings.Split(tagsString[0], ";")
 	for _, tag := range tags {
