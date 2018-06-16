@@ -45,6 +45,7 @@ type Client struct {
 	connection             *tls.Conn
 	connActive             tAtomBool
 	channels               map[string]bool
+	onConnect              func()
 	onNewWhisper           func(user User, message Message)
 	onNewMessage           func(channel string, user User, message Message)
 	onNewRoomstateMessage  func(channel string, user User, message Message)
@@ -70,6 +71,11 @@ func (c *Client) OnNewWhisper(callback func(user User, message Message)) {
 // OnNewMessage attach callback to new standard chat messages
 func (c *Client) OnNewMessage(callback func(channel string, user User, message Message)) {
 	c.onNewMessage = callback
+}
+
+// OnConnect attach callback to when a connection has been established
+func (c *Client) OnConnect(callback func()) {
+	c.onConnect = callback
 }
 
 // OnNewRoomstateMessage attach callback to new messages such as submode enabled
@@ -174,6 +180,9 @@ func (c *Client) readConnection(conn *tls.Conn) error {
 		for _, msg := range messages {
 			if !c.connActive.get() && strings.Contains(msg, ":tmi.twitch.tv 001") {
 				c.connActive.set(true)
+				if c.onConnect != nil {
+					c.onConnect()
+				}
 			}
 			c.handleLine(msg)
 		}
