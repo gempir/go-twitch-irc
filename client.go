@@ -113,7 +113,11 @@ func (c *Client) Join(channel string) {
 
 // Depart leave a twitch channel
 func (c *Client) Depart(channel string) {
-	c.send(fmt.Sprintf("PART #%s", channel))
+	if c.connActive.get() {
+		go c.send(fmt.Sprintf("PART #%s", channel))
+	}
+
+	delete(c.channels, channel)
 }
 
 // Disconnect close current connection
