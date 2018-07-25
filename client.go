@@ -113,13 +113,11 @@ func (c *Client) Whisper(username, text string) {
 func (c *Client) Join(channel string) {
 	// If we don't have the channel in our map AND we have an
 	// active connection, explicitly join before we add it to our map
-	c.channelsMtx.RLock()
+	c.channelsMtx.Lock()
 	if !c.channels[channel] && c.connActive.get() {
 		go c.send(fmt.Sprintf("JOIN #%s", channel))
 	}
-	c.channelsMtx.RUnlock()
 
-	c.channelsMtx.Lock()
 	c.channels[channel] = true
 	c.channelsMtx.Unlock()
 }
