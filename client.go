@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/textproto"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -45,6 +46,7 @@ type Client struct {
 	connection             *tls.Conn
 	connActive             tAtomBool
 	channels               map[string]bool
+	channelsMtx            *sync.RWMutex
 	onConnect              func()
 	onNewWhisper           func(user User, message Message)
 	onNewMessage           func(channel string, user User, message Message)
@@ -56,10 +58,11 @@ type Client struct {
 // NewClient to create a new client
 func NewClient(username, oauth string) *Client {
 	return &Client{
-		ircUser:    username,
-		ircToken:   oauth,
-		IrcAddress: ircTwitch,
-		channels:   map[string]bool{},
+		ircUser:     username,
+		ircToken:    oauth,
+		IrcAddress:  ircTwitch,
+		channels:    map[string]bool{},
+		channelsMtx: &sync.RWMutex{},
 	}
 }
 
@@ -110,11 +113,13 @@ func (c *Client) Whisper(username, text string) {
 func (c *Client) Join(channel string) {
 	// If we don't have the channel in our map AND we have an
 	// active connection, explicitly join before we add it to our map
+	c.channelsMtx.Lock()
 	if !c.channels[channel] && c.connActive.get() {
 		go c.send(fmt.Sprintf("JOIN #%s", channel))
 	}
 
 	c.channels[channel] = true
+	c.channelsMtx.Unlock()
 }
 
 // Depart leave a twitch channel
@@ -123,7 +128,9 @@ func (c *Client) Depart(channel string) {
 		go c.send(fmt.Sprintf("PART #%s", channel))
 	}
 
+	c.channelsMtx.Lock()
 	delete(c.channels, channel)
+	c.channelsMtx.Unlock()
 }
 
 // Disconnect close current connection
@@ -196,9 +203,11 @@ func (c *Client) setupConnection() {
 	c.connection.Write([]byte("CAP REQ :twitch.tv/commands\r\n"))
 
 	// join or rejoin channels on connection
+	c.channelsMtx.RLock()
 	for channel := range c.channels {
 		c.send(fmt.Sprintf("JOIN #%s", channel))
 	}
+	c.channelsMtx.RUnlock()
 }
 
 func (c *Client) send(line string) {
