@@ -111,6 +111,8 @@ func (c *Client) Whisper(username, text string) {
 
 // Join enter a twitch channel to read more messages
 func (c *Client) Join(channel string) {
+	channel = strings.ToLower(channel)
+
 	// If we don't have the channel in our map AND we have an
 	// active connection, explicitly join before we add it to our map
 	c.channelsMtx.Lock()

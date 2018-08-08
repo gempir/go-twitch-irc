@@ -347,7 +347,7 @@ func TestCanJoinChannel(t *testing.T) {
 	client := newTestClient(host)
 	go client.Connect()
 
-	client.Join("gempir")
+	client.Join("gempiR")
 
 	// wait for server to receive message
 	select {
