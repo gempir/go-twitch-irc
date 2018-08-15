@@ -53,6 +53,7 @@ type Client struct {
 	onNewRoomstateMessage  func(channel string, user User, message Message)
 	onNewClearchatMessage  func(channel string, user User, message Message)
 	onNewUsernoticeMessage func(channel string, user User, message Message)
+	onNewUserstateMessage  func(channel string, user User, message Message)
 }
 
 // NewClient to create a new client
@@ -94,6 +95,11 @@ func (c *Client) OnNewClearchatMessage(callback func(channel string, user User, 
 // OnNewUsernoticeMessage attach callback to new usernotice message such as sub, resub, and raids
 func (c *Client) OnNewUsernoticeMessage(callback func(channel string, user User, message Message)) {
 	c.onNewUsernoticeMessage = callback
+}
+
+// OnNewUserstateMessage attach callback to new userstate
+func (c *Client) OnNewUserstateMessage(callback func(channel string, user User, message Message)) {
+	c.onNewUserstateMessage = callback
 }
 
 // Say write something in a chat
@@ -270,6 +276,10 @@ func (c *Client) handleLine(line string) {
 		case USERNOTICE:
 			if c.onNewUsernoticeMessage != nil {
 				c.onNewUsernoticeMessage(Channel, *User, *clientMessage)
+			}
+		case USERSTATE:
+			if c.onNewUserstateMessage != nil {
+				c.onNewUserstateMessage(Channel, *User, *clientMessage)
 			}
 		}
 	}
