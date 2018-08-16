@@ -274,6 +274,31 @@ func TestCanReceiveUSERNOTICEMessage(t *testing.T) {
 	assertStringsEqual(t, "16", received)
 }
 
+func TestCanReceiveUSERStateMessage(t *testing.T) {
+	testMessage := `@badges=moderator/1;color=;display-name=blahh;emote-sets=0;mod=1;subscriber=0;user-type=mod :tmi.twitch.tv USERSTATE #nothing`
+
+	wait := make(chan struct{})
+	var received string
+
+	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
+	client := newTestClient(host)
+
+	client.OnNewUserstateMessage(func(channel string, user User, message Message) {
+		received = message.Tags["mod"]
+		close(wait)
+	})
+
+	go client.Connect()
+
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no message sent")
+	}
+
+	assertStringsEqual(t, "1", received)
+}
+
 func TestCanSayMessage(t *testing.T) {
 	testMessage := "Do not go gentle into that good night."
 
