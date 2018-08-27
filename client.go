@@ -43,7 +43,8 @@ type Client struct {
 	IrcAddress             string
 	ircUser                string
 	ircToken               string
-	connection             *tls.Conn
+	TLS                    bool
+	connection             net.Conn
 	connActive             tAtomBool
 	channels               map[string]bool
 	channelsMtx            *sync.RWMutex
@@ -62,6 +63,7 @@ func NewClient(username, oauth string) *Client {
 		ircUser:     username,
 		ircToken:    oauth,
 		IrcAddress:  ircTwitch,
+		TLS:         true,
 		channels:    map[string]bool{},
 		channelsMtx: &sync.RWMutex{},
 	}
@@ -167,15 +169,19 @@ func (c *Client) Connect() error {
 		conf = &tls.Config{}
 	}
 	for {
-		conn, err := tls.DialWithDialer(dialer, "tcp", c.IrcAddress, conf)
-		c.connection = conn
+		var err error
+		if c.TLS {
+			c.connection, err = tls.DialWithDialer(dialer, "tcp", c.IrcAddress, conf)
+		} else {
+			c.connection, err = dialer.Dial("tcp", c.IrcAddress)
+		}
 		if err != nil {
 			return err
 		}
 
 		go c.setupConnection()
 
-		err = c.readConnection(conn)
+		err = c.readConnection(c.connection)
 		if err != nil {
 			time.Sleep(time.Millisecond * 200)
 			continue
@@ -183,7 +189,7 @@ func (c *Client) Connect() error {
 	}
 }
 
-func (c *Client) readConnection(conn *tls.Conn) error {
+func (c *Client) readConnection(conn net.Conn) error {
 	reader := bufio.NewReader(conn)
 	tp := textproto.NewReader(reader)
 	for {
