@@ -55,14 +55,13 @@ Channel is just a string like "lirik", note the absent #.
 ### Client Methods
 
 These are the available methods of the client so you can get your bot going.
-```go
+
 	func (c *Client) Say(channel, text string)
 	func (c *Client) Whisper(username, text string)
 	func (c *Client) Join(channel string)
 	func (c *Client) Depart(channel string)
 	func (c *Client) Connect() error
 	func (c *Client) Disconnect() error
-```
 
 ### Options
 
@@ -75,13 +74,13 @@ On your client you can configure multiple options.
 
 These callbacks are available to pass to the client.
 ```go
-	client.OnConnect(func() {})
-	client.OnNewWhisper(func(user twitch.User, message twitch.Message) {})
-	client.OnNewMessage(func(channel string, user twitch.User, message twitch.Message) {})
-	client.OnNewRoomstateMessage(func(channel string, user twitch.User, message twitch.Message) {})
-	client.OnNewClearchatMessage(func(channel string, user twitch.User, message twitch.Message) {})
-	client.OnNewUsernoticeMessage(func(channel string, user twitch.User, message twitch.Message) {})
-	client.OnNewUserstateMessage(func(channel string, user twitch.User, message twitch.Message) {})
+client.OnConnect(func() {})
+client.OnNewWhisper(func(user twitch.User, message twitch.Message) {})
+client.OnNewMessage(func(channel string, user twitch.User, message twitch.Message) {})
+client.OnNewRoomstateMessage(func(channel string, user twitch.User, message twitch.Message) {})
+client.OnNewClearchatMessage(func(channel string, user twitch.User, message twitch.Message) {})
+client.OnNewUsernoticeMessage(func(channel string, user twitch.User, message twitch.Message) {})
+client.OnNewUserstateMessage(func(channel string, user twitch.User, message twitch.Message) {})
 ```
 ### Message Types
 
