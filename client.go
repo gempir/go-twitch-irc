@@ -47,6 +47,7 @@ type Client struct {
 	TLS                    bool
 	connection             net.Conn
 	connActive             tAtomBool
+	disconnected           tAtomBool
 	channels               map[string]bool
 	channelsMtx            *sync.RWMutex
 	onConnect              func()
@@ -146,6 +147,7 @@ func (c *Client) Depart(channel string) {
 // Disconnect close current connection
 func (c *Client) Disconnect() error {
 	c.connActive.set(false)
+	c.disconnected.set(true)
 	if c.connection != nil {
 		return c.connection.Close()
 	}
@@ -174,6 +176,10 @@ func (c *Client) Connect() error {
 		conf = &tls.Config{}
 	}
 	for {
+		if c.disconnected.get() {
+			return errors.New("client called Disconnect()")
+		}
+
 		var err error
 		if c.TLS {
 			c.connection, err = tls.DialWithDialer(dialer, "tcp", c.IrcAddress, conf)

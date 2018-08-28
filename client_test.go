@@ -582,3 +582,24 @@ func TestCanNotDialInvalidAddress(t *testing.T) {
 		t.Fatal("invalid Connect() error")
 	}
 }
+
+func TestCanConnectToTwitch(t *testing.T) {
+	client := NewClient("justinfan123123", "oauth:123123132")
+
+	client.OnConnect(func() {
+		client.Disconnect()
+	})
+
+	client.Connect()
+}
+
+func TestCanConnectToTwitchWithoutTLS(t *testing.T) {
+	client := NewClient("justinfan123123", "oauth:123123132")
+	client.TLS = false
+
+	client.OnConnect(func() {
+		client.Disconnect()
+	})
+
+	client.Connect()
+}
