@@ -15,7 +15,8 @@ import (
 
 const (
 	// ircTwitch constant for twitch irc chat address
-	ircTwitch = "irc.chat.twitch.tv:443"
+	ircTwitchTLS = "irc.chat.twitch.tv:6697"
+	ircTwitch    = "irc.chat.twitch.tv:6667"
 )
 
 // User data you receive from tmi
@@ -62,7 +63,6 @@ func NewClient(username, oauth string) *Client {
 	return &Client{
 		ircUser:     username,
 		ircToken:    oauth,
-		IrcAddress:  ircTwitch,
 		TLS:         true,
 		channels:    map[string]bool{},
 		channelsMtx: &sync.RWMutex{},
@@ -154,6 +154,11 @@ func (c *Client) Disconnect() error {
 
 // Connect connect the client to the irc server
 func (c *Client) Connect() error {
+	if c.IrcAddress == "" && c.TLS {
+		c.IrcAddress = ircTwitchTLS
+	} else if c.IrcAddress == "" && !c.TLS {
+		c.IrcAddress = ircTwitch
+	}
 
 	dialer := &net.Dialer{
 		KeepAlive: time.Second * 10,
