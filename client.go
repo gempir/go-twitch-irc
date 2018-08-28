@@ -162,6 +162,8 @@ func (c *Client) Connect() error {
 		c.IrcAddress = ircTwitch
 	}
 
+	c.disconnected.set(false)
+
 	dialer := &net.Dialer{
 		KeepAlive: time.Second * 10,
 	}
