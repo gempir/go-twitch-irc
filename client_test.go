@@ -36,7 +36,7 @@ func newTestClient(host string) *Client {
 }
 
 func startServer(t *testing.T, onConnect func(net.Conn), onMessage func(string)) string {
-	host := ":" + strconv.Itoa(startPort)
+	host := "127.0.0.1:" + strconv.Itoa(startPort)
 	startPort++
 
 	cert, err := tls.LoadX509KeyPair("test_resources/server.crt", "test_resources/server.key")
@@ -80,7 +80,7 @@ func startServer(t *testing.T, onConnect func(net.Conn), onMessage func(string))
 }
 
 func startNoTLSServer(t *testing.T, onConnect func(net.Conn), onMessage func(string)) string {
-	host := ":" + strconv.Itoa(startPort)
+	host := "127.0.0.1:" + strconv.Itoa(startPort)
 	startPort++
 
 	listener, err := net.Listen("tcp", host)

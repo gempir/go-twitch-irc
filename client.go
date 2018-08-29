@@ -19,6 +19,11 @@ const (
 	ircTwitch    = "irc.chat.twitch.tv:6667"
 )
 
+var (
+	// ErrClientDisconnected returned from Connect() when a Disconnect() was called
+	ErrClientDisconnected = errors.New("client called Disconnect()")
+)
+
 // User data you receive from tmi
 type User struct {
 	UserID      int64
@@ -170,7 +175,7 @@ func (c *Client) Connect() error {
 
 	var conf *tls.Config
 	// This means we are connecting to "localhost". Disable certificate chain check
-	if strings.HasPrefix(c.IrcAddress, ":") {
+	if strings.HasPrefix(c.IrcAddress, "127.0.0.1:") {
 		conf = &tls.Config{
 			InsecureSkipVerify: true,
 		}
@@ -179,7 +184,7 @@ func (c *Client) Connect() error {
 	}
 	for {
 		if c.disconnected.get() {
-			return errors.New("client called Disconnect()")
+			return ErrClientDisconnected
 		}
 
 		var err error
