@@ -219,6 +219,7 @@ func (c *Client) readConnection(conn net.Conn) error {
 		for _, msg := range messages {
 			if !c.connActive.get() && strings.Contains(msg, ":tmi.twitch.tv 001") {
 				c.connActive.set(true)
+				c.initialJoins()
 				if c.onConnect != nil {
 					c.onConnect()
 				}
@@ -233,7 +234,9 @@ func (c *Client) setupConnection() {
 	c.connection.Write([]byte("NICK " + c.ircUser + "\r\n"))
 	c.connection.Write([]byte("CAP REQ :twitch.tv/tags\r\n"))
 	c.connection.Write([]byte("CAP REQ :twitch.tv/commands\r\n"))
+}
 
+func (c *Client) initialJoins() {
 	// join or rejoin channels on connection
 	c.channelsMtx.RLock()
 	for channel := range c.channels {
