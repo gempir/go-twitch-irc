@@ -36,7 +36,7 @@ func newTestClient(host string) *Client {
 }
 
 func startServer(t *testing.T, onConnect func(net.Conn), onMessage func(string)) string {
-	host := ":" + strconv.Itoa(startPort)
+	host := "127.0.0.1:" + strconv.Itoa(startPort)
 	startPort++
 
 	cert, err := tls.LoadX509KeyPair("test_resources/server.crt", "test_resources/server.key")
@@ -77,6 +77,70 @@ func startServer(t *testing.T, onConnect func(net.Conn), onMessage func(string))
 	}()
 
 	return host
+}
+
+func startNoTLSServer(t *testing.T, onConnect func(net.Conn), onMessage func(string)) string {
+	host := "127.0.0.1:" + strconv.Itoa(startPort)
+	startPort++
+
+	listener, err := net.Listen("tcp", host)
+	if err != nil {
+		t.Fatal(err)
+	}
+	go func() {
+		conn, err := listener.Accept()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		reader := bufio.NewReader(conn)
+		tp := textproto.NewReader(reader)
+
+		defer listener.Close()
+		defer conn.Close()
+		for {
+			message, err := tp.ReadLine()
+			if err != nil && err != io.EOF {
+				t.Fatal(err)
+			}
+			message = strings.Replace(message, "\r\n", "", 1)
+			if strings.HasPrefix(message, "NICK") {
+				fmt.Fprintf(conn, ":tmi.twitch.tv 001 justinfan123123 :Welcome, GLHF!\r\n")
+				onConnect(conn)
+			} else {
+				onMessage(message)
+			}
+		}
+	}()
+
+	return host
+}
+
+func TestCanConnectAndAuthenticateWithoutTLS(t *testing.T) {
+	const oauthCode = "oauth:123123132"
+	wait := make(chan struct{})
+
+	var received string
+
+	host := startNoTLSServer(t, nothingOnConnect, func(message string) {
+		if strings.HasPrefix(message, "PASS") {
+			received = message
+			close(wait)
+		}
+	})
+
+	client := NewClient("justinfan123123", oauthCode)
+	client.TLS = false
+	client.IrcAddress = host
+	go client.Connect()
+
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no oauth read")
+	}
+
+	assertStringsEqual(t, "PASS "+oauthCode, received)
 }
 
 func TestCanCreateClient(t *testing.T) {
@@ -370,9 +434,10 @@ func TestCanJoinChannel(t *testing.T) {
 	})
 
 	client := newTestClient(host)
-	go client.Connect()
 
 	client.Join("gempiR")
+
+	go client.Connect()
 
 	// wait for server to receive message
 	select {
@@ -517,4 +582,25 @@ func TestCanNotDialInvalidAddress(t *testing.T) {
 	if !strings.Contains(err.Error(), "invalid port") {
 		t.Fatal("invalid Connect() error")
 	}
+}
+
+func TestCanConnectToTwitch(t *testing.T) {
+	client := NewClient("justinfan123123", "oauth:123123132")
+
+	client.OnConnect(func() {
+		client.Disconnect()
+	})
+
+	client.Connect()
+}
+
+func TestCanConnectToTwitchWithoutTLS(t *testing.T) {
+	client := NewClient("justinfan123123", "oauth:123123132")
+	client.TLS = false
+
+	client.OnConnect(func() {
+		client.Disconnect()
+	})
+
+	client.Connect()
 }
