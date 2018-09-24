@@ -74,8 +74,8 @@ func parseMessage(line string) *message {
 	parseTags(msg, tags[1:])
 	msg.UserID, _ = strconv.ParseInt(msg.Tags["user-id"], 10, 64)
 	if msg.Type == CLEARCHAT {
-		msg.Username = "twitch"
 		targetUser := msg.Text
+		msg.Username = targetUser
 		seconds, _ := strconv.Atoi(msg.Tags["ban-duration"])
 
 		msg.Text = fmt.Sprintf("%s was timed out for %s: %s",
