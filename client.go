@@ -15,7 +15,13 @@ import (
 
 const (
 	// ircTwitch constant for twitch irc chat address
-	ircTwitch = "irc.chat.twitch.tv:443"
+	ircTwitchTLS = "irc.chat.twitch.tv:6697"
+	ircTwitch    = "irc.chat.twitch.tv:6667"
+)
+
+var (
+	// ErrClientDisconnected returned from Connect() when a Disconnect() was called
+	ErrClientDisconnected = errors.New("client called Disconnect()")
 )
 
 // User data you receive from tmi
@@ -43,8 +49,10 @@ type Client struct {
 	IrcAddress             string
 	ircUser                string
 	ircToken               string
-	connection             *tls.Conn
+	TLS                    bool
+	connection             net.Conn
 	connActive             tAtomBool
+	disconnected           tAtomBool
 	channels               map[string]bool
 	channelsMtx            *sync.RWMutex
 	onConnect              func()
@@ -61,7 +69,7 @@ func NewClient(username, oauth string) *Client {
 	return &Client{
 		ircUser:     username,
 		ircToken:    oauth,
-		IrcAddress:  ircTwitch,
+		TLS:         true,
 		channels:    map[string]bool{},
 		channelsMtx: &sync.RWMutex{},
 	}
@@ -144,6 +152,7 @@ func (c *Client) Depart(channel string) {
 // Disconnect close current connection
 func (c *Client) Disconnect() error {
 	c.connActive.set(false)
+	c.disconnected.set(true)
 	if c.connection != nil {
 		return c.connection.Close()
 	}
@@ -152,6 +161,13 @@ func (c *Client) Disconnect() error {
 
 // Connect connect the client to the irc server
 func (c *Client) Connect() error {
+	if c.IrcAddress == "" && c.TLS {
+		c.IrcAddress = ircTwitchTLS
+	} else if c.IrcAddress == "" && !c.TLS {
+		c.IrcAddress = ircTwitch
+	}
+
+	c.disconnected.set(false)
 
 	dialer := &net.Dialer{
 		KeepAlive: time.Second * 10,
@@ -159,7 +175,7 @@ func (c *Client) Connect() error {
 
 	var conf *tls.Config
 	// This means we are connecting to "localhost". Disable certificate chain check
-	if strings.HasPrefix(c.IrcAddress, ":") {
+	if strings.HasPrefix(c.IrcAddress, "127.0.0.1:") {
 		conf = &tls.Config{
 			InsecureSkipVerify: true,
 		}
@@ -167,15 +183,23 @@ func (c *Client) Connect() error {
 		conf = &tls.Config{}
 	}
 	for {
-		conn, err := tls.DialWithDialer(dialer, "tcp", c.IrcAddress, conf)
-		c.connection = conn
+		if c.disconnected.get() {
+			return ErrClientDisconnected
+		}
+
+		var err error
+		if c.TLS {
+			c.connection, err = tls.DialWithDialer(dialer, "tcp", c.IrcAddress, conf)
+		} else {
+			c.connection, err = dialer.Dial("tcp", c.IrcAddress)
+		}
 		if err != nil {
 			return err
 		}
 
 		go c.setupConnection()
 
-		err = c.readConnection(conn)
+		err = c.readConnection(c.connection)
 		if err != nil {
 			time.Sleep(time.Millisecond * 200)
 			continue
@@ -183,7 +207,7 @@ func (c *Client) Connect() error {
 	}
 }
 
-func (c *Client) readConnection(conn *tls.Conn) error {
+func (c *Client) readConnection(conn net.Conn) error {
 	reader := bufio.NewReader(conn)
 	tp := textproto.NewReader(reader)
 	for {
@@ -195,6 +219,7 @@ func (c *Client) readConnection(conn *tls.Conn) error {
 		for _, msg := range messages {
 			if !c.connActive.get() && strings.Contains(msg, ":tmi.twitch.tv 001") {
 				c.connActive.set(true)
+				c.initialJoins()
 				if c.onConnect != nil {
 					c.onConnect()
 				}
@@ -209,7 +234,9 @@ func (c *Client) setupConnection() {
 	c.connection.Write([]byte("NICK " + c.ircUser + "\r\n"))
 	c.connection.Write([]byte("CAP REQ :twitch.tv/tags\r\n"))
 	c.connection.Write([]byte("CAP REQ :twitch.tv/commands\r\n"))
+}
 
+func (c *Client) initialJoins() {
 	// join or rejoin channels on connection
 	c.channelsMtx.RLock()
 	for channel := range c.channels {
