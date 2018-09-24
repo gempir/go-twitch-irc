@@ -284,7 +284,7 @@ func TestCanReceiveCLEARCHATMessage(t *testing.T) {
 		t.Fatal("no message sent")
 	}
 
-	assertStringsEqual(t, "ampzyh was timed out for 1s: testing xd", received)
+	assertStringsEqual(t, "ampzyh was timed out for 1: testing xd", received)
 }
 
 func TestCanReceiveROOMSTATEMessage(t *testing.T) {
