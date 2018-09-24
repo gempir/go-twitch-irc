@@ -42,6 +42,7 @@ type Message struct {
 	Emotes []*Emote
 	Tags   map[string]string
 	Text   string
+	Raw    string
 }
 
 // Client client to control your connection and attach callbacks
@@ -261,55 +262,63 @@ func (c *Client) handleLine(line string) {
 		c.send(strings.Replace(line, "PING", "PONG", 1))
 	}
 	if strings.HasPrefix(line, "@") {
-		message := parseMessage(line)
+		channel, user, clientMessage := ParseMessage(line)
 
-		Channel := message.Channel
-
-		User := &User{
-			UserID:      message.UserID,
-			Username:    message.Username,
-			DisplayName: message.DisplayName,
-			UserType:    message.UserType,
-			Color:       message.Color,
-			Badges:      message.Badges,
-		}
-
-		clientMessage := &Message{
-			Type:   message.Type,
-			Time:   message.Time,
-			Action: message.Action,
-			Emotes: message.Emotes,
-			Tags:   message.Tags,
-			Text:   message.Text,
-		}
-
-		switch message.Type {
+		switch clientMessage.Type {
 		case PRIVMSG:
 			if c.onNewMessage != nil {
-				c.onNewMessage(Channel, *User, *clientMessage)
+				c.onNewMessage(channel, *user, *clientMessage)
 			}
 		case WHISPER:
 			if c.onNewWhisper != nil {
-				c.onNewWhisper(*User, *clientMessage)
+				c.onNewWhisper(*user, *clientMessage)
 			}
 		case ROOMSTATE:
 			if c.onNewRoomstateMessage != nil {
-				c.onNewRoomstateMessage(Channel, *User, *clientMessage)
+				c.onNewRoomstateMessage(channel, *user, *clientMessage)
 			}
 		case CLEARCHAT:
 			if c.onNewClearchatMessage != nil {
-				c.onNewClearchatMessage(Channel, *User, *clientMessage)
+				c.onNewClearchatMessage(channel, *user, *clientMessage)
 			}
 		case USERNOTICE:
 			if c.onNewUsernoticeMessage != nil {
-				c.onNewUsernoticeMessage(Channel, *User, *clientMessage)
+				c.onNewUsernoticeMessage(channel, *user, *clientMessage)
 			}
 		case USERSTATE:
 			if c.onNewUserstateMessage != nil {
-				c.onNewUserstateMessage(Channel, *User, *clientMessage)
+				c.onNewUserstateMessage(channel, *user, *clientMessage)
 			}
 		}
 	}
+}
+
+// ParseMessage parse a raw ircv3 twitch
+func ParseMessage(line string) (string, *User, *Message) {
+	message := parseMessage(line)
+
+	channel := message.Channel
+
+	user := &User{
+		UserID:      message.UserID,
+		Username:    message.Username,
+		DisplayName: message.DisplayName,
+		UserType:    message.UserType,
+		Color:       message.Color,
+		Badges:      message.Badges,
+	}
+
+	clientMessage := &Message{
+		Type:   message.Type,
+		Time:   message.Time,
+		Action: message.Action,
+		Emotes: message.Emotes,
+		Tags:   message.Tags,
+		Text:   message.Text,
+		Raw:    message.Raw,
+	}
+
+	return channel, user, clientMessage
 }
 
 // tAtomBool atomic bool for writing/reading across threads

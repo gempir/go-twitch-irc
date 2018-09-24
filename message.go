@@ -39,6 +39,7 @@ type message struct {
 	Emotes      []*Emote
 	Tags        map[string]string
 	Text        string
+	Raw         string
 }
 
 // Emote twitch emotes
@@ -52,6 +53,7 @@ func parseMessage(line string) *message {
 	if !strings.HasPrefix(line, "@") {
 		return &message{
 			Text: line,
+			Raw:  line,
 		}
 	}
 	spl := strings.SplitN(line, " :", 3)
@@ -76,13 +78,10 @@ func parseMessage(line string) *message {
 	if msg.Type == CLEARCHAT {
 		targetUser := msg.Text
 		msg.Username = targetUser
-		seconds, _ := strconv.Atoi(msg.Tags["ban-duration"])
 
-		msg.Text = fmt.Sprintf("%s was timed out for %s: %s",
-			targetUser,
-			time.Duration(time.Duration(seconds)*time.Second),
-			msg.Tags["ban-reason"])
+		msg.Text = fmt.Sprintf("%s was timed out for %s: %s", targetUser, msg.Tags["ban-duration"], msg.Tags["ban-reason"])
 	}
+	msg.Raw = line
 	return msg
 }
 
