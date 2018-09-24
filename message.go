@@ -7,25 +7,26 @@ import (
 	"time"
 )
 
-type msgType int
+// MessageType different message types possible to receive via IRC
+type MessageType int
 
 const (
 	// WHISPER private messages
-	WHISPER msgType = 0
+	WHISPER MessageType = 0
 	// PRIVMSG standard chat message
-	PRIVMSG msgType = 1
+	PRIVMSG MessageType = 1
 	// CLEARCHAT timeout messages
-	CLEARCHAT = 2
+	CLEARCHAT MessageType = 2
 	// ROOMSTATE changes like sub mode
-	ROOMSTATE = 3
+	ROOMSTATE MessageType = 3
 	// USERNOTICE messages like subs, resubs, raids, etc
-	USERNOTICE = 4
+	USERNOTICE MessageType = 4
 	// USERSTATE messages
-	USERSTATE = 5
+	USERSTATE MessageType = 5
 )
 
 type message struct {
-	Type        msgType
+	Type        MessageType
 	Time        time.Time
 	Channel     string
 	UserID      int64
@@ -59,9 +60,9 @@ func parseMessage(line string) *message {
 	}
 	action := false
 	tags, middle, text := spl[0], spl[1], spl[2]
-	if strings.HasPrefix(text, "\u0001ACTION ") && strings.HasSuffix(text, "\u0001"){
+	if strings.HasPrefix(text, "\u0001ACTION ") && strings.HasSuffix(text, "\u0001") {
 		action = true
-		text = text[8:len(text)-1]
+		text = text[8 : len(text)-1]
 	}
 	msg := &message{
 		Time:   time.Now(),
@@ -126,9 +127,9 @@ func parseOtherMessage(line string) *message {
 	return msg
 }
 
-func parseMiddle(middle string) (string, msgType, string) {
+func parseMiddle(middle string) (string, MessageType, string) {
 	var username string
-	var msgType msgType
+	var msgType MessageType
 	var channel string
 
 	for i, c := range middle {

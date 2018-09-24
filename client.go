@@ -30,7 +30,7 @@ type User struct {
 
 // Message data you receive from tmi
 type Message struct {
-	Type   msgType
+	Type   MessageType
 	Time   time.Time
 	Action bool
 	Emotes []*Emote
