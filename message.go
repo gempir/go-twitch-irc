@@ -88,6 +88,7 @@ func parseMessage(line string) *message {
 func parseOtherMessage(line string) *message {
 	msg := &message{}
 	split := strings.Split(line, " ")
+	msg.Raw = line
 
 	switch split[2] {
 	case "ROOMSTATE":
