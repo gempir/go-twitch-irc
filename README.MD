@@ -54,7 +54,7 @@ Channel is just a string like "lirik", note the absent #.
 
 ### Client Methods
 
-These are the available methods of the client so you can get your bot going.
+These are the available methods of the client so you can get your bot going:
 
 	func (c *Client) Say(channel, text string)
 	func (c *Client) Whisper(username, text string)
@@ -65,14 +65,14 @@ These are the available methods of the client so you can get your bot going.
 
 ### Options
 
-On your client you can configure multiple options.
+On your client you can configure multiple options:
 ```go
 client.IrcAddress = "127.0.0.1:3030" // for custom irc server
 client.TLS = false // enabled by default, will connect to non TLS server of twitch when off or the given client.IrcAddress
 ```
 ### Callbacks
 
-These callbacks are available to pass to the client.
+These callbacks are available to pass to the client:
 ```go
 client.OnConnect(func() {})
 client.OnNewWhisper(func(user twitch.User, message twitch.Message) {})
@@ -84,8 +84,8 @@ client.OnNewUserstateMessage(func(channel string, user twitch.User, message twit
 ```
 ### Message Types
 
-If you ever need more than basic PRIVMSG this might be for you.
-These are the 5 major message types currently supported
+If you ever need more than basic PRIVMSG, this might be for you.
+These are the 5 major message types currently supported:
 
 	PRIVMSG
 	WHISPER
