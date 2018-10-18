@@ -363,6 +363,58 @@ func TestCanReceiveUSERStateMessage(t *testing.T) {
 	assertStringsEqual(t, "1", received)
 }
 
+func TestCanReceiveJOINMessage(t *testing.T) {
+	testMessage := `:username123!username123@username123.tmi.twitch.tv JOIN #mychannel`
+
+	wait := make(chan struct{})
+	var received string
+
+	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
+	client := newTestClient(host)
+
+	client.OnUserJoin(func(channel, user string) {
+		received = user
+		close(wait)
+	})
+
+	go client.Connect()
+
+	// wait for server to start
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no message sent")
+	}
+
+	assertStringsEqual(t, "username123", received)
+}
+
+func TestCanReceivePARTMessage(t *testing.T) {
+	testMessage := `:username123!username123@username123.tmi.twitch.tv PART #mychannel`
+
+	wait := make(chan struct{})
+	var received string
+
+	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
+	client := newTestClient(host)
+
+	client.OnUserPart(func(channel, user string) {
+		received = user
+		close(wait)
+	})
+
+	go client.Connect()
+
+	// wait for server to start
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no message sent")
+	}
+
+	assertStringsEqual(t, "username123", received)
+}
+
 func TestCanSayMessage(t *testing.T) {
 	testMessage := "Do not go gentle into that good night."
 
@@ -509,6 +561,38 @@ func TestCanDepartChannel(t *testing.T) {
 	assertStringsEqual(t, "PART #gempir", receivedMsg)
 }
 
+func TestCanGetUserlist(t *testing.T) {
+	testString := `:justinfan123123.tmi.twitch.tv 353 justinfan123123 = #channel123 :username1 username2`
+	waitEnd := make(chan struct{})
+
+	host := startServer(t, postMessageOnConnect(testString), nothingOnMessage)
+
+	client := newTestClient(host)
+
+	client.Join("channel123")
+
+	go client.Connect()
+
+	// wait for the connection to go active
+	for !client.connActive.get() {
+		time.Sleep(time.Millisecond * 5)
+	}
+
+	got := client.Userlist("channel123")
+	expected := []string{"username1", "username2"}
+
+	assertStringSlicesEqual(t, expected, got)
+
+	close(waitEnd)
+
+	// wait for server to receive message
+	select {
+	case <-waitEnd:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no userlist recieved")
+	}
+}
+
 func TestDepartNegatesJoinIfNotConnected(t *testing.T) {
 	waitErrorPart := make(chan struct{})
 	waitErrorJoin := make(chan struct{})
@@ -603,4 +687,22 @@ func TestCanConnectToTwitchWithoutTLS(t *testing.T) {
 	})
 
 	client.Connect()
+}
+
+func TestRemoveElement(t *testing.T) {
+	input := []string{"1", "2", "3", "4"}
+	expected := []string{"1", "2", "3"}
+
+	output := removeElement("4", input)
+
+	assertStringSlicesEqual(t, expected, output)
+}
+
+func TestIsInSlice(t *testing.T) {
+	input := []string{"1", "2", "3"}
+	yes := isInSlice("2", input)
+	no := isInSlice("100", input)
+
+	assertTrue(t, yes, "expected true for \"2\" is in slice")
+	assertTrue(t, no == false, "expected false for \"100\" is not slice")
 }

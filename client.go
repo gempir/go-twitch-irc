@@ -55,6 +55,7 @@ type Client struct {
 	connActive             tAtomBool
 	disconnected           tAtomBool
 	channels               map[string]bool
+	channelUserlist        map[string][]string
 	channelsMtx            *sync.RWMutex
 	onConnect              func()
 	onNewWhisper           func(user User, message Message)
@@ -63,16 +64,19 @@ type Client struct {
 	onNewClearchatMessage  func(channel string, user User, message Message)
 	onNewUsernoticeMessage func(channel string, user User, message Message)
 	onNewUserstateMessage  func(channel string, user User, message Message)
+	onUserJoin             func(channel, user string)
+	onUserPart             func(channel, user string)
 }
 
 // NewClient to create a new client
 func NewClient(username, oauth string) *Client {
 	return &Client{
-		ircUser:     username,
-		ircToken:    oauth,
-		TLS:         true,
-		channels:    map[string]bool{},
-		channelsMtx: &sync.RWMutex{},
+		ircUser:         username,
+		ircToken:        oauth,
+		TLS:             true,
+		channels:        map[string]bool{},
+		channelUserlist: make(map[string][]string),
+		channelsMtx:     &sync.RWMutex{},
 	}
 }
 
@@ -111,6 +115,16 @@ func (c *Client) OnNewUserstateMessage(callback func(channel string, user User, 
 	c.onNewUserstateMessage = callback
 }
 
+// OnUserJoin attack callback to user join
+func (c *Client) OnUserJoin(callback func(channel, user string)) {
+	c.onUserJoin = callback
+}
+
+// OnUserPart attack callback to user part
+func (c *Client) OnUserPart(callback func(channel, user string)) {
+	c.onUserPart = callback
+}
+
 // Say write something in a chat
 func (c *Client) Say(channel, text string) {
 	c.send(fmt.Sprintf("PRIVMSG #%s :%s", channel, text))
@@ -136,6 +150,7 @@ func (c *Client) Join(channel string) {
 	}
 
 	c.channels[channel] = true
+	c.channelUserlist[channel] = make([]string, 0, 1000)
 	c.channelsMtx.Unlock()
 }
 
@@ -147,6 +162,7 @@ func (c *Client) Depart(channel string) {
 
 	c.channelsMtx.Lock()
 	delete(c.channels, channel)
+	delete(c.channelUserlist, "channel")
 	c.channelsMtx.Unlock()
 }
 
@@ -208,6 +224,12 @@ func (c *Client) Connect() error {
 	}
 }
 
+// Userlist returns the userlist for a given channel
+func (c *Client) Userlist(channel string) []string {
+	found := c.channelUserlist[channel]
+	return found
+}
+
 func (c *Client) readConnection(conn net.Conn) error {
 	reader := bufio.NewReader(conn)
 	tp := textproto.NewReader(reader)
@@ -235,6 +257,7 @@ func (c *Client) setupConnection() {
 	c.connection.Write([]byte("NICK " + c.ircUser + "\r\n"))
 	c.connection.Write([]byte("CAP REQ :twitch.tv/tags\r\n"))
 	c.connection.Write([]byte("CAP REQ :twitch.tv/commands\r\n"))
+	c.connection.Write([]byte("CAP REQ :twitch.tv/membership\r\n"))
 }
 
 func (c *Client) initialJoins() {
@@ -291,6 +314,55 @@ func (c *Client) handleLine(line string) {
 			}
 		}
 	}
+	if strings.HasPrefix(line, ":") {
+		if strings.Contains(line, "JOIN") {
+			channel, username := parseJoinPart(line)
+
+			if username != c.ircUser && !isInSlice(username, c.channelUserlist[channel]) {
+				c.channelUserlist[channel] = append(c.channelUserlist[channel], username)
+			}
+
+			if c.onUserJoin != nil {
+				c.onUserJoin(channel, username)
+			}
+		}
+		if strings.Contains(line, "PART") {
+			channel, username := parseJoinPart(line)
+
+			c.channelUserlist[channel] = removeElement(username, c.channelUserlist[channel])
+
+			if c.onUserPart != nil {
+				c.onUserPart(channel, username)
+			}
+		}
+		if strings.Contains(line, "353 "+c.ircUser) {
+			channel, users := parseNames(line)
+
+			for _, user := range users {
+				c.channelUserlist[channel] = append(c.channelUserlist[channel], user)
+			}
+		}
+	}
+}
+
+func removeElement(elem string, slice []string) []string {
+	j := 0
+	for _, v := range slice {
+		if v != elem {
+			slice[j] = v
+			j++
+		}
+	}
+	return slice[:j]
+}
+
+func isInSlice(elem string, slice []string) bool {
+	for _, e := range slice {
+		if e == elem {
+			return true
+		}
+	}
+	return false
 }
 
 // ParseMessage parse a raw ircv3 twitch
