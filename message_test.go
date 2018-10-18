@@ -160,6 +160,5 @@ func TestCanParseNames(t *testing.T) {
 	channel, users := parseNames(testMessage)
 
 	assertStringsEqual(t, channel, "mychannel")
-
 	assertStringSlicesEqual(t, expectedUsers, users)
 }

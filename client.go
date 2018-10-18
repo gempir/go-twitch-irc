@@ -115,12 +115,12 @@ func (c *Client) OnNewUserstateMessage(callback func(channel string, user User, 
 	c.onNewUserstateMessage = callback
 }
 
-// OnUserJoin attack callback to user join
+// OnUserJoin attaches callback to user joins
 func (c *Client) OnUserJoin(callback func(channel, user string)) {
 	c.onUserJoin = callback
 }
 
-// OnUserPart attack callback to user part
+// OnUserPart attaches callback to user parts
 func (c *Client) OnUserPart(callback func(channel, user string)) {
 	c.onUserPart = callback
 }
@@ -315,7 +315,7 @@ func (c *Client) handleLine(line string) {
 		}
 	}
 	if strings.HasPrefix(line, ":") {
-		if strings.Contains(line, "JOIN") {
+		if strings.Contains(line, "tmi.twitch.tv JOIN") {
 			channel, username := parseJoinPart(line)
 
 			if username != c.ircUser && !isInSlice(username, c.channelUserlist[channel]) {
@@ -326,7 +326,7 @@ func (c *Client) handleLine(line string) {
 				c.onUserJoin(channel, username)
 			}
 		}
-		if strings.Contains(line, "PART") {
+		if strings.Contains(line, "tmi.twitch.tv PART") {
 			channel, username := parseJoinPart(line)
 
 			c.channelUserlist[channel] = removeElement(username, c.channelUserlist[channel])
