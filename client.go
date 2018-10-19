@@ -55,7 +55,7 @@ type Client struct {
 	connActive             tAtomBool
 	disconnected           tAtomBool
 	channels               map[string]bool
-	channelUserlist        map[string][]string
+	channelUserlist        map[string]map[string]bool
 	channelsMtx            *sync.RWMutex
 	onConnect              func()
 	onNewWhisper           func(user User, message Message)
@@ -75,7 +75,7 @@ func NewClient(username, oauth string) *Client {
 		ircToken:        oauth,
 		TLS:             true,
 		channels:        map[string]bool{},
-		channelUserlist: make(map[string][]string),
+		channelUserlist: map[string]map[string]bool{},
 		channelsMtx:     &sync.RWMutex{},
 	}
 }
@@ -150,7 +150,7 @@ func (c *Client) Join(channel string) {
 	}
 
 	c.channels[channel] = true
-	c.channelUserlist[channel] = make([]string, 0, 1000)
+	c.channelUserlist[channel] = map[string]bool{}
 	c.channelsMtx.Unlock()
 }
 
@@ -162,7 +162,7 @@ func (c *Client) Depart(channel string) {
 
 	c.channelsMtx.Lock()
 	delete(c.channels, channel)
-	delete(c.channelUserlist, "channel")
+	delete(c.channelUserlist, channel)
 	c.channelsMtx.Unlock()
 }
 
@@ -225,9 +225,11 @@ func (c *Client) Connect() error {
 }
 
 // Userlist returns the userlist for a given channel
-func (c *Client) Userlist(channel string) []string {
-	found := c.channelUserlist[channel]
-	return found
+func (c *Client) Userlist(channel string) (map[string]bool, error) {
+	if value, ok := c.channelUserlist[channel]; ok {
+		return value, nil
+	}
+	return nil, fmt.Errorf("Could not find userlist for channel '%s' in client", channel)
 }
 
 func (c *Client) readConnection(conn net.Conn) error {
@@ -318,8 +320,13 @@ func (c *Client) handleLine(line string) {
 		if strings.Contains(line, "tmi.twitch.tv JOIN") {
 			channel, username := parseJoinPart(line)
 
-			if username != c.ircUser && !isInSlice(username, c.channelUserlist[channel]) {
-				c.channelUserlist[channel] = append(c.channelUserlist[channel], username)
+			if c.channelUserlist[channel] == nil {
+				c.channelUserlist[channel] = map[string]bool{}
+			}
+
+			_, ok := c.channelUserlist[channel][username]
+			if !ok && username != c.ircUser {
+				c.channelUserlist[channel][username] = true
 			}
 
 			if c.onUserJoin != nil {
@@ -329,7 +336,7 @@ func (c *Client) handleLine(line string) {
 		if strings.Contains(line, "tmi.twitch.tv PART") {
 			channel, username := parseJoinPart(line)
 
-			c.channelUserlist[channel] = removeElement(username, c.channelUserlist[channel])
+			delete(c.channelUserlist[channel], username)
 
 			if c.onUserPart != nil {
 				c.onUserPart(channel, username)
@@ -338,31 +345,15 @@ func (c *Client) handleLine(line string) {
 		if strings.Contains(line, "353 "+c.ircUser) {
 			channel, users := parseNames(line)
 
+			if c.channelUserlist[channel] == nil {
+				c.channelUserlist[channel] = map[string]bool{}
+			}
+
 			for _, user := range users {
-				c.channelUserlist[channel] = append(c.channelUserlist[channel], user)
+				c.channelUserlist[channel][user] = true
 			}
 		}
 	}
-}
-
-func removeElement(elem string, slice []string) []string {
-	j := 0
-	for _, v := range slice {
-		if v != elem {
-			slice[j] = v
-			j++
-		}
-	}
-	return slice[:j]
-}
-
-func isInSlice(elem string, slice []string) bool {
-	for _, e := range slice {
-		if e == elem {
-			return true
-		}
-	}
-	return false
 }
 
 // ParseMessage parse a raw ircv3 twitch

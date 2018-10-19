@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/textproto"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -578,10 +579,26 @@ func TestCanGetUserlist(t *testing.T) {
 		time.Sleep(time.Millisecond * 5)
 	}
 
-	got := client.Userlist("channel123")
+	// test a valid channel
+	userlist, err := client.Userlist("channel123")
+	if err != nil {
+		t.Fatal("error not nil for client.Userlist")
+	}
 	expected := []string{"username1", "username2"}
+	got := make([]string, 0, 2)
 
+	for key := range userlist {
+		got = append(got, key)
+	}
+
+	sort.Strings(got)
 	assertStringSlicesEqual(t, expected, got)
+
+	// test an unknown channel
+	userlist, err = client.Userlist("random_channel123")
+	if err == nil || userlist != nil {
+		t.Fatal("error expected on unknown channel for client.Userlist")
+	}
 
 	close(waitEnd)
 
@@ -687,22 +704,4 @@ func TestCanConnectToTwitchWithoutTLS(t *testing.T) {
 	})
 
 	client.Connect()
-}
-
-func TestRemoveElement(t *testing.T) {
-	input := []string{"1", "2", "3", "4"}
-	expected := []string{"1", "2", "3"}
-
-	output := removeElement("4", input)
-
-	assertStringSlicesEqual(t, expected, output)
-}
-
-func TestIsInSlice(t *testing.T) {
-	input := []string{"1", "2", "3"}
-	yes := isInSlice("2", input)
-	no := isInSlice("100", input)
-
-	assertTrue(t, yes, "expected true for \"2\" is in slice")
-	assertTrue(t, no == false, "expected false for \"100\" is not slice")
 }
