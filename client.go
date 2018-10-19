@@ -345,10 +345,6 @@ func (c *Client) handleLine(line string) {
 		if strings.Contains(line, "353 "+c.ircUser) {
 			channel, users := parseNames(line)
 
-			if c.channelUserlist[channel] == nil {
-				c.channelUserlist[channel] = map[string]bool{}
-			}
-
 			for _, user := range users {
 				c.channelUserlist[channel][user] = true
 			}
