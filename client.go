@@ -26,7 +26,7 @@ var (
 
 // User data you receive from tmi
 type User struct {
-	UserID      int64
+	UserID      string
 	Username    string
 	DisplayName string
 	UserType    string
@@ -43,7 +43,7 @@ type Message struct {
 	Tags      map[string]string
 	Text      string
 	Raw       string
-	ChannelID int64
+	ChannelID string
 }
 
 // Client client to control your connection and attach callbacks

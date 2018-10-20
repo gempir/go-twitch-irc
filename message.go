@@ -29,8 +29,8 @@ type message struct {
 	Type        MessageType
 	Time        time.Time
 	Channel     string
-	ChannelID   int64
-	UserID      int64
+	ChannelID   string
+	UserID      string
 	Username    string
 	DisplayName string
 	UserType    string
@@ -189,15 +189,9 @@ func parseTags(msg *message, tagsRaw string) {
 				msg.Time = time.Unix(0, int64(i*1e6))
 			}
 		case "room-id":
-			i, err := strconv.Atoi(value)
-			if err == nil {
-				msg.ChannelID = int64(i)
-			}
+			msg.ChannelID = value
 		case "user-id":
-			i, err := strconv.Atoi(value)
-			if err == nil {
-				msg.UserID = int64(i)
-			}
+			msg.UserID = value
 		}
 		msg.Tags[spl[0]] = value
 	}
