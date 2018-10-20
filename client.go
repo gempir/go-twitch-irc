@@ -55,6 +55,7 @@ type Client struct {
 	connActive             tAtomBool
 	disconnected           tAtomBool
 	channels               map[string]bool
+	channelUserlist        map[string]map[string]bool
 	channelsMtx            *sync.RWMutex
 	onConnect              func()
 	onNewWhisper           func(user User, message Message)
@@ -63,16 +64,19 @@ type Client struct {
 	onNewClearchatMessage  func(channel string, user User, message Message)
 	onNewUsernoticeMessage func(channel string, user User, message Message)
 	onNewUserstateMessage  func(channel string, user User, message Message)
+	onUserJoin             func(channel, user string)
+	onUserPart             func(channel, user string)
 }
 
 // NewClient to create a new client
 func NewClient(username, oauth string) *Client {
 	return &Client{
-		ircUser:     username,
-		ircToken:    oauth,
-		TLS:         true,
-		channels:    map[string]bool{},
-		channelsMtx: &sync.RWMutex{},
+		ircUser:         username,
+		ircToken:        oauth,
+		TLS:             true,
+		channels:        map[string]bool{},
+		channelUserlist: map[string]map[string]bool{},
+		channelsMtx:     &sync.RWMutex{},
 	}
 }
 
@@ -111,6 +115,16 @@ func (c *Client) OnNewUserstateMessage(callback func(channel string, user User, 
 	c.onNewUserstateMessage = callback
 }
 
+// OnUserJoin attaches callback to user joins
+func (c *Client) OnUserJoin(callback func(channel, user string)) {
+	c.onUserJoin = callback
+}
+
+// OnUserPart attaches callback to user parts
+func (c *Client) OnUserPart(callback func(channel, user string)) {
+	c.onUserPart = callback
+}
+
 // Say write something in a chat
 func (c *Client) Say(channel, text string) {
 	c.send(fmt.Sprintf("PRIVMSG #%s :%s", channel, text))
@@ -136,6 +150,7 @@ func (c *Client) Join(channel string) {
 	}
 
 	c.channels[channel] = true
+	c.channelUserlist[channel] = map[string]bool{}
 	c.channelsMtx.Unlock()
 }
 
@@ -147,6 +162,7 @@ func (c *Client) Depart(channel string) {
 
 	c.channelsMtx.Lock()
 	delete(c.channels, channel)
+	delete(c.channelUserlist, channel)
 	c.channelsMtx.Unlock()
 }
 
@@ -208,6 +224,23 @@ func (c *Client) Connect() error {
 	}
 }
 
+// Userlist returns the userlist for a given channel
+func (c *Client) Userlist(channel string) ([]string, error) {
+	usermap, ok := c.channelUserlist[channel]
+	if !ok || usermap == nil {
+		return nil, fmt.Errorf("Could not find userlist for channel '%s' in client", channel)
+	}
+	userlist := make([]string, len(usermap))
+
+	i := 0
+	for key := range usermap {
+		userlist[i] = key
+		i++
+	}
+
+	return userlist, nil
+}
+
 func (c *Client) readConnection(conn net.Conn) error {
 	reader := bufio.NewReader(conn)
 	tp := textproto.NewReader(reader)
@@ -235,6 +268,7 @@ func (c *Client) setupConnection() {
 	c.connection.Write([]byte("NICK " + c.ircUser + "\r\n"))
 	c.connection.Write([]byte("CAP REQ :twitch.tv/tags\r\n"))
 	c.connection.Write([]byte("CAP REQ :twitch.tv/commands\r\n"))
+	c.connection.Write([]byte("CAP REQ :twitch.tv/membership\r\n"))
 }
 
 func (c *Client) initialJoins() {
@@ -288,6 +322,40 @@ func (c *Client) handleLine(line string) {
 		case USERSTATE:
 			if c.onNewUserstateMessage != nil {
 				c.onNewUserstateMessage(channel, *user, *clientMessage)
+			}
+		}
+	}
+	if strings.HasPrefix(line, ":") {
+		if strings.Contains(line, "tmi.twitch.tv JOIN") {
+			channel, username := parseJoinPart(line)
+
+			if c.channelUserlist[channel] == nil {
+				c.channelUserlist[channel] = map[string]bool{}
+			}
+
+			_, ok := c.channelUserlist[channel][username]
+			if !ok && username != c.ircUser {
+				c.channelUserlist[channel][username] = true
+			}
+
+			if c.onUserJoin != nil {
+				c.onUserJoin(channel, username)
+			}
+		}
+		if strings.Contains(line, "tmi.twitch.tv PART") {
+			channel, username := parseJoinPart(line)
+
+			delete(c.channelUserlist[channel], username)
+
+			if c.onUserPart != nil {
+				c.onUserPart(channel, username)
+			}
+		}
+		if strings.Contains(line, "353 "+c.ircUser) {
+			channel, users := parseNames(line)
+
+			for _, user := range users {
+				c.channelUserlist[channel][user] = true
 			}
 		}
 	}

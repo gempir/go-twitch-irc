@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/textproto"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -363,6 +364,58 @@ func TestCanReceiveUSERStateMessage(t *testing.T) {
 	assertStringsEqual(t, "1", received)
 }
 
+func TestCanReceiveJOINMessage(t *testing.T) {
+	testMessage := `:username123!username123@username123.tmi.twitch.tv JOIN #mychannel`
+
+	wait := make(chan struct{})
+	var received string
+
+	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
+	client := newTestClient(host)
+
+	client.OnUserJoin(func(channel, user string) {
+		received = user
+		close(wait)
+	})
+
+	go client.Connect()
+
+	// wait for server to start
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no message sent")
+	}
+
+	assertStringsEqual(t, "username123", received)
+}
+
+func TestCanReceivePARTMessage(t *testing.T) {
+	testMessage := `:username123!username123@username123.tmi.twitch.tv PART #mychannel`
+
+	wait := make(chan struct{})
+	var received string
+
+	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
+	client := newTestClient(host)
+
+	client.OnUserPart(func(channel, user string) {
+		received = user
+		close(wait)
+	})
+
+	go client.Connect()
+
+	// wait for server to start
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no message sent")
+	}
+
+	assertStringsEqual(t, "username123", received)
+}
+
 func TestCanSayMessage(t *testing.T) {
 	testMessage := "Do not go gentle into that good night."
 
@@ -507,6 +560,49 @@ func TestCanDepartChannel(t *testing.T) {
 	}
 
 	assertStringsEqual(t, "PART #gempir", receivedMsg)
+}
+
+func TestCanGetUserlist(t *testing.T) {
+	testString := `:justinfan123123.tmi.twitch.tv 353 justinfan123123 = #channel123 :username1 username2`
+	waitEnd := make(chan struct{})
+
+	host := startServer(t, postMessageOnConnect(testString), nothingOnMessage)
+
+	client := newTestClient(host)
+
+	client.Join("channel123")
+
+	go client.Connect()
+
+	// wait for the connection to go active
+	for !client.connActive.get() {
+		time.Sleep(time.Millisecond * 5)
+	}
+
+	// test a valid channel
+	got, err := client.Userlist("channel123")
+	if err != nil {
+		t.Fatal("error not nil for client.Userlist")
+	}
+	expected := []string{"username1", "username2"}
+
+	sort.Strings(got)
+	assertStringSlicesEqual(t, expected, got)
+
+	// test an unknown channel
+	got, err = client.Userlist("random_channel123")
+	if err == nil || got != nil {
+		t.Fatal("error expected on unknown channel for client.Userlist")
+	}
+
+	close(waitEnd)
+
+	// wait for server to receive message
+	select {
+	case <-waitEnd:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no userlist recieved")
+	}
 }
 
 func TestDepartNegatesJoinIfNotConnected(t *testing.T) {
