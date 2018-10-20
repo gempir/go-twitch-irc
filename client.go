@@ -225,11 +225,20 @@ func (c *Client) Connect() error {
 }
 
 // Userlist returns the userlist for a given channel
-func (c *Client) Userlist(channel string) (map[string]bool, error) {
-	if value, ok := c.channelUserlist[channel]; ok {
-		return value, nil
+func (c *Client) Userlist(channel string) ([]string, error) {
+	usermap, ok := c.channelUserlist[channel]
+	if !ok || usermap == nil {
+		return nil, fmt.Errorf("Could not find userlist for channel '%s' in client", channel)
 	}
-	return nil, fmt.Errorf("Could not find userlist for channel '%s' in client", channel)
+	userlist := make([]string, len(usermap))
+
+	i := 0
+	for key := range usermap {
+		userlist[i] = key
+		i++
+	}
+
+	return userlist, nil
 }
 
 func (c *Client) readConnection(conn net.Conn) error {

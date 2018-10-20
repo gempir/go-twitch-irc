@@ -60,7 +60,7 @@ These are the available methods of the client so you can get your bot going:
 	func (c *Client) Whisper(username, text string)
 	func (c *Client) Join(channel string)
 	func (c *Client) Depart(channel string)
-	func (c *Client) Userlist(channel string) (map[string]bool, err)
+	func (c *Client) Userlist(channel string) ([]string, err)
 	func (c *Client) Connect() error
 	func (c *Client) Disconnect() error
 

@@ -580,23 +580,18 @@ func TestCanGetUserlist(t *testing.T) {
 	}
 
 	// test a valid channel
-	userlist, err := client.Userlist("channel123")
+	got, err := client.Userlist("channel123")
 	if err != nil {
 		t.Fatal("error not nil for client.Userlist")
 	}
 	expected := []string{"username1", "username2"}
-	got := make([]string, 0, 2)
-
-	for key := range userlist {
-		got = append(got, key)
-	}
 
 	sort.Strings(got)
 	assertStringSlicesEqual(t, expected, got)
 
 	// test an unknown channel
-	userlist, err = client.Userlist("random_channel123")
-	if err == nil || userlist != nil {
+	got, err = client.Userlist("random_channel123")
+	if err == nil || got != nil {
 		t.Fatal("error expected on unknown channel for client.Userlist")
 	}
 
