@@ -29,7 +29,8 @@ type message struct {
 	Type        MessageType
 	Time        time.Time
 	Channel     string
-	UserID      int64
+	ChannelID   string
+	UserID      string
 	Username    string
 	DisplayName string
 	UserType    string
@@ -67,14 +68,12 @@ func parseMessage(line string) *message {
 		text = text[8 : len(text)-1]
 	}
 	msg := &message{
-		Time:   time.Now(),
 		Text:   text,
 		Tags:   map[string]string{},
 		Action: action,
 	}
 	msg.Username, msg.Type, msg.Channel = parseMiddle(middle)
 	parseTags(msg, tags[1:])
-	msg.UserID, _ = strconv.ParseInt(msg.Tags["user-id"], 10, 64)
 	if msg.Type == CLEARCHAT {
 		targetUser := msg.Text
 		msg.Username = targetUser
@@ -184,9 +183,17 @@ func parseTags(msg *message, tagsRaw string) {
 			msg.Emotes = parseTwitchEmotes(value, msg.Text)
 		case "user-type":
 			msg.UserType = value
-		default:
-			msg.Tags[spl[0]] = value
+		case "tmi-sent-ts":
+			i, err := strconv.Atoi(value)
+			if err == nil {
+				msg.Time = time.Unix(0, int64(i*1e6))
+			}
+		case "room-id":
+			msg.ChannelID = value
+		case "user-id":
+			msg.UserID = value
 		}
+		msg.Tags[spl[0]] = value
 	}
 }
 

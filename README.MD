@@ -34,6 +34,7 @@ func main() {
 The 2 structs twitch.User and twitch.Message look like this:
 ```go
 type User struct {
+	UserID      string
 	Username    string
 	DisplayName string
 	UserType    string
@@ -42,12 +43,14 @@ type User struct {
 }
 
 type Message struct {
-	Type   msgType
-	Time   time.Time
-	Action bool
-	Emotes []*Emote
-	Tags   map[string]string
-	Text   string
+	Type      MessageType
+	Time      time.Time
+	Action    bool
+	Emotes    []*Emote
+	Tags      map[string]string
+	Text      string
+	Raw       string
+	ChannelID string
 }
 ```
 Channel is just a string like "lirik", note the absent #.
