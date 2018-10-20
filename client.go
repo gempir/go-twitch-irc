@@ -36,13 +36,14 @@ type User struct {
 
 // Message data you receive from tmi
 type Message struct {
-	Type   MessageType
-	Time   time.Time
-	Action bool
-	Emotes []*Emote
-	Tags   map[string]string
-	Text   string
-	Raw    string
+	Type      MessageType
+	Time      time.Time
+	Action    bool
+	Emotes    []*Emote
+	Tags      map[string]string
+	Text      string
+	Raw       string
+	ChannelID int64
 }
 
 // Client client to control your connection and attach callbacks
@@ -309,13 +310,14 @@ func ParseMessage(line string) (string, *User, *Message) {
 	}
 
 	clientMessage := &Message{
-		Type:   message.Type,
-		Time:   message.Time,
-		Action: message.Action,
-		Emotes: message.Emotes,
-		Tags:   message.Tags,
-		Text:   message.Text,
-		Raw:    message.Raw,
+		Type:      message.Type,
+		Time:      message.Time,
+		Action:    message.Action,
+		Emotes:    message.Emotes,
+		Tags:      message.Tags,
+		Text:      message.Text,
+		Raw:       message.Raw,
+		ChannelID: message.ChannelID,
 	}
 
 	return channel, user, clientMessage
