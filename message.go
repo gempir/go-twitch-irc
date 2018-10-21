@@ -11,6 +11,8 @@ import (
 type MessageType int
 
 const (
+	// UNSET
+	UNSET MessageType = -1
 	// WHISPER private messages
 	WHISPER MessageType = 0
 	// PRIVMSG standard chat message
@@ -57,6 +59,7 @@ func parseMessage(line string) *message {
 		return &message{
 			Text: line,
 			Raw:  line,
+			Type: UNSET,
 		}
 	}
 	spl := strings.SplitN(line, " :", 3)
@@ -73,6 +76,7 @@ func parseMessage(line string) *message {
 		Text:   text,
 		Tags:   map[string]string{},
 		Action: action,
+		Type:   UNSET,
 	}
 	msg.Username, msg.Type, msg.Channel = parseMiddle(middle)
 	parseTags(msg, tags[1:])
@@ -87,7 +91,9 @@ func parseMessage(line string) *message {
 }
 
 func parseOtherMessage(line string) *message {
-	msg := &message{}
+	msg := &message{
+		Type: UNSET,
+	}
 	split := strings.Split(line, " ")
 	msg.Raw = line
 
@@ -120,25 +126,24 @@ func parseOtherMessage(line string) *message {
 }
 
 func parseMessageType(messageType string) MessageType {
-	var msgType MessageType
 	switch messageType {
 	case "PRIVMSG":
-		msgType = PRIVMSG
+		return PRIVMSG
 	case "WHISPER":
-		msgType = WHISPER
+		return WHISPER
 	case "CLEARCHAT":
-		msgType = CLEARCHAT
+		return CLEARCHAT
 	case "NOTICE":
-		msgType = NOTICE
+		return NOTICE
 	case "ROOMSTATE":
-		msgType = ROOMSTATE
+		return ROOMSTATE
 	case "USERSTATE":
-		msgType = USERSTATE
+		return USERSTATE
 	case "USERNOTICE":
-		msgType = USERNOTICE
+		return USERNOTICE
+	default:
+		return UNSET
 	}
-
-	return msgType
 }
 
 func parseMiddle(middle string) (string, MessageType, string) {
