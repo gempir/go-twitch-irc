@@ -68,6 +68,7 @@ type Client struct {
 	onNewUserstateMessage  func(channel string, user User, message Message)
 	onUserJoin             func(channel, user string)
 	onUserPart             func(channel, user string)
+	onNewUnsetMessage      func(rawMessage string)
 }
 
 // NewClient to create a new client
@@ -130,6 +131,11 @@ func (c *Client) OnUserJoin(callback func(channel, user string)) {
 // OnUserPart attaches callback to user parts
 func (c *Client) OnUserPart(callback func(channel, user string)) {
 	c.onUserPart = callback
+}
+
+// OnNewUnsetMessage attaches callback to messages that didn't parse properly. Should only be used if you're debugging the message parsing
+func (c *Client) OnNewUnsetMessage(callback func(rawMessage string)) {
+	c.onNewUnsetMessage = callback
 }
 
 // Say write something in a chat
@@ -333,6 +339,10 @@ func (c *Client) handleLine(line string) {
 		case USERSTATE:
 			if c.onNewUserstateMessage != nil {
 				c.onNewUserstateMessage(channel, *user, *clientMessage)
+			}
+		case UNSET:
+			if c.onNewUnsetMessage != nil {
+				c.onNewUnsetMessage(clientMessage.Raw)
 			}
 		}
 	}
