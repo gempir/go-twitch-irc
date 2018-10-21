@@ -64,6 +64,7 @@ type Client struct {
 	onNewRoomstateMessage  func(channel string, user User, message Message)
 	onNewClearchatMessage  func(channel string, user User, message Message)
 	onNewUsernoticeMessage func(channel string, user User, message Message)
+	onNewNoticeMessage     func(channel string, user User, message Message)
 	onNewUserstateMessage  func(channel string, user User, message Message)
 	onUserJoin             func(channel, user string)
 	onUserPart             func(channel, user string)
@@ -109,6 +110,11 @@ func (c *Client) OnNewClearchatMessage(callback func(channel string, user User, 
 // OnNewUsernoticeMessage attach callback to new usernotice message such as sub, resub, and raids
 func (c *Client) OnNewUsernoticeMessage(callback func(channel string, user User, message Message)) {
 	c.onNewUsernoticeMessage = callback
+}
+
+// OnNewUsernoticeMessage attach callback to new notice message such as hosts
+func (c *Client) OnNewNoticeMessage(callback func(channel string, user User, message Message)) {
+	c.onNewNoticeMessage = callback
 }
 
 // OnNewUserstateMessage attach callback to new userstate
@@ -319,6 +325,10 @@ func (c *Client) handleLine(line string) {
 		case USERNOTICE:
 			if c.onNewUsernoticeMessage != nil {
 				c.onNewUsernoticeMessage(channel, *user, *clientMessage)
+			}
+		case NOTICE:
+			if c.onNewNoticeMessage != nil {
+				c.onNewNoticeMessage(channel, *user, *clientMessage)
 			}
 		case USERSTATE:
 			if c.onNewUserstateMessage != nil {
