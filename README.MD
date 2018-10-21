@@ -84,6 +84,7 @@ client.OnNewMessage(func(channel string, user twitch.User, message twitch.Messag
 client.OnNewRoomstateMessage(func(channel string, user twitch.User, message twitch.Message) {})
 client.OnNewClearchatMessage(func(channel string, user twitch.User, message twitch.Message) {})
 client.OnNewUsernoticeMessage(func(channel string, user twitch.User, message twitch.Message) {})
+client.OnNewNoticeMessage(func(channel string, user twitch.User, message twitch.Message) {})
 client.OnNewUserstateMessage(func(channel string, user twitch.User, message twitch.Message) {})
 client.OnUserJoin(func(channel, user string) {})
 client.OnUserPart(func(channel, user string) {})
@@ -91,10 +92,11 @@ client.OnUserPart(func(channel, user string) {})
 ### Message Types
 
 If you ever need more than basic PRIVMSG, this might be for you.
-These are the 5 major message types currently supported:
+These are the 6 major message types currently supported:
 
 	PRIVMSG
 	WHISPER
 	ROOMSTATE
 	CLEARCHAT
 	USERNOTICE
+    NOTICE
