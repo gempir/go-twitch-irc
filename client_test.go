@@ -339,6 +339,53 @@ func TestCanReceiveUSERNOTICEMessage(t *testing.T) {
 	assertStringsEqual(t, "16", received)
 }
 
+func checkNoticeMessage(t *testing.T, testMessage string, requirements map[string]string) {
+	received := map[string]string{}
+	wait := make(chan struct{})
+
+	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
+	client := newTestClient(host)
+
+	client.OnNewNoticeMessage(func(channel string, user User, message Message) {
+		received["msg-id"] = message.Tags["msg-id"]
+		received["channel"] = channel
+		received["text"] = message.Text
+		received["raw"] = message.Raw
+		close(wait)
+	})
+
+	go client.Connect()
+
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no message sent")
+	}
+
+	assertStringsEqual(t, testMessage, received["raw"])
+	for key, requirement := range requirements {
+		assertStringsEqual(t, requirement, received[key])
+	}
+}
+
+func TestCanReceiveNOTICEMessage(t *testing.T) {
+	testMessage := `@msg-id=host_on :tmi.twitch.tv NOTICE #pajlada :Now hosting KKona.`
+	checkNoticeMessage(t, testMessage, map[string]string{
+		"msg-id":  "host_on",
+		"channel": "pajlada",
+		"text":    "Now hosting KKona.",
+	})
+}
+
+func TestCanReceiveNOTICEMessageTimeout(t *testing.T) {
+	testMessage := `@msg-id=timeout_success :tmi.twitch.tv NOTICE #forsen :thedl0rd has been timed out for 8 minutes 11 seconds.`
+	checkNoticeMessage(t, testMessage, map[string]string{
+		"msg-id":  "timeout_success",
+		"channel": "forsen",
+		"text":    "thedl0rd has been timed out for 8 minutes 11 seconds.",
+	})
+}
+
 func TestCanReceiveUSERStateMessage(t *testing.T) {
 	testMessage := `@badges=moderator/1;color=;display-name=blahh;emote-sets=0;mod=1;subscriber=0;user-type=mod :tmi.twitch.tv USERSTATE #nothing`
 

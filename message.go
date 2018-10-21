@@ -23,6 +23,8 @@ const (
 	USERNOTICE MessageType = 4
 	// USERSTATE messages
 	USERSTATE MessageType = 5
+	// NOTICE messages like sub mode, host on
+	NOTICE MessageType = 6
 )
 
 type message struct {
@@ -89,16 +91,7 @@ func parseOtherMessage(line string) *message {
 	split := strings.Split(line, " ")
 	msg.Raw = line
 
-	switch split[2] {
-	case "ROOMSTATE":
-		msg.Type = ROOMSTATE
-	case "USERNOTICE":
-		msg.Type = USERNOTICE
-	case "CLEARCHAT":
-		msg.Type = CLEARCHAT
-	case "USERSTATE":
-		msg.Type = USERSTATE
-	}
+	msg.Type = parseMessageType(split[2])
 	msg.Tags = make(map[string]string)
 
 	// Parse out channel if it exists in this line
@@ -126,6 +119,28 @@ func parseOtherMessage(line string) *message {
 	return msg
 }
 
+func parseMessageType(messageType string) MessageType {
+	var msgType MessageType
+	switch messageType {
+	case "PRIVMSG":
+		msgType = PRIVMSG
+	case "WHISPER":
+		msgType = WHISPER
+	case "CLEARCHAT":
+		msgType = CLEARCHAT
+	case "NOTICE":
+		msgType = NOTICE
+	case "ROOMSTATE":
+		msgType = ROOMSTATE
+	case "USERSTATE":
+		msgType = USERSTATE
+	case "USERNOTICE":
+		msgType = USERNOTICE
+	}
+
+	return msgType
+}
+
 func parseMiddle(middle string) (string, MessageType, string) {
 	var username string
 	var msgType MessageType
@@ -144,14 +159,7 @@ func parseMiddle(middle string) (string, MessageType, string) {
 				start = i + 1
 			} else {
 				typ := middle[start:i]
-				switch typ {
-				case "PRIVMSG":
-					msgType = PRIVMSG
-				case "WHISPER":
-					msgType = WHISPER
-				case "CLEARCHAT":
-					msgType = CLEARCHAT
-				}
+				msgType = parseMessageType(typ)
 				middle = middle[i:]
 			}
 		}
