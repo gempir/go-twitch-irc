@@ -22,6 +22,9 @@ const (
 var (
 	// ErrClientDisconnected returned from Connect() when a Disconnect() was called
 	ErrClientDisconnected = errors.New("client called Disconnect()")
+
+	// ErrLoginAuthenticationFailed returned from Connect() when either the wrong or a malformed oauth token is used
+	ErrLoginAuthenticationFailed = errors.New("login authentication failed")
 )
 
 // User data you receive from tmi
@@ -231,6 +234,9 @@ func (c *Client) Connect() error {
 
 		err = c.readConnection(c.connection)
 		if err != nil {
+			if err == ErrLoginAuthenticationFailed {
+				return err
+			}
 			time.Sleep(time.Millisecond * 200)
 			continue
 		}
@@ -271,7 +277,9 @@ func (c *Client) readConnection(conn net.Conn) error {
 					c.onConnect()
 				}
 			}
-			c.handleLine(msg)
+			if err = c.handleLine(msg); err != nil {
+				return err
+			}
 		}
 	}
 }
@@ -304,10 +312,15 @@ func (c *Client) send(line string) {
 	}
 }
 
-func (c *Client) handleLine(line string) {
+// Errors returned from handleLine break out of readConnections, which starts a reconnect
+// This means that we should only return fatal errors as errors here
+func (c *Client) handleLine(line string) error {
 	if strings.HasPrefix(line, "PING") {
 		c.send(strings.Replace(line, "PING", "PONG", 1))
+
+		return nil
 	}
+
 	if strings.HasPrefix(line, "@") {
 		channel, user, clientMessage := ParseMessage(line)
 
@@ -345,7 +358,10 @@ func (c *Client) handleLine(line string) {
 				c.onNewUnsetMessage(clientMessage.Raw)
 			}
 		}
+
+		return nil
 	}
+
 	if strings.HasPrefix(line, ":") {
 		if strings.Contains(line, "tmi.twitch.tv JOIN") {
 			channel, username := parseJoinPart(line)
@@ -379,7 +395,14 @@ func (c *Client) handleLine(line string) {
 				c.channelUserlist[channel][user] = true
 			}
 		}
+		if strings.Contains(line, "tmi.twitch.tv NOTICE * :Login authentication failed") || strings.Contains(line, "tmi.twitch.tv NOTICE * :Improperly formatted auth") {
+			return ErrLoginAuthenticationFailed
+		}
+
+		return nil
 	}
+
+	return nil
 }
 
 // ParseMessage parse a raw ircv3 twitch
