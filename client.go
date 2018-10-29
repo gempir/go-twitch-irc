@@ -398,8 +398,6 @@ func (c *Client) handleLine(line string) error {
 		if strings.Contains(line, "tmi.twitch.tv NOTICE * :Login authentication failed") || strings.Contains(line, "tmi.twitch.tv NOTICE * :Improperly formatted auth") {
 			return ErrLoginAuthenticationFailed
 		}
-
-		return nil
 	}
 
 	return nil
