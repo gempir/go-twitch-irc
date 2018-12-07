@@ -36,6 +36,46 @@ func newTestClient(host string) *Client {
 	return client
 }
 
+func handleTestConnection(t *testing.T, onConnect func(net.Conn), onMessage func(string), listener net.Listener) {
+	conn, err := listener.Accept()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	reader := bufio.NewReader(conn)
+	tp := textproto.NewReader(reader)
+
+	defer listener.Close()
+	defer conn.Close()
+	for {
+		message, err := tp.ReadLine()
+		if err != nil && err != io.EOF {
+			t.Fatal(err)
+		}
+		message = strings.Replace(message, "\r\n", "", 1)
+
+		if strings.HasPrefix(message, "NICK") {
+			fmt.Fprintf(conn, ":tmi.twitch.tv 001 justinfan123123 :Welcome, GLHF!\r\n")
+			onConnect(conn)
+			continue
+		}
+
+		if strings.HasPrefix(message, "PASS") {
+			pass := strings.Split(message, " ")[1]
+			if !strings.HasPrefix(pass, "oauth:") {
+				fmt.Fprintf(conn, ":tmi.twitch.tv NOTICE * :Improperly formatted auth\r\n")
+				return
+			} else if pass == "oauth:wrong" {
+				fmt.Fprintf(conn, ":tmi.twitch.tv NOTICE * :Login authentication failed\r\n")
+				return
+			}
+		}
+
+		onMessage(message)
+	}
+
+}
+
 func startServer(t *testing.T, onConnect func(net.Conn), onMessage func(string)) string {
 	host := "127.0.0.1:" + strconv.Itoa(startPort)
 	startPort++
@@ -51,31 +91,8 @@ func startServer(t *testing.T, onConnect func(net.Conn), onMessage func(string))
 	if err != nil {
 		t.Fatal(err)
 	}
-	go func() {
-		conn, err := listener.Accept()
-		if err != nil {
-			t.Fatal(err)
-		}
 
-		reader := bufio.NewReader(conn)
-		tp := textproto.NewReader(reader)
-
-		defer listener.Close()
-		defer conn.Close()
-		for {
-			message, err := tp.ReadLine()
-			if err != nil && err != io.EOF {
-				t.Fatal(err)
-			}
-			message = strings.Replace(message, "\r\n", "", 1)
-			if strings.HasPrefix(message, "NICK") {
-				fmt.Fprintf(conn, ":tmi.twitch.tv 001 justinfan123123 :Welcome, GLHF!\r\n")
-				onConnect(conn)
-			} else {
-				onMessage(message)
-			}
-		}
-	}()
+	go handleTestConnection(t, onConnect, onMessage, listener)
 
 	return host
 }
@@ -88,31 +105,8 @@ func startNoTLSServer(t *testing.T, onConnect func(net.Conn), onMessage func(str
 	if err != nil {
 		t.Fatal(err)
 	}
-	go func() {
-		conn, err := listener.Accept()
-		if err != nil {
-			t.Fatal(err)
-		}
 
-		reader := bufio.NewReader(conn)
-		tp := textproto.NewReader(reader)
-
-		defer listener.Close()
-		defer conn.Close()
-		for {
-			message, err := tp.ReadLine()
-			if err != nil && err != io.EOF {
-				t.Fatal(err)
-			}
-			message = strings.Replace(message, "\r\n", "", 1)
-			if strings.HasPrefix(message, "NICK") {
-				fmt.Fprintf(conn, ":tmi.twitch.tv 001 justinfan123123 :Welcome, GLHF!\r\n")
-				onConnect(conn)
-			} else {
-				onMessage(message)
-			}
-		}
-	}()
+	go handleTestConnection(t, onConnect, onMessage, listener)
 
 	return host
 }
@@ -167,7 +161,12 @@ func TestCanConnectAndAuthenticate(t *testing.T) {
 
 	client := NewClient("justinfan123123", oauthCode)
 	client.IrcAddress = host
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Fatal("bad error")
+		}
+	}()
 
 	select {
 	case <-wait:
@@ -774,6 +773,28 @@ func TestCanNotDialInvalidAddress(t *testing.T) {
 	err := client.Connect()
 	if !strings.Contains(err.Error(), "invalid port") {
 		t.Fatal("invalid Connect() error")
+	}
+}
+
+func TestCanNotUseImproperlyFormattedOauth(t *testing.T) {
+	host := startServer(t, nothingOnConnect, nothingOnMessage)
+	client := NewClient("justinfan123123", "imrpproperlyformattedoauth")
+	client.IrcAddress = host
+
+	err := client.Connect()
+	if err != ErrLoginAuthenticationFailed {
+		t.Fatal("wrong Connect() error")
+	}
+}
+
+func TestCanNotUseWrongOauth(t *testing.T) {
+	host := startServer(t, nothingOnConnect, nothingOnMessage)
+	client := NewClient("justinfan123123", "oauth:wrong")
+	client.IrcAddress = host
+
+	err := client.Connect()
+	if err != ErrLoginAuthenticationFailed {
+		t.Fatal("wrong Connect() error")
 	}
 }
 
