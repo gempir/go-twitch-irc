@@ -197,7 +197,7 @@ func parseTags(msg *message, tagsRaw string) {
 		case "user-type":
 			msg.UserType = value
 		case "tmi-sent-ts":
-			i, err := strconv.Atoi(value)
+			i, err := strconv.ParseInt(value, 10, 64)
 			if err == nil {
 				msg.Time = time.Unix(0, int64(i*1e6))
 			}
