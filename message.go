@@ -203,6 +203,8 @@ func parseTags(msg *message, tagsRaw string) {
 			}
 		case "room-id":
 			msg.ChannelID = value
+		case "target-user-id":
+			msg.UserID = value
 		case "user-id":
 			msg.UserID = value
 		}
