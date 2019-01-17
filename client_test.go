@@ -138,6 +138,34 @@ func TestCanConnectAndAuthenticateWithoutTLS(t *testing.T) {
 	assertStringsEqual(t, "PASS "+oauthCode, received)
 }
 
+func TestCanChangeOauthToken(t *testing.T) {
+	const oauthCode = "oauth:123123132"
+	wait := make(chan bool)
+
+	var received string
+
+	host := startNoTLSServer(t, nothingOnConnect, func(message string) {
+		if strings.HasPrefix(message, "PASS") {
+			received = message
+			wait <- true
+		}
+	})
+
+	client := NewClient("justinfan123123", "wrongoauthcodelol")
+	client.TLS = false
+	client.IrcAddress = host
+	client.SetIRCToken(oauthCode)
+	go client.Connect()
+
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no oauth read")
+	}
+
+	assertStringsEqual(t, "PASS "+oauthCode, received)
+}
+
 func TestCanCreateClient(t *testing.T) {
 	client := NewClient("justinfan123123", "oauth:1123123")
 
