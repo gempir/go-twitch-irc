@@ -260,6 +260,12 @@ func (c *Client) Userlist(channel string) ([]string, error) {
 	return userlist, nil
 }
 
+// SetIRCToken updates the oauth token for this client used for authentication
+// This will not cause a reconnect, but is meant more for "on next connect, use this new token" in case the old token has expired
+func (c *Client) SetIRCToken(ircToken string) {
+	c.ircToken = ircToken
+}
+
 func (c *Client) readConnection(conn net.Conn) error {
 	reader := bufio.NewReader(conn)
 	tp := textproto.NewReader(reader)
