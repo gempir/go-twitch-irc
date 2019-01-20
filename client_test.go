@@ -73,7 +73,6 @@ func handleTestConnection(t *testing.T, onConnect func(net.Conn), onMessage func
 
 		onMessage(message)
 	}
-
 }
 
 func startServer(t *testing.T, onConnect func(net.Conn), onMessage func(string)) string {
@@ -93,6 +92,29 @@ func startServer(t *testing.T, onConnect func(net.Conn), onMessage func(string))
 	}
 
 	go handleTestConnection(t, onConnect, onMessage, listener)
+
+	return host
+}
+
+func startServerMultiConns(t *testing.T, numConns int, onConnect func(net.Conn), onMessage func(string)) string {
+	host := "127.0.0.1:" + strconv.Itoa(startPort)
+	startPort++
+
+	cert, err := tls.LoadX509KeyPair("test_resources/server.crt", "test_resources/server.key")
+	if err != nil {
+		t.Fatal(err)
+	}
+	config := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+	}
+	listener, err := tls.Listen("tcp", host, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i := 0; i < numConns; i++ {
+		go handleTestConnection(t, onConnect, onMessage, listener)
+	}
 
 	return host
 }
@@ -538,6 +560,42 @@ func TestCanReceiveUNSETMessage(t *testing.T) {
 	}
 
 	assertStringsEqual(t, testMessage, received)
+}
+
+func TestCanHandleRECONNECTMessage(t *testing.T) {
+	const testMessage = ":tmi.twitch.tv RECONNECT"
+
+	wait := make(chan bool)
+
+	connCount := 0
+
+	host := startServerMultiConns(t, 2, func(conn net.Conn) {
+		connCount++
+		wait <- true
+		time.AfterFunc(100*time.Millisecond, func() {
+			fmt.Fprintf(conn, "%s\r\n", testMessage)
+		})
+	}, nothingOnMessage)
+	client := newTestClient(host)
+
+	go client.Connect()
+
+	// wait for server to start
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no message sent")
+	}
+
+	assertIntsEqual(t, 1, connCount)
+
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no message sent")
+	}
+
+	assertIntsEqual(t, 2, connCount)
 }
 
 func TestCanSayMessage(t *testing.T) {

@@ -394,6 +394,10 @@ func (c *Client) handleLine(line string) error {
 				c.onUserPart(channel, username)
 			}
 		}
+		if strings.Contains(line, "tmi.twitch.tv RECONNECT") {
+			// https://dev.twitch.tv/docs/irc/commands/#reconnect-twitch-commands
+			return errors.New("reconnect requested from IRC")
+		}
 		if strings.Contains(line, "353 "+c.ircUser) {
 			channel, users := parseNames(line)
 
