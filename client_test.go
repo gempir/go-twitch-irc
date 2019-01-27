@@ -939,3 +939,9 @@ func TestCanHandleInvalidNick(t *testing.T) {
 		t.Fatal("Did not establish a connection")
 	}
 }
+
+func TestSendReturnsFalseIfConnectionIsNotActive(t *testing.T) {
+	client := newTestClient("127.0.0.1:5")
+
+	assertFalse(t, client.send("Pepega"), "Send must return false if the connection is not active")
+}

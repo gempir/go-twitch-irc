@@ -307,15 +307,17 @@ func (c *Client) initialJoins() {
 	c.channelsMtx.RUnlock()
 }
 
-func (c *Client) send(line string) {
+func (c *Client) send(line string) bool {
 	for i := 0; i < 1000; i++ {
 		if !c.connActive.get() {
 			time.Sleep(time.Millisecond * 2)
 			continue
 		}
-		c.connection.Write([]byte(line + "\r\n"))
-		return
+		_, err := c.connection.Write([]byte(line + "\r\n"))
+		return err == nil
 	}
+
+	return false
 }
 
 // Errors returned from handleLine break out of readConnections, which starts a reconnect
