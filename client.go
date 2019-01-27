@@ -116,7 +116,7 @@ func (c *Client) OnNewUsernoticeMessage(callback func(channel string, user User,
 	c.onNewUsernoticeMessage = callback
 }
 
-// OnNewUsernoticeMessage attach callback to new notice message such as hosts
+// OnNewNoticeMessage attach callback to new notice message such as hosts
 func (c *Client) OnNewNoticeMessage(callback func(channel string, user User, message Message)) {
 	c.onNewNoticeMessage = callback
 }
