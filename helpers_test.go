@@ -2,7 +2,6 @@ package twitch
 
 import (
 	"testing"
-	"time"
 )
 
 func assertStringsEqual(t *testing.T, expected, actual string) {
@@ -54,13 +53,6 @@ func assertStringSlicesEqual(t *testing.T, expected, actual []string) {
 func assertErrorsEqual(t *testing.T, expected, actual error) {
 	if expected != actual {
 		t.Errorf("failed asserting that error \"%s\" is expected \"%s\"", actual, expected)
-	}
-}
-
-func assertDurationsSameish(t *testing.T, actual, expected, allowedDeviation time.Duration) {
-	diff := actual - expected
-	if diff < 0 || diff > allowedDeviation {
-		t.Errorf("failed asserting that durations are close %s, while <%s is expected", diff, allowedDeviation)
 	}
 }
 

@@ -946,17 +946,13 @@ func TestLocalSendingPingsReceivedPong(t *testing.T) {
 	wait := make(chan bool)
 
 	var conn net.Conn
-	var connectedTime time.Time
-	var gotPing time.Time
 
 	host := startServer(t, func(c net.Conn) {
 		conn = c
-		connectedTime = time.Now()
 	}, func(message string) {
 		if message == pingMessage {
 			// Send an emulated pong
 			fmt.Fprintf(conn, formatPong(strings.Split(message, " :")[1])+"\r\n")
-			gotPing = time.Now()
 			wait <- true
 		}
 	})
@@ -972,8 +968,6 @@ func TestLocalSendingPingsReceivedPong(t *testing.T) {
 	}
 
 	client.Disconnect()
-
-	assertDurationsSameish(t, gotPing.Sub(connectedTime), idlePingInterval, 5*time.Millisecond)
 }
 
 func TestLocalCanReconnectAfterNoPongResponse(t *testing.T) {
