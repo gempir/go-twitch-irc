@@ -891,16 +891,50 @@ func TestCanConnectToTwitch(t *testing.T) {
 		client.Disconnect()
 	})
 
-	client.Connect()
+	err := client.Connect()
+	assertErrorsEqual(t, ErrClientDisconnected, err)
 }
 
 func TestCanConnectToTwitchWithoutTLS(t *testing.T) {
 	client := NewClient("justinfan123123", "oauth:123123132")
 	client.TLS = false
+	wait := make(chan struct{})
 
 	client.OnConnect(func() {
 		client.Disconnect()
 	})
 
-	client.Connect()
+	go func() {
+		err := client.Connect()
+		assertErrorsEqual(t, ErrClientDisconnected, err)
+		close(wait)
+	}()
+
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("Did not establish a connection")
+	}
+}
+
+func TestCanHandleInvalidNick(t *testing.T) {
+	client := NewClient("", "")
+	client.TLS = false
+	wait := make(chan struct{})
+
+	client.OnConnect(func() {
+		t.Fatal("A connection should not be able to be established with an invalid nick")
+	})
+
+	go func() {
+		err := client.Connect()
+		assertErrorsEqual(t, ErrLoginAuthenticationFailed, err)
+		close(wait)
+	}()
+
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("Did not establish a connection")
+	}
 }

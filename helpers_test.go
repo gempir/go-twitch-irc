@@ -41,3 +41,9 @@ func assertStringSlicesEqual(t *testing.T, expected, actual []string) {
 		}
 	}
 }
+
+func assertErrorsEqual(t *testing.T, expected, actual error) {
+	if expected != actual {
+		t.Errorf("failed asserting that error \"%s\" is expected \"%s\"", actual, expected)
+	}
+}

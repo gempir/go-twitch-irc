@@ -405,7 +405,9 @@ func (c *Client) handleLine(line string) error {
 				c.channelUserlist[channel][user] = true
 			}
 		}
-		if strings.Contains(line, "tmi.twitch.tv NOTICE * :Login authentication failed") || strings.Contains(line, "tmi.twitch.tv NOTICE * :Improperly formatted auth") {
+		if strings.Contains(line, "tmi.twitch.tv NOTICE * :Login authentication failed") ||
+			strings.Contains(line, "tmi.twitch.tv NOTICE * :Improperly formatted auth") ||
+			line == ":tmi.twitch.tv NOTICE * :Invalid NICK" {
 			return ErrLoginAuthenticationFailed
 		}
 	}
