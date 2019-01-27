@@ -113,7 +113,7 @@ func NewClient(username, oauth string) *Client {
 
 		SendPings:        true,
 		IdlePingInterval: time.Second * 15,
-		PongTimeout:      time.Second * 3,
+		PongTimeout:      time.Second * 5,
 	}
 }
 
