@@ -824,22 +824,18 @@ func TestDepartNegatesJoinIfNotConnected(t *testing.T) {
 }
 
 func TestCanPong(t *testing.T) {
-	testMessage := `PING hello`
-	var receivedMsg string
+	testMessage := `PING :hello`
+	expectedMessage := `PONG :hello`
 	waitEnd := make(chan struct{})
 
 	host := startServer(t, postMessageOnConnect(testMessage), func(message string) {
 		// On message received
-		if strings.HasPrefix(message, "PONG") {
-			receivedMsg = message
+		if message == expectedMessage {
 			close(waitEnd)
 		}
 	})
 
 	client := newTestClient(host)
-	client.OnConnect(func() {
-		client.send("PING hello")
-	})
 
 	go client.Connect()
 
@@ -849,8 +845,6 @@ func TestCanPong(t *testing.T) {
 	case <-time.After(time.Second * 3):
 		t.Fatal("no pong message received")
 	}
-
-	assertStringsEqual(t, "PONG hello", receivedMsg)
 }
 
 func TestCanNotDialInvalidAddress(t *testing.T) {
