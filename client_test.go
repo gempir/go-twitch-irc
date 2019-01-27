@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -567,10 +568,10 @@ func TestCanHandleRECONNECTMessage(t *testing.T) {
 
 	wait := make(chan bool)
 
-	connCount := 0
+	var connCount int32
 
 	host := startServerMultiConns(t, 2, func(conn net.Conn) {
-		connCount++
+		atomic.AddInt32(&connCount, 1)
 		wait <- true
 		time.AfterFunc(100*time.Millisecond, func() {
 			fmt.Fprintf(conn, "%s\r\n", testMessage)
@@ -587,7 +588,7 @@ func TestCanHandleRECONNECTMessage(t *testing.T) {
 		t.Fatal("no message sent")
 	}
 
-	assertIntsEqual(t, 1, connCount)
+	assertInt32sEqual(t, 1, atomic.LoadInt32(&connCount))
 
 	select {
 	case <-wait:
@@ -595,7 +596,7 @@ func TestCanHandleRECONNECTMessage(t *testing.T) {
 		t.Fatal("no message sent")
 	}
 
-	assertIntsEqual(t, 2, connCount)
+	assertInt32sEqual(t, 2, atomic.LoadInt32(&connCount))
 }
 
 func TestCanSayMessage(t *testing.T) {
