@@ -51,7 +51,7 @@ func handleTestConnection(t *testing.T, onConnect func(net.Conn), onMessage func
 	for {
 		message, err := tp.ReadLine()
 		if err != nil && err != io.EOF {
-			t.Fatal(err)
+			return
 		}
 		message = strings.Replace(message, "\r\n", "", 1)
 
@@ -1007,6 +1007,37 @@ func TestLocalCanReconnectAfterNoPongResponse(t *testing.T) {
 	}
 
 	assertInt32sEqual(t, 3, atomic.LoadInt32(&connCount))
+}
+
+func TestLocalSendingPingsReceivedPongAlsoDisconnect(t *testing.T) {
+	const idlePingInterval = 300 * time.Millisecond
+
+	wait := make(chan bool)
+
+	var conn net.Conn
+
+	host := startServer(t, func(c net.Conn) {
+		conn = c
+	}, func(message string) {
+		if message == pingMessage {
+			// Send an emulated pong
+			fmt.Fprintf(conn, formatPong(strings.Split(message, " :")[1])+"\r\n")
+			conn.Close()
+			wait <- true
+		}
+	})
+	client := newTestClient(host)
+	client.IdlePingInterval = idlePingInterval
+
+	go client.Connect()
+
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("Did not establish a connection")
+	}
+
+	client.Disconnect()
 }
 
 func TestSendReturnsFalseIfConnectionIsNotActive(t *testing.T) {
