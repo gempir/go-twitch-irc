@@ -993,7 +993,7 @@ func TestLocalCanReconnectAfterNoPongResponse(t *testing.T) {
 	// Wait for reconnect based on lack of ping response
 	select {
 	case <-wait:
-	case <-time.After(time.Second * 1):
+	case <-time.After(time.Second * 3):
 		t.Fatal("Did not establish a connection")
 	}
 
@@ -1002,7 +1002,7 @@ func TestLocalCanReconnectAfterNoPongResponse(t *testing.T) {
 	// Wait for another reconnect based on lack of ping response
 	select {
 	case <-wait:
-	case <-time.After(time.Second * 1):
+	case <-time.After(time.Second * 3):
 		t.Fatal("Did not establish a connection")
 	}
 
