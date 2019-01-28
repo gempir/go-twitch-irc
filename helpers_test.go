@@ -1,6 +1,8 @@
 package twitch
 
-import "testing"
+import (
+	"testing"
+)
 
 func assertStringsEqual(t *testing.T, expected, actual string) {
 	if expected != actual {
@@ -52,4 +54,9 @@ func assertErrorsEqual(t *testing.T, expected, actual error) {
 	if expected != actual {
 		t.Errorf("failed asserting that error \"%s\" is expected \"%s\"", actual, expected)
 	}
+}
+
+// formats a ping-signature (i.e. go-twitch-irc) into a full-fledged pong response (i.e. ":tmi.twitch.tv PONG tmi.twitch.tv :go-twitch-irc")
+func formatPong(signature string) string {
+	return ":tmi.twitch.tv PONG tmi.twitch.tv :" + signature
 }

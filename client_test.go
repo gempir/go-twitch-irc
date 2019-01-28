@@ -51,7 +51,7 @@ func handleTestConnection(t *testing.T, onConnect func(net.Conn), onMessage func
 	for {
 		message, err := tp.ReadLine()
 		if err != nil && err != io.EOF {
-			t.Fatal(err)
+			return
 		}
 		message = strings.Replace(message, "\r\n", "", 1)
 
@@ -932,6 +932,112 @@ func TestCanHandleInvalidNick(t *testing.T) {
 	case <-time.After(time.Second * 3):
 		t.Fatal("Did not establish a connection")
 	}
+}
+
+func TestLocalSendingPingsReceivedPong(t *testing.T) {
+	const idlePingInterval = 300 * time.Millisecond
+
+	wait := make(chan bool)
+
+	var conn net.Conn
+
+	host := startServer(t, func(c net.Conn) {
+		conn = c
+	}, func(message string) {
+		if message == pingMessage {
+			// Send an emulated pong
+			fmt.Fprintf(conn, formatPong(strings.Split(message, " :")[1])+"\r\n")
+			wait <- true
+		}
+	})
+	client := newTestClient(host)
+	client.IdlePingInterval = idlePingInterval
+
+	go client.Connect()
+
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("Did not establish a connection")
+	}
+
+	client.Disconnect()
+}
+
+func TestLocalCanReconnectAfterNoPongResponse(t *testing.T) {
+	const idlePingInterval = 300 * time.Millisecond
+	const pongTimeout = 300 * time.Millisecond
+
+	wait := make(chan bool)
+
+	var connCount int32
+
+	host := startServerMultiConns(t, 3, func(conn net.Conn) {
+		atomic.AddInt32(&connCount, 1)
+		wait <- true
+	}, nothingOnMessage)
+	client := newTestClient(host)
+	client.IdlePingInterval = idlePingInterval
+	client.PongTimeout = pongTimeout
+
+	go client.Connect()
+
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("Did not establish a connection")
+	}
+
+	assertInt32sEqual(t, 1, atomic.LoadInt32(&connCount))
+
+	// Wait for reconnect based on lack of ping response
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("Did not establish a connection")
+	}
+
+	assertInt32sEqual(t, 2, atomic.LoadInt32(&connCount))
+
+	// Wait for another reconnect based on lack of ping response
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("Did not establish a connection")
+	}
+
+	assertInt32sEqual(t, 3, atomic.LoadInt32(&connCount))
+}
+
+func TestLocalSendingPingsReceivedPongAlsoDisconnect(t *testing.T) {
+	const idlePingInterval = 300 * time.Millisecond
+
+	wait := make(chan bool)
+
+	var conn net.Conn
+
+	host := startServer(t, func(c net.Conn) {
+		conn = c
+	}, func(message string) {
+		if message == pingMessage {
+			// Send an emulated pong
+			fmt.Fprintf(conn, formatPong(strings.Split(message, " :")[1])+"\r\n")
+			conn.Close()
+			wait <- true
+		}
+	})
+	client := newTestClient(host)
+	client.IdlePingInterval = idlePingInterval
+
+	go client.Connect()
+
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("Did not establish a connection")
+	}
+
+	client.Disconnect()
 }
 
 func TestSendReturnsFalseIfConnectionIsNotActive(t *testing.T) {

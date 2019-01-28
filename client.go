@@ -17,6 +17,10 @@ const (
 	// ircTwitch constant for twitch irc chat address
 	ircTwitchTLS = "irc.chat.twitch.tv:6697"
 	ircTwitch    = "irc.chat.twitch.tv:6667"
+
+	pingSignature       = "go-twitch-irc"
+	pingMessage         = "PING :" + pingSignature
+	expectedPongMessage = ":tmi.twitch.tv PONG tmi.twitch.tv :" + pingSignature
 )
 
 var (
@@ -72,6 +76,27 @@ type Client struct {
 	onUserJoin             func(channel, user string)
 	onUserPart             func(channel, user string)
 	onNewUnsetMessage      func(rawMessage string)
+
+	// pingerRunning indicates whether the pinger go-routine is running or not
+	pingerRunning tAtomBool
+
+	// pongReceived is listened to by the pinger go-routine after it has sent off a ping. will be triggered by handleLine
+	pongReceived chan bool
+
+	// messageReceived is listened to by the pinger go-routine to interrupt the idle ping interval
+	messageReceived chan bool
+
+	// Option whether to send pings every `IdlePingInterval`. The IdlePingInterval is interrupted every time a message is received from the irc server
+	// The variable may only be modified before calling Connect
+	SendPings bool
+
+	// IdlePingInterval is the interval at which to send a ping to the irc server to ensure the connection is alive.
+	// The variable may only be modified before calling Connect
+	IdlePingInterval time.Duration
+
+	// PongTimeout is the time go-twitch-irc waits after sending a ping before issuing a reconnect
+	// The variable may only be modified before calling Connect
+	PongTimeout time.Duration
 }
 
 // NewClient to create a new client
@@ -83,6 +108,12 @@ func NewClient(username, oauth string) *Client {
 		channels:        map[string]bool{},
 		channelUserlist: map[string]map[string]bool{},
 		channelsMtx:     &sync.RWMutex{},
+		pongReceived:    make(chan bool),
+		messageReceived: make(chan bool),
+
+		SendPings:        true,
+		IdlePingInterval: time.Second * 15,
+		PongTimeout:      time.Second * 5,
 	}
 }
 
@@ -282,9 +313,49 @@ func (c *Client) readConnection(conn net.Conn) error {
 				if c.onConnect != nil {
 					c.onConnect()
 				}
+				if c.SendPings && !c.pingerRunning.get() {
+					go c.startPinger()
+				}
 			}
 			if err = c.handleLine(msg); err != nil {
 				return err
+			}
+		}
+	}
+}
+
+func (c *Client) startPinger() {
+	c.pingerRunning.set(true)
+	defer func() {
+		c.pingerRunning.set(false)
+	}()
+
+	for c.connActive.get() {
+		select {
+		case <-c.messageReceived:
+			// Interrupt idle ping interval
+			continue
+
+		case <-time.After(c.IdlePingInterval):
+			// Idle ping interval has elapsed, check if we are in a position to send a ping
+			if !c.connActive.get() {
+				continue
+			}
+
+			if !c.send(pingMessage) {
+				continue
+			}
+
+			select {
+			case <-c.pongReceived:
+				// Received pong message within the time limit, we're good
+				continue
+
+			case <-time.After(c.PongTimeout):
+				// No pong message was received within the pong timeout, disconnect
+				if c.connActive.get() && c.connection != nil {
+					c.connection.Close()
+				}
 			}
 		}
 	}
@@ -323,8 +394,30 @@ func (c *Client) send(line string) bool {
 // Errors returned from handleLine break out of readConnections, which starts a reconnect
 // This means that we should only return fatal errors as errors here
 func (c *Client) handleLine(line string) error {
+	go func() {
+		// Send a message on the `messageReceived` channel, but do not block in case no one is receiving on the other end
+		select {
+		case c.messageReceived <- true:
+		default:
+		}
+	}()
+
+	// Handle PING
 	if strings.HasPrefix(line, "PING") {
 		c.send(strings.Replace(line, "PING", "PONG", 1))
+
+		return nil
+	}
+
+	// Handle PONG
+	if line == expectedPongMessage {
+		// Received a pong that was sent by us
+		go func() {
+			select {
+			case c.pongReceived <- true:
+			default:
+			}
+		}()
 
 		return nil
 	}
