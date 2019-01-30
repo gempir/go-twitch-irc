@@ -174,6 +174,8 @@ func (c *Client) OnNewUnsetMessage(callback func(rawMessage string)) {
 
 // Say write something in a chat
 func (c *Client) Say(channel, text string) {
+	channel = strings.ToLower(channel)
+
 	c.send(fmt.Sprintf("PRIVMSG #%s :%s", channel, text))
 }
 
