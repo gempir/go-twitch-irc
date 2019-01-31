@@ -784,7 +784,7 @@ func TestCanGetUserlist(t *testing.T) {
 	select {
 	case <-waitEnd:
 	case <-time.After(time.Second * 3):
-		t.Fatal("no userlist recieved")
+		t.Fatal("no userlist received")
 	}
 }
 
