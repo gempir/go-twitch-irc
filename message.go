@@ -11,7 +11,7 @@ import (
 type MessageType int
 
 const (
-	// UNSET
+	// UNSET is the default message type, for whenever a new message type is added by twitch that we don't parse yet
 	UNSET MessageType = -1
 	// WHISPER private messages
 	WHISPER MessageType = 0
