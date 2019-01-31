@@ -1,0 +1,5 @@
+*.go text eol=lf
+LICENSE text eol=lf
+Makefile text eol=lf
+*.MD text eol=lf
+*.travis.yml text eol=lf
