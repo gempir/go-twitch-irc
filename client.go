@@ -97,6 +97,10 @@ type Client struct {
 	// PongTimeout is the time go-twitch-irc waits after sending a ping before issuing a reconnect
 	// The variable may only be modified before calling Connect
 	PongTimeout time.Duration
+
+	// SetupCmd is the command that is ran on successful connection to Twitch. Useful if you are proxying or something to run a custom command on connect.
+	// The variable must be modified before calling Connect or the command will not run.
+	SetupCmd string
 }
 
 // NewClient to create a new client
@@ -364,6 +368,9 @@ func (c *Client) startPinger() {
 }
 
 func (c *Client) setupConnection() {
+	if c.SetupCmd != "" {
+		c.connection.Write([]byte(c.SetupCmd + "\r\n"))
+	}
 	c.connection.Write([]byte("PASS " + c.ircToken + "\r\n"))
 	c.connection.Write([]byte("NICK " + c.ircUser + "\r\n"))
 	c.connection.Write([]byte("CAP REQ :twitch.tv/tags\r\n"))

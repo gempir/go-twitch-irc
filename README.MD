@@ -73,6 +73,7 @@ On your client you can configure multiple options:
 ```go
 client.IrcAddress = "127.0.0.1:3030" // for custom irc server
 client.TLS = false // enabled by default, will connect to non TLS server of twitch when off or the given client.IrcAddress
+client.SetupCmd = "LOGIN custom_command_here" // Send a custom command on successful IRC connection, before authentication.
 ```
 ### Callbacks
 
