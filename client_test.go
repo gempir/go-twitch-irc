@@ -189,6 +189,35 @@ func TestCanChangeOauthToken(t *testing.T) {
 	assertStringsEqual(t, "PASS "+oauthCode, received)
 }
 
+func TestCanAddSetupCmd(t *testing.T) {
+	const oauthCode = "oauth:123123132"
+	const setupCmd = "LOGIN kkonabot"
+	wait := make(chan bool)
+
+	var received string
+
+	host := startNoTLSServer(t, nothingOnConnect, func(message string) {
+		if strings.HasPrefix(message, "LOGIN") {
+			received = message
+			wait <- true
+		}
+	})
+
+	client := NewClient("justinfan123123", oauthCode)
+	client.TLS = false
+	client.IrcAddress = host
+	client.SetupCmd = setupCmd
+	go client.Connect()
+
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no oauth read")
+	}
+
+	assertStringsEqual(t, setupCmd, received)
+}
+
 func TestCanCreateClient(t *testing.T) {
 	client := NewClient("justinfan123123", "oauth:1123123")
 
