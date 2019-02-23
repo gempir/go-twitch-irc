@@ -76,6 +76,7 @@ type Client struct {
 	connection             net.Conn
 	connActive             tAtomBool
 	channels               map[string]bool
+	channelUserlistMutex   *sync.RWMutex
 	channelUserlist        map[string]map[string]bool
 	channelsMtx            *sync.RWMutex
 	onConnect              func()
@@ -146,6 +147,8 @@ func NewClient(username, oauth string) *Client {
 		SendPings:        true,
 		IdlePingInterval: time.Second * 15,
 		PongTimeout:      time.Second * 5,
+
+		channelUserlistMutex: &sync.RWMutex{},
 	}
 }
 
@@ -231,7 +234,9 @@ func (c *Client) Join(channel string) {
 	}
 
 	c.channels[channel] = true
+	c.channelUserlistMutex.Lock()
 	c.channelUserlist[channel] = map[string]bool{}
+	c.channelUserlistMutex.Unlock()
 	c.channelsMtx.Unlock()
 }
 
@@ -390,6 +395,8 @@ func (c *Client) makeConnection(dialer *net.Dialer, conf *tls.Config) error {
 
 // Userlist returns the userlist for a given channel
 func (c *Client) Userlist(channel string) ([]string, error) {
+	c.channelUserlistMutex.RLock()
+	defer c.channelUserlistMutex.RUnlock()
 	usermap, ok := c.channelUserlist[channel]
 	if !ok || usermap == nil {
 		return nil, fmt.Errorf("Could not find userlist for channel '%s' in client", channel)
@@ -573,6 +580,7 @@ func (c *Client) handleLine(line string) error {
 		if strings.Contains(line, "tmi.twitch.tv JOIN") {
 			channel, username := parseJoinPart(line)
 
+			c.channelUserlistMutex.Lock()
 			if c.channelUserlist[channel] == nil {
 				c.channelUserlist[channel] = map[string]bool{}
 			}
@@ -581,6 +589,7 @@ func (c *Client) handleLine(line string) error {
 			if !ok && username != c.ircUser {
 				c.channelUserlist[channel][username] = true
 			}
+			c.channelUserlistMutex.Unlock()
 
 			if c.onUserJoin != nil {
 				c.onUserJoin(channel, username)
@@ -589,7 +598,9 @@ func (c *Client) handleLine(line string) error {
 		if strings.Contains(line, "tmi.twitch.tv PART") {
 			channel, username := parseJoinPart(line)
 
+			c.channelUserlistMutex.Lock()
 			delete(c.channelUserlist[channel], username)
+			c.channelUserlistMutex.Unlock()
 
 			if c.onUserPart != nil {
 				c.onUserPart(channel, username)
@@ -602,9 +613,11 @@ func (c *Client) handleLine(line string) error {
 		if strings.Contains(line, "353 "+c.ircUser) {
 			channel, users := parseNames(line)
 
+			c.channelUserlistMutex.Lock()
 			for _, user := range users {
 				c.channelUserlist[channel][user] = true
 			}
+			c.channelUserlistMutex.Unlock()
 		}
 		if strings.Contains(line, "tmi.twitch.tv NOTICE * :Login authentication failed") ||
 			strings.Contains(line, "tmi.twitch.tv NOTICE * :Improperly formatted auth") ||
