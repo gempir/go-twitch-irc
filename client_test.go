@@ -855,13 +855,40 @@ func TestCanDepartChannel(t *testing.T) {
 func TestCanGetUserlist(t *testing.T) {
 	t.Parallel()
 	testString := `:justinfan123123.tmi.twitch.tv 353 justinfan123123 = #channel123 :username1 username2`
+	testMessage := "@badges=subscriber/6,premium/1;color=#FF0000;display-name=Redflamingo13;emotes=;id=2a31a9df-d6ff-4840-b211-a2547c7e656e;mod=0;room-id=11148817;subscriber=1;tmi-sent-ts=1490382457309;turbo=0;user-id=78424343;user-type= :redflamingo13!redflamingo13@redflamingo13.tmi.twitch.tv PRIVMSG #anythingbutchannel123 :ok go now"
 	waitEnd := make(chan struct{})
 
-	host := startServer(t, postMessageOnConnect(testString), nothingOnMessage)
+	host := startServer(t, func(conn net.Conn) {
+		fmt.Fprintf(conn, "%s\r\n", testString)
+		fmt.Fprintf(conn, "%s\r\n", testMessage)
+	}, nothingOnMessage)
 
 	client := newTestClient(host)
 
 	client.Join("channel123")
+
+	client.OnNewMessage(func(channel string, user User, message Message) {
+		if message.Text == "ok go now" {
+			// test a valid channel
+			got, err := client.Userlist("channel123")
+			if err != nil {
+				t.Fatal("error not nil for client.Userlist")
+			}
+			expected := []string{"username1", "username2"}
+
+			sort.Strings(got)
+
+			assertStringSlicesEqual(t, expected, got)
+
+			// test an unknown channel
+			got, err = client.Userlist("random_channel123")
+			if err == nil || got != nil {
+				t.Fatal("error expected on unknown channel for client.Userlist")
+			}
+
+			close(waitEnd)
+		}
+	})
 
 	go client.Connect()
 
@@ -869,24 +896,6 @@ func TestCanGetUserlist(t *testing.T) {
 	for !client.connActive.get() {
 		time.Sleep(time.Millisecond * 5)
 	}
-
-	// test a valid channel
-	got, err := client.Userlist("channel123")
-	if err != nil {
-		t.Fatal("error not nil for client.Userlist")
-	}
-	expected := []string{"username1", "username2"}
-
-	sort.Strings(got)
-	assertStringSlicesEqual(t, expected, got)
-
-	// test an unknown channel
-	got, err = client.Userlist("random_channel123")
-	if err == nil || got != nil {
-		t.Fatal("error expected on unknown channel for client.Userlist")
-	}
-
-	close(waitEnd)
 
 	// wait for server to receive message
 	select {
