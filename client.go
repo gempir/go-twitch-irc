@@ -125,6 +125,11 @@ type Client struct {
 	// SetupCmd is the command that is ran on successful connection to Twitch. Useful if you are proxying or something to run a custom command on connect.
 	// The variable must be modified before calling Connect or the command will not run.
 	SetupCmd string
+
+	dataMutex sync.Mutex
+
+	pingsSent     uint
+	pongsReceived uint
 }
 
 // NewClient to create a new client
@@ -136,7 +141,6 @@ func NewClient(username, oauth string) *Client {
 		channels:        map[string]bool{},
 		channelUserlist: map[string]map[string]bool{},
 		channelsMtx:     &sync.RWMutex{},
-		pongReceived:    make(chan bool),
 		messageReceived: make(chan bool),
 
 		read:  make(chan string, ReadBufferSize),
@@ -324,7 +328,7 @@ func (c *Client) makeConnection(dialer *net.Dialer, conf *tls.Config) (err error
 		// responsible for managing sending pings and reading pongs
 		// in a separate go-routine
 		wg.Add(1)
-		go c.startPinger(conn, &wg)
+		c.startPinger(conn, &wg)
 	}
 
 	// Send the initial connection messages (like logging in, getting the CAP REQ stuff)
@@ -399,44 +403,57 @@ func (c *Client) startReader(reader io.Reader, wg *sync.WaitGroup) {
 					c.onConnect()
 				}
 			}
+			log.Println("READ -", msg)
 			c.read <- msg
 		}
 	}
 }
 
 func (c *Client) startPinger(closer io.Closer, wg *sync.WaitGroup) {
-	defer func() {
-		wg.Done()
-	}()
+	c.pongReceived = make(chan bool, 1)
 
-	for {
-		select {
-		case <-c.clientReconnect.channel:
-			return
+	go func() {
+		defer func() {
+			wg.Done()
+		}()
 
-		case <-c.userDisconnect.channel:
-			return
-
-		case <-c.messageReceived:
-			// Interrupt idle ping interval
-			continue
-
-		case <-time.After(c.IdlePingInterval):
-			c.send(pingMessage)
-
+		for {
 			select {
-			case <-c.pongReceived:
-				// Received pong message within the time limit, we're good
+			case <-c.clientReconnect.channel:
+				return
+
+			case <-c.userDisconnect.channel:
+				return
+
+			case <-c.messageReceived:
+				// Interrupt idle ping interval
 				continue
 
-			case <-time.After(c.PongTimeout):
-				log.Println("[CONNECTION INFORMATION] Pong was now received within the given interval, attemping to reconnect")
-				// No pong message was received within the pong timeout, disconnect
-				c.clientReconnect.Close()
-				closer.Close()
+			case <-time.After(c.IdlePingInterval):
+				log.Println("[CONNECTION INFORMATION] Sending ping")
+				c.dataMutex.Lock()
+				c.pingsSent++
+				c.dataMutex.Unlock()
+				c.send(pingMessage)
+
+				select {
+				case <-c.pongReceived:
+					log.Println("[CONNECTION INFORMATION] Received pong")
+					// Received pong message within the time limit, we're good
+					c.dataMutex.Lock()
+					c.pongsReceived++
+					c.dataMutex.Unlock()
+					continue
+
+				case <-time.After(c.PongTimeout):
+					log.Println("[CONNECTION INFORMATION] Pong was now received within the given interval, attemping to reconnect")
+					// No pong message was received within the pong timeout, disconnect
+					c.clientReconnect.Close()
+					closer.Close()
+				}
 			}
 		}
-	}
+	}()
 }
 
 func (c *Client) setupConnection(conn net.Conn) {
@@ -520,6 +537,7 @@ func (c *Client) sendBufferLength() int {
 // Errors returned from handleLine break out of readConnections, which starts a reconnect
 // This means that we should only return fatal errors as errors here
 func (c *Client) handleLine(line string) error {
+	log.Println("handleLine -", line)
 	go func() {
 		// Send a message on the `messageReceived` channel, but do not block in case no one is receiving on the other end
 		select {
@@ -537,13 +555,14 @@ func (c *Client) handleLine(line string) error {
 
 	// Handle PONG
 	if line == expectedPongMessage {
+		log.Println("Received pong message")
 		// Received a pong that was sent by us
-		go func() {
-			select {
-			case c.pongReceived <- true:
-			default:
-			}
-		}()
+		select {
+		case c.pongReceived <- true:
+			log.Println("Successfully sent pong received signal on channel")
+		default:
+			panic("penis")
+		}
 
 		return nil
 	}

@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/textproto"
 	"reflect"
@@ -1298,6 +1299,67 @@ func TestWriter(t *testing.T) {
 	case <-time.After(time.Second * 3):
 		t.Fatal("Did not establish a connection")
 	}
+
+	client.Disconnect()
+}
+
+func TestPinger(t *testing.T) {
+	// t.Parallel()
+	const idlePingInterval = 300 * time.Millisecond
+
+	wait := make(chan bool)
+
+	var conn net.Conn
+
+	host := startServer(t, func(c net.Conn) {
+		conn = c
+	}, func(message string) {
+		if message == pingMessage {
+			log.Println("1. SERVER sending a pong response")
+			// Send an emulated pong
+			fmt.Fprintf(conn, formatPong(strings.Split(message, " :")[1])+"\r\n")
+			wait <- true
+		}
+	})
+	client := newTestClient(host)
+	client.IdlePingInterval = idlePingInterval
+
+	go client.Connect()
+
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("Did not establish a connection")
+	}
+
+	wait = make(chan bool)
+
+	log.Println("2. Check channels 2")
+
+	// Ping has been sent by server
+	go func() {
+		log.Println("3. Start checking pings and pongs values")
+		for {
+			<-time.After(5 * time.Millisecond)
+			client.dataMutex.Lock()
+			if client.pingsSent == client.pongsReceived {
+				log.Println("4. Pings sent is the same as pongs received")
+				wait <- client.pingsSent == 1
+				client.dataMutex.Unlock()
+				return
+			}
+			client.dataMutex.Unlock()
+		}
+	}()
+
+	select {
+	case res := <-wait:
+		assertTrue(t, res, "did not send a ping??????")
+	case <-time.After(time.Second * 3):
+		t.Fatal("Did not receive a pong")
+	}
+
+	log.Println("5. Success!")
 
 	client.Disconnect()
 }
