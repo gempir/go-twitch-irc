@@ -103,9 +103,6 @@ type Client struct {
 	// userDisconnect is closed when the user calls Disconnect
 	userDisconnect chanCloser
 
-	// pingerRunning indicates whether the pinger go-routine is running or not
-	pingerRunning tAtomBool
-
 	// pongReceived is listened to by the pinger go-routine after it has sent off a ping. will be triggered by handleLine
 	pongReceived chan bool
 
