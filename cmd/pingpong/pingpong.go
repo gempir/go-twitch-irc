@@ -7,8 +7,13 @@ import (
 	twitch "github.com/gempir/go-twitch-irc"
 )
 
+const (
+	clientUsername            = "justinfan123123"
+	clientAuthenticationToken = "oauth:123123123"
+)
+
 func main() {
-	client := twitch.NewClient("justinfan123123", "oauth:123123123")
+	client := twitch.NewClient(clientUsername, clientAuthenticationToken)
 
 	client.OnNewMessage(func(channel string, user twitch.User, message twitch.Message) {
 		if strings.Contains(strings.ToLower(message.Text), "ping") {
