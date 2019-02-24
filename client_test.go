@@ -1183,7 +1183,6 @@ func TestSendReturnsIfBufferIsFull(t *testing.T) {
 
 func TestLocalSendBuffer(t *testing.T) {
 	t.Parallel()
-	const idlePingInterval = 300 * time.Millisecond
 	const numNumbersToSend = 250
 
 	wait := make(chan bool)
