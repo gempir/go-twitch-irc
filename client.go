@@ -74,7 +74,6 @@ type Client struct {
 	ircUser                string
 	ircToken               string
 	TLS                    bool
-	connection             net.Conn
 	connActive             tAtomBool
 	channels               map[string]bool
 	channelUserlistMutex   *sync.RWMutex
@@ -299,10 +298,11 @@ func (c *Client) Connect() error {
 }
 
 func (c *Client) makeConnection(dialer *net.Dialer, conf *tls.Config) (err error) {
+	var conn net.Conn
 	if c.TLS {
-		c.connection, err = tls.DialWithDialer(dialer, "tcp", c.IrcAddress, conf)
+		conn, err = tls.DialWithDialer(dialer, "tcp", c.IrcAddress, conf)
 	} else {
-		c.connection, err = dialer.Dial("tcp", c.IrcAddress)
+		conn, err = dialer.Dial("tcp", c.IrcAddress)
 	}
 	if err != nil {
 		return
@@ -314,29 +314,29 @@ func (c *Client) makeConnection(dialer *net.Dialer, conf *tls.Config) (err error
 
 	// Start the connection reader in a separate go-routine
 	wg.Add(1)
-	go c.startReader(c.connection, &wg)
+	go c.startReader(conn, &wg)
 
 	if c.SendPings {
 		// If SendPings is true (which it is by default), start the thread
 		// responsible for managing sending pings and reading pongs
 		// in a separate go-routine
 		wg.Add(1)
-		go c.startPinger(&wg)
+		go c.startPinger(conn, &wg)
 	}
 
 	// Send the initial connection messages (like logging in, getting the CAP REQ stuff)
-	c.setupConnection()
+	c.setupConnection(conn)
 
 	// Start the connection writer in a separate go-routine
 	wg.Add(1)
-	go c.startWriter(c.connection, &wg)
+	go c.startWriter(conn, &wg)
 
 	// start the parser in the same go-routine as makeConnection was called from
 	// the error returned from parser will be forwarded to the caller of makeConnection
 	// and that error will decide whether or not to reconnect
 	err = c.startParser()
 
-	c.connection.Close()
+	conn.Close()
 	c.clientReconnect.Close()
 
 	// Wait for the reader, pinger, and writer to close
@@ -398,7 +398,7 @@ func (c *Client) startReader(reader io.Reader, wg *sync.WaitGroup) {
 	}
 }
 
-func (c *Client) startPinger(wg *sync.WaitGroup) {
+func (c *Client) startPinger(closer io.Closer, wg *sync.WaitGroup) {
 	defer func() {
 		wg.Done()
 	}()
@@ -426,21 +426,21 @@ func (c *Client) startPinger(wg *sync.WaitGroup) {
 			case <-time.After(c.PongTimeout):
 				// No pong message was received within the pong timeout, disconnect
 				c.clientReconnect.Close()
-				c.connection.Close()
+				closer.Close()
 			}
 		}
 	}
 }
 
-func (c *Client) setupConnection() {
+func (c *Client) setupConnection(conn net.Conn) {
 	if c.SetupCmd != "" {
-		c.connection.Write([]byte(c.SetupCmd + "\r\n"))
+		conn.Write([]byte(c.SetupCmd + "\r\n"))
 	}
-	c.connection.Write([]byte("PASS " + c.ircToken + "\r\n"))
-	c.connection.Write([]byte("NICK " + c.ircUser + "\r\n"))
-	c.connection.Write([]byte("CAP REQ :twitch.tv/tags\r\n"))
-	c.connection.Write([]byte("CAP REQ :twitch.tv/commands\r\n"))
-	c.connection.Write([]byte("CAP REQ :twitch.tv/membership\r\n"))
+	conn.Write([]byte("PASS " + c.ircToken + "\r\n"))
+	conn.Write([]byte("NICK " + c.ircUser + "\r\n"))
+	conn.Write([]byte("CAP REQ :twitch.tv/tags\r\n"))
+	conn.Write([]byte("CAP REQ :twitch.tv/commands\r\n"))
+	conn.Write([]byte("CAP REQ :twitch.tv/membership\r\n"))
 }
 
 func (c *Client) startWriter(writer io.WriteCloser, wg *sync.WaitGroup) {
