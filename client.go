@@ -146,6 +146,7 @@ func NewClient(username, oauth string) *Client {
 		read:  make(chan string, ReadBufferSize),
 		write: make(chan string, WriteBufferSize),
 
+		// NOTE: IdlePingInterval must be higher than PongTimeout
 		SendPings:        true,
 		IdlePingInterval: time.Second * 15,
 		PongTimeout:      time.Second * 5,
@@ -403,7 +404,6 @@ func (c *Client) startReader(reader io.Reader, wg *sync.WaitGroup) {
 					c.onConnect()
 				}
 			}
-			log.Println("READ -", msg)
 			c.read <- msg
 		}
 	}
@@ -537,7 +537,6 @@ func (c *Client) sendBufferLength() int {
 // Errors returned from handleLine break out of readConnections, which starts a reconnect
 // This means that we should only return fatal errors as errors here
 func (c *Client) handleLine(line string) error {
-	log.Println("handleLine -", line)
 	go func() {
 		// Send a message on the `messageReceived` channel, but do not block in case no one is receiving on the other end
 		select {

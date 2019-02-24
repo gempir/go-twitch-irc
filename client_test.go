@@ -48,6 +48,13 @@ func newTestClient(host string) *Client {
 	return client
 }
 
+func connectAndEnsureGoodDisconnect(t *testing.T, client *Client) {
+	go func() {
+		err := client.Connect()
+		assertErrorsEqual(t, ErrClientDisconnected, err)
+	}()
+}
+
 func handleTestConnection(t *testing.T, onConnect func(net.Conn), onMessage func(string), listener net.Listener, wg *sync.WaitGroup) {
 	conn, err := listener.Accept()
 	if err != nil {
@@ -299,14 +306,9 @@ func TestCanConnectAndAuthenticate(t *testing.T) {
 		}
 	})
 
-	client := NewClient("justinfan123123", oauthCode)
-	client.IrcAddress = host
-	go func() {
-		err := client.Connect()
-		if err != nil {
-			t.Fatal("bad error")
-		}
-	}()
+	client := newTestClient(host)
+	connectAndEnsureGoodDisconnect(t, client)
+	defer client.Disconnect()
 
 	select {
 	case <-wait:
