@@ -31,12 +31,11 @@ var (
 	ErrLoginAuthenticationFailed = errors.New("login authentication failed")
 )
 
-// User data you receive from tmi
+// User data you receive from TMI
 type User struct {
-	UserID      string
-	Username    string
+	ID          string
+	Name        string
 	DisplayName string
-	UserType    string
 	Color       string
 	Badges      map[string]int
 }
