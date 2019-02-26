@@ -40,16 +40,62 @@ type User struct {
 	Badges      map[string]int
 }
 
-// Message data you receive from tmi
-type Message struct {
-	Type      MessageType
-	Time      time.Time
-	Action    bool
+// RawMessage data you receive from TMI
+type RawMessage struct {
+	Type    MessageType
+	RawType string
+	Raw     string
+	Tags    map[string]string
+	Message string
+}
+
+// CLEARCHATMessage data you receive from CLEARCHAT message type
+type CLEARCHATMessage struct {
+	chatMessage
+	BanDuration    int
+	TargetUserID   string
+	TargetUsername string
+}
+
+// PRIVMSGMessage data you receive from PRIVMSG message type
+type PRIVMSGMessage struct {
+	chatMessage
+	Emotes []*Emote
+	Bits   int
+}
+
+// WHISPERMessage data you receive from WHISPER message type
+type WHISPERMessage struct {
+	RawMessage
+	Emotes []*Emote
+}
+
+// ROOMSTATEMessage data you receive from ROOMSTATE message type
+type ROOMSTATEMessage struct {
+	roomMessage
+	Language string
+	State    map[string]interface{}
+}
+
+// USERNOTICEMessage  data you receive from USERNOTICE message type
+type USERNOTICEMessage struct {
+	chatMessage
 	Emotes    []*Emote
-	Tags      map[string]string
-	Text      string
-	Raw       string
-	ChannelID string
+	MsgID     string
+	MsgParams map[string]interface{}
+	SystemMsg string
+}
+
+// USERSTATEMessage data you receive from the USERSTATE message type
+type USERSTATEMessage struct {
+	channelMessage
+	EmoteSets []string
+}
+
+// NOTICEMessage data you receive from the NOTICE message type
+type NOTICEMessage struct {
+	channelMessage
+	MsgID string
 }
 
 // Client client to control your connection and attach callbacks
@@ -65,16 +111,16 @@ type Client struct {
 	channelUserlist        map[string]map[string]bool
 	channelsMtx            *sync.RWMutex
 	onConnect              func()
-	onNewWhisper           func(user User, message Message)
-	onNewMessage           func(channel string, user User, message Message)
-	onNewRoomstateMessage  func(channel string, user User, message Message)
-	onNewClearchatMessage  func(channel string, user User, message Message)
-	onNewUsernoticeMessage func(channel string, user User, message Message)
-	onNewNoticeMessage     func(channel string, user User, message Message)
-	onNewUserstateMessage  func(channel string, user User, message Message)
+	onNewWhisper           func(user User, message WHISPERMessage)
+	onNewMessage           func(channel string, user User, message PRIVMSGMessage)
+	onNewRoomstateMessage  func(channel string, message ROOMSTATEMessage)
+	onNewClearchatMessage  func(channel string, message CLEARCHATMessage)
+	onNewUsernoticeMessage func(channel string, user User, message USERNOTICEMessage)
+	onNewNoticeMessage     func(channel string, message NOTICEMessage)
+	onNewUserstateMessage  func(channel string, user User, message USERSTATEMessage)
 	onUserJoin             func(channel, user string)
 	onUserPart             func(channel, user string)
-	onNewUnsetMessage      func(rawMessage string)
+	onNewUnsetMessage      func(message RawMessage)
 
 	// pingerRunning indicates whether the pinger go-routine is running or not
 	pingerRunning tAtomBool
@@ -121,12 +167,12 @@ func NewClient(username, oauth string) *Client {
 }
 
 // OnNewWhisper attach callback to new whisper
-func (c *Client) OnNewWhisper(callback func(user User, message Message)) {
+func (c *Client) OnNewWhisper(callback func(user User, message WHISPERMessage)) {
 	c.onNewWhisper = callback
 }
 
 // OnNewMessage attach callback to new standard chat messages
-func (c *Client) OnNewMessage(callback func(channel string, user User, message Message)) {
+func (c *Client) OnNewMessage(callback func(channel string, user User, message PRIVMSGMessage)) {
 	c.onNewMessage = callback
 }
 
@@ -136,27 +182,27 @@ func (c *Client) OnConnect(callback func()) {
 }
 
 // OnNewRoomstateMessage attach callback to new messages such as submode enabled
-func (c *Client) OnNewRoomstateMessage(callback func(channel string, user User, message Message)) {
+func (c *Client) OnNewRoomstateMessage(callback func(channel string, message ROOMSTATEMessage)) {
 	c.onNewRoomstateMessage = callback
 }
 
 // OnNewClearchatMessage attach callback to new messages such as timeouts
-func (c *Client) OnNewClearchatMessage(callback func(channel string, user User, message Message)) {
+func (c *Client) OnNewClearchatMessage(callback func(channel string, message CLEARCHATMessage)) {
 	c.onNewClearchatMessage = callback
 }
 
 // OnNewUsernoticeMessage attach callback to new usernotice message such as sub, resub, and raids
-func (c *Client) OnNewUsernoticeMessage(callback func(channel string, user User, message Message)) {
+func (c *Client) OnNewUsernoticeMessage(callback func(channel string, user User, message USERNOTICEMessage)) {
 	c.onNewUsernoticeMessage = callback
 }
 
 // OnNewNoticeMessage attach callback to new notice message such as hosts
-func (c *Client) OnNewNoticeMessage(callback func(channel string, user User, message Message)) {
+func (c *Client) OnNewNoticeMessage(callback func(channel string, message NOTICEMessage)) {
 	c.onNewNoticeMessage = callback
 }
 
 // OnNewUserstateMessage attach callback to new userstate
-func (c *Client) OnNewUserstateMessage(callback func(channel string, user User, message Message)) {
+func (c *Client) OnNewUserstateMessage(callback func(channel string, user User, message USERSTATEMessage)) {
 	c.onNewUserstateMessage = callback
 }
 
@@ -171,7 +217,7 @@ func (c *Client) OnUserPart(callback func(channel, user string)) {
 }
 
 // OnNewUnsetMessage attaches callback to messages that didn't parse properly. Should only be used if you're debugging the message parsing
-func (c *Client) OnNewUnsetMessage(callback func(rawMessage string)) {
+func (c *Client) OnNewUnsetMessage(callback func(message RawMessage)) {
 	c.onNewUnsetMessage = callback
 }
 

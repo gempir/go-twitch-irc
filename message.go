@@ -29,22 +29,20 @@ const (
 	NOTICE MessageType = 6
 )
 
-type message struct {
-	Type        MessageType
-	Time        time.Time
-	Channel     string
-	ChannelID   string
-	UserID      string
-	Username    string
-	DisplayName string
-	UserType    string
-	Color       string
-	Action      bool
-	Badges      map[string]int
-	Emotes      []*Emote
-	Tags        map[string]string
-	Text        string
-	Raw         string
+type channelMessage struct {
+	RawMessage
+	Channel string
+}
+
+type roomMessage struct {
+	channelMessage
+	RoomID string
+}
+
+type chatMessage struct {
+	roomMessage
+	ID   string
+	Time time.Time
 }
 
 // Emote twitch emotes
@@ -52,6 +50,12 @@ type Emote struct {
 	Name  string
 	ID    string
 	Count int
+}
+
+type message struct {
+	RawMessage RawMessage
+	Channel    string
+	Username   string
 }
 
 func parseMessage(line string) *message {
