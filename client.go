@@ -60,6 +60,7 @@ type CLEARCHATMessage struct {
 // PRIVMSGMessage data you receive from PRIVMSG message type
 type PRIVMSGMessage struct {
 	chatMessage
+	Action bool
 	Emotes []*Emote
 	Bits   int
 }
