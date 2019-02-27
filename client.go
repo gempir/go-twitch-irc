@@ -60,15 +60,14 @@ type CLEARCHATMessage struct {
 // PRIVMSGMessage data you receive from PRIVMSG message type
 type PRIVMSGMessage struct {
 	chatMessage
-	Action bool
-	Emotes []*Emote
-	Bits   int
+	userMessage
+	Bits int
 }
 
 // WHISPERMessage data you receive from WHISPER message type
 type WHISPERMessage struct {
 	RawMessage
-	Emotes []*Emote
+	userMessage
 }
 
 // ROOMSTATEMessage data you receive from ROOMSTATE message type
@@ -81,7 +80,7 @@ type ROOMSTATEMessage struct {
 // USERNOTICEMessage  data you receive from USERNOTICE message type
 type USERNOTICEMessage struct {
 	chatMessage
-	Emotes    []*Emote
+	userMessage
 	MsgID     string
 	MsgParams map[string]interface{}
 	SystemMsg string

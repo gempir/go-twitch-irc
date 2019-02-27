@@ -38,10 +38,16 @@ type roomMessage struct {
 	RoomID string
 }
 
+// Unsure of a better name, but this isn't entirely descriptive of the contents
 type chatMessage struct {
 	roomMessage
 	ID   string
 	Time time.Time
+}
+
+type userMessage struct {
+	Action bool
+	Emotes []*Emote
 }
 
 // Emote twitch emotes
@@ -151,13 +157,11 @@ func parseTags(tagsRaw string) map[string]string {
 func (m *message) parsePRIVMSGMessage() (*User, *PRIVMSGMessage) {
 	privateMessage := PRIVMSGMessage{
 		chatMessage: *m.parseChatMessage(),
-		Emotes:      m.parseEmotes(),
+		userMessage: *m.parseUserMessage(),
 	}
 
-	text := privateMessage.Message
-	if strings.HasPrefix(text, "\u0001ACTION") && strings.HasSuffix(text, "\u0001") {
-		privateMessage.Action = true
-		privateMessage.Message = text[8 : len(text)-1]
+	if privateMessage.Action {
+		privateMessage.Message = privateMessage.Message[8 : len(privateMessage.Message)-1]
 	}
 
 	rawBits, ok := m.RawMessage.Tags["bits"]
@@ -252,6 +256,19 @@ func (m *message) parseChannelMessage() *channelMessage {
 		RawMessage: m.RawMessage,
 		Channel:    m.Channel,
 	}
+}
+
+func (m *message) parseUserMessage() *userMessage {
+	userMessage := userMessage{
+		Emotes: m.parseEmotes(),
+	}
+
+	text := m.RawMessage.Message
+	if strings.HasPrefix(text, "\u0001ACTION") && strings.HasSuffix(text, "\u0001") {
+		userMessage.Action = true
+	}
+
+	return &userMessage
 }
 
 func (m *message) parseEmotes() []*Emote {
