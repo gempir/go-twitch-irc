@@ -113,28 +113,58 @@ func TestCantParseInvalidMessage(t *testing.T) {
 	assertStringsEqual(t, "", message.RawMessage.Message)
 }
 
-func TestCanParseClearChatMessage(t *testing.T) {
-	testMessage := `@ban-duration=1;ban-reason=testing\sxd;room-id=11148817;target-user-id=40910607 :tmi.twitch.tv CLEARCHAT #pajlada :ampzyh`
+func TestCanParseCLEARCHATMessage(t *testing.T) {
+	testMessage := `@room-id=408892348;tmi-sent-ts=1551290606462 :tmi.twitch.tv CLEARCHAT #clippyassistant`
 
 	message := parseMessage(testMessage)
+	clearchatMessage := message.parseCLEARCHATMessage()
 
-	if message.Type != CLEARCHAT {
+	assertStringsEqual(t, message.Channel, "clippyassistant")
+
+	if clearchatMessage.Type != CLEARCHAT {
 		t.Error("parsing CLEARCHAT message failed")
 	}
-
-	assertStringsEqual(t, message.Channel, "pajlada")
+	assertStringsEqual(t, "CLEARCHAT", clearchatMessage.RawType)
+	assertStringsEqual(t, "", clearchatMessage.Message)
+	assertStringsEqual(t, "408892348", clearchatMessage.RoomID)
 }
 
-func TestCanParseClearChatMessage2(t *testing.T) {
-	testMessage := `@room-id=11148817;tmi-sent-ts=1527342985836 :tmi.twitch.tv CLEARCHAT #pajlada`
+func TestCanParseBanMessage(t *testing.T) {
+	testMessage := `@room-id=408892348;target-user-id=160087939;tmi-sent-ts=1551290659485 :tmi.twitch.tv CLEARCHAT #clippyassistant :nsfletcher`
 
 	message := parseMessage(testMessage)
+	clearchatMessage := message.parseCLEARCHATMessage()
 
-	if message.Type != CLEARCHAT {
+	assertStringsEqual(t, message.Channel, "clippyassistant")
+
+	if clearchatMessage.Type != CLEARCHAT {
 		t.Error("parsing CLEARCHAT message failed")
 	}
+	assertStringsEqual(t, "CLEARCHAT", clearchatMessage.RawType)
+	assertStringsEqual(t, "", clearchatMessage.Message)
+	assertStringsEqual(t, "408892348", clearchatMessage.RoomID)
+	assertIntsEqual(t, 0, clearchatMessage.BanDuration)
+	assertStringsEqual(t, "160087939", clearchatMessage.TargetUserID)
+	assertStringsEqual(t, "nsfletcher", clearchatMessage.TargetUsername)
+}
 
-	assertStringsEqual(t, message.Channel, "pajlada")
+func TestCanParseTimeoutMessage(t *testing.T) {
+	testMessage := `@ban-duration=3;room-id=408892348;target-user-id=39489382;tmi-sent-ts=1551290562042 :tmi.twitch.tv CLEARCHAT #clippyassistant :taleof4gamers`
+
+	message := parseMessage(testMessage)
+	clearchatMessage := message.parseCLEARCHATMessage()
+
+	assertStringsEqual(t, message.Channel, "clippyassistant")
+
+	if clearchatMessage.Type != CLEARCHAT {
+		t.Error("parsing CLEARCHAT message failed")
+	}
+	assertStringsEqual(t, "CLEARCHAT", clearchatMessage.RawType)
+	assertStringsEqual(t, "", clearchatMessage.Message)
+	assertStringsEqual(t, "408892348", clearchatMessage.RoomID)
+	assertIntsEqual(t, 3, clearchatMessage.BanDuration)
+	assertStringsEqual(t, "39489382", clearchatMessage.TargetUserID)
+	assertStringsEqual(t, "taleof4gamers", clearchatMessage.TargetUsername)
 }
 
 func TestCanParseEmoteMessage(t *testing.T) {

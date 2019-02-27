@@ -169,6 +169,25 @@ func (m *message) parsePRIVMSGMessage() (*User, *PRIVMSGMessage) {
 	return m.parseUser(), &privateMessage
 }
 
+func (m *message) parseCLEARCHATMessage() *CLEARCHATMessage {
+	clearchatMessage := CLEARCHATMessage{
+		chatMessage:  *m.parseChatMessage(),
+		TargetUserID: m.RawMessage.Tags["target-user-id"],
+	}
+
+	clearchatMessage.TargetUsername = clearchatMessage.Message
+	clearchatMessage.Message = ""
+
+	rawBanDuration, ok := m.RawMessage.Tags["ban-duration"]
+	if !ok {
+		return &clearchatMessage
+	}
+
+	banDuration, _ := strconv.Atoi(rawBanDuration)
+	clearchatMessage.BanDuration = banDuration
+	return &clearchatMessage
+}
+
 func (m *message) parseUser() *User {
 	user := User{
 		ID:          m.RawMessage.Tags["user-id"],
