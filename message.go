@@ -174,6 +174,19 @@ func (m *message) parsePRIVMSGMessage() (*User, *PRIVMSGMessage) {
 	return m.parseUser(), &privateMessage
 }
 
+func (m *message) parseWHISPERMessage() (*User, *WHISPERMessage) {
+	whisperMessage := WHISPERMessage{
+		RawMessage:  m.RawMessage,
+		userMessage: *m.parseUserMessage(),
+	}
+
+	if whisperMessage.Action {
+		whisperMessage.Message = whisperMessage.Message[8 : len(whisperMessage.Message)-1]
+	}
+
+	return m.parseUser(), &whisperMessage
+}
+
 func (m *message) parseCLEARCHATMessage() *CLEARCHATMessage {
 	clearchatMessage := CLEARCHATMessage{
 		chatMessage:  *m.parseChatMessage(),
