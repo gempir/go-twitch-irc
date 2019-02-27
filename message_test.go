@@ -6,22 +6,24 @@ import (
 
 func TestCanParseMessage(t *testing.T) {
 	testMessage := "@badges=subscriber/6,premium/1;color=#FF0000;display-name=Redflamingo13;emotes=;id=2a31a9df-d6ff-4840-b211-a2547c7e656e;mod=0;room-id=11148817;subscriber=1;tmi-sent-ts=1490382457309;turbo=0;user-id=78424343;user-type= :redflamingo13!redflamingo13@redflamingo13.tmi.twitch.tv PRIVMSG #pajlada :Thrashh5, FeelsWayTooAmazingMan kinda"
+
 	message := parseMessage(testMessage)
 
 	assertStringsEqual(t, "pajlada", message.Channel)
-	assertStringsEqual(t, "78424343", message.UserID)
-	assertIntsEqual(t, 6, message.Badges["subscriber"])
-	assertStringsEqual(t, "#FF0000", message.Color)
-	assertStringsEqual(t, "Redflamingo13", message.DisplayName)
-	assertIntsEqual(t, 0, len(message.Emotes))
-	assertStringsEqual(t, "0", message.Tags["mod"])
-	assertStringsEqual(t, "Thrashh5, FeelsWayTooAmazingMan kinda", message.Text)
-	if message.Type != PRIVMSG {
+	assertStringsEqual(t, "redflamingo13", message.Username)
+	if message.RawMessage.Type != PRIVMSG {
 		t.Error("parsing message type failed")
 	}
-	assertStringsEqual(t, "redflamingo13", message.Username)
-	assertStringsEqual(t, "", message.UserType)
-	assertFalse(t, message.Action, "parsing action failed")
+	assertStringsEqual(t, "PRIVMSG", message.RawMessage.RawType)
+	assertStringsEqual(t, "subscriber/6,premium/1", message.RawMessage.Tags["badges"])
+	assertStringsEqual(t, "#FF0000", message.RawMessage.Tags["color"])
+	assertStringsEqual(t, "Redflamingo13", message.RawMessage.Tags["display-name"])
+	assertStringsEqual(t, "", message.RawMessage.Tags["emotes"])
+	assertStringsEqual(t, "2a31a9df-d6ff-4840-b211-a2547c7e656e", message.RawMessage.Tags["id"])
+	assertStringsEqual(t, "11148817", message.RawMessage.Tags["room-id"])
+	assertStringsEqual(t, "1490382457309", message.RawMessage.Tags["tmi-sent-ts"])
+	assertStringsEqual(t, "78424343", message.RawMessage.Tags["user-id"])
+	assertStringsEqual(t, "Thrashh5, FeelsWayTooAmazingMan kinda", message.RawMessage.Message)
 }
 
 func TestCanParseActionMessage(t *testing.T) {
@@ -65,7 +67,7 @@ func TestCantParseNoTagsMessage(t *testing.T) {
 
 	message := parseMessage(testMessage)
 
-	assertStringsEqual(t, testMessage, message.Text)
+	assertStringsEqual(t, testMessage, message.RawMessage.Message)
 }
 
 func TestCantParseInvalidMessage(t *testing.T) {
@@ -73,7 +75,7 @@ func TestCantParseInvalidMessage(t *testing.T) {
 
 	message := parseMessage(testMessage)
 
-	assertStringsEqual(t, "", message.Text)
+	assertStringsEqual(t, "", message.RawMessage.Message)
 }
 
 func TestCanParseClearChatMessage(t *testing.T) {

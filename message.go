@@ -1,7 +1,6 @@
 package twitch
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -52,6 +51,7 @@ type Emote struct {
 	Count int
 }
 
+// message is purely for internal use
 type message struct {
 	RawMessage RawMessage
 	Channel    string
@@ -61,72 +61,52 @@ type message struct {
 func parseMessage(line string) *message {
 	if !strings.HasPrefix(line, "@") {
 		return &message{
-			Text: line,
-			Raw:  line,
-			Type: UNSET,
+			RawMessage: RawMessage{
+				Type:    UNSET,
+				Raw:     line,
+				Message: line,
+			},
 		}
 	}
-	spl := strings.SplitN(line, " :", 3)
-	if len(spl) < 3 {
-		return parseOtherMessage(line)
-	}
-	action := false
-	tags, middle, text := spl[0], spl[1], spl[2]
-	if strings.HasPrefix(text, "\u0001ACTION ") && strings.HasSuffix(text, "\u0001") {
-		action = true
-		text = text[8 : len(text)-1]
-	}
-	msg := &message{
-		Text:   text,
-		Tags:   map[string]string{},
-		Action: action,
-		Type:   UNSET,
-	}
-	msg.Username, msg.Type, msg.Channel = parseMiddle(middle)
-	parseTags(msg, tags[1:])
-	if msg.Type == CLEARCHAT {
-		targetUser := msg.Text
-		msg.Username = targetUser
 
-		msg.Text = fmt.Sprintf("%s was timed out for %s: %s", targetUser, msg.Tags["ban-duration"], msg.Tags["ban-reason"])
+	split := strings.SplitN(line, " :", 3)
+	if len(split) < 3 {
+		for i := 0; i < 3-len(split); i++ {
+			split = append(split, "")
+		}
 	}
-	msg.Raw = line
-	return msg
+
+	rawType, channel, username := parseMiddle(split[1])
+
+	rawMessage := RawMessage{
+		Type:    parseMessageType(rawType),
+		RawType: rawType,
+		Raw:     line,
+		Tags:    parseTags(split[0]),
+		Message: split[2],
+	}
+
+	return &message{
+		Channel:    channel,
+		Username:   username,
+		RawMessage: rawMessage,
+	}
 }
 
-func parseOtherMessage(line string) *message {
-	msg := &message{
-		Type: UNSET,
-	}
-	split := strings.Split(line, " ")
-	msg.Raw = line
+func parseMiddle(middle string) (string, string, string) {
+	var rawType, channel, username string
 
-	msg.Type = parseMessageType(split[2])
-	msg.Tags = make(map[string]string)
-
-	// Parse out channel if it exists in this line
-	if len(split) >= 4 && len(split[3]) > 1 && split[3][0] == '#' {
-		// Remove # from channel
-		msg.Channel = split[3][1:]
-	}
-
-	tagsString := strings.Fields(strings.TrimPrefix(split[0], "@"))
-	tags := strings.Split(tagsString[0], ";")
-	for _, tag := range tags {
-		tagSplit := strings.Split(tag, "=")
-
-		value := ""
-		if len(tagSplit) > 1 {
-			value = tagSplit[1]
+	for _, v := range strings.SplitN(middle, " ", 3) {
+		if strings.Contains(v, "!") {
+			username = strings.SplitN(v, "!", 2)[0]
+		} else if strings.Contains(v, "#") {
+			channel = strings.TrimPrefix(v, "#")
+		} else {
+			rawType = v
 		}
-
-		msg.Tags[tagSplit[0]] = value
 	}
 
-	if msg.Type == CLEARCHAT {
-		msg.Text = "Chat has been cleared by a moderator"
-	}
-	return msg
+	return rawType, channel, username
 }
 
 func parseMessageType(messageType string) MessageType {
@@ -150,70 +130,21 @@ func parseMessageType(messageType string) MessageType {
 	}
 }
 
-func parseMiddle(middle string) (string, MessageType, string) {
-	var username string
-	var msgType MessageType
-	var channel string
+func parseTags(tagsRaw string) map[string]string {
+	tags := make(map[string]string)
 
-	for i, c := range middle {
-		if c == '!' {
-			username = middle[:i]
-			middle = middle[i:]
-		}
-	}
-	start := -1
-	for i, c := range middle {
-		if c == ' ' {
-			if start == -1 {
-				start = i + 1
-			} else {
-				typ := middle[start:i]
-				msgType = parseMessageType(typ)
-				middle = middle[i:]
-			}
-		}
-	}
-	for i, c := range middle {
-		if c == '#' {
-			channel = middle[i+1:]
-		}
-	}
+	tagsRaw = strings.TrimPrefix(tagsRaw, "@")
+	for _, v := range strings.Split(tagsRaw, ";") {
+		tag := strings.SplitN(v, "=", 2)
 
-	return username, msgType, channel
-}
-
-func parseTags(msg *message, tagsRaw string) {
-	tags := strings.Split(tagsRaw, ";")
-	for _, tag := range tags {
-		spl := strings.SplitN(tag, "=", 2)
-		value := strings.Replace(spl[1], "\\:", ";", -1)
-		value = strings.Replace(value, "\\s", " ", -1)
-		value = strings.Replace(value, "\\\\", "\\", -1)
-		switch spl[0] {
-		case "badges":
-			msg.Badges = parseBadges(value)
-		case "color":
-			msg.Color = value
-		case "display-name":
-			msg.DisplayName = value
-		case "emotes":
-			msg.Emotes = parseTwitchEmotes(value, msg.Text)
-		case "user-type":
-			msg.UserType = value
-		case "tmi-sent-ts":
-			i, err := strconv.ParseInt(value, 10, 64)
-			if err == nil {
-				msg.Time = time.Unix(0, int64(i*1e6))
-			}
-		case "room-id":
-			msg.ChannelID = value
-		case "target-user-id":
-			msg.UserID = value
-		case "user-id":
-			msg.UserID = value
+		var value string
+		if len(tag) > 1 {
+			value = tag[1]
 		}
-		msg.Tags[spl[0]] = value
+
+		tags[tag[0]] = value
 	}
+	return tags
 }
 
 func parseBadges(badges string) map[string]int {
