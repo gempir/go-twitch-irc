@@ -147,45 +147,119 @@ func parseTags(tagsRaw string) map[string]string {
 	return tags
 }
 
-func parseBadges(badges string) map[string]int {
-	m := map[string]int{}
-	spl := strings.Split(badges, ",")
-	for _, badge := range spl {
-		s := strings.SplitN(badge, "/", 2)
-		if len(s) < 2 {
-			continue
-		}
-		n, _ := strconv.Atoi(s[1])
-		m[s[0]] = n
+func (m *message) parsePRIVMSGMessage() (*User, *PRIVMSGMessage) {
+	privateMessage := PRIVMSGMessage{
+		chatMessage: *m.parseChatMessage(),
+		Emotes:      m.parseEmotes(),
 	}
-	return m
+
+	text := privateMessage.Message
+	if strings.HasPrefix(text, "\u0001ACTION") && strings.HasSuffix(text, "\u0001") {
+		privateMessage.Action = true
+		privateMessage.Message = text[8 : len(text)-1]
+	}
+
+	rawBits, ok := m.RawMessage.Tags["bits"]
+	if !ok {
+		return m.parseUser(), &privateMessage
+	}
+
+	bits, _ := strconv.Atoi(rawBits)
+	privateMessage.Bits = bits
+	return m.parseUser(), &privateMessage
 }
 
-func parseTwitchEmotes(emoteTag, text string) []*Emote {
-	emotes := []*Emote{}
+func (m *message) parseUser() *User {
+	user := User{
+		ID:          m.RawMessage.Tags["user-id"],
+		Name:        m.Username,
+		DisplayName: m.RawMessage.Tags["display-name"],
+		Color:       m.RawMessage.Tags["color"],
+		Badges:      m.parseBadges(),
+	}
 
-	if emoteTag == "" {
+	// USERSTATE doesn't contain a Username, but it does have a display-name tag.
+	if user.Name == "" {
+		user.Name = strings.ToLower(user.DisplayName)
+	}
+
+	return &user
+}
+func (m *message) parseBadges() map[string]int {
+	badges := make(map[string]int)
+
+	rawBadges, ok := m.RawMessage.Tags["badges"]
+	if !ok {
+		return badges
+	}
+
+	for _, v := range strings.Split(rawBadges, ",") {
+		badge := strings.SplitN(v, "/", 2)
+		if len(badge) < 2 {
+			continue
+		}
+
+		badges[badge[0]], _ = strconv.Atoi(badge[1])
+	}
+
+	return badges
+}
+
+func (m *message) parseChatMessage() *chatMessage {
+	chatMessage := chatMessage{
+		roomMessage: *m.parseRoomMessage(),
+		ID:          m.RawMessage.Tags["id"],
+	}
+
+	i, err := strconv.ParseInt(m.RawMessage.Tags["tmi-sent-ts"], 10, 64)
+	if err != nil {
+		return &chatMessage
+	}
+
+	chatMessage.Time = time.Unix(0, int64(i*1e6))
+	return &chatMessage
+}
+
+func (m *message) parseRoomMessage() *roomMessage {
+	return &roomMessage{
+		channelMessage: *m.parseChannelMessage(),
+		RoomID:         m.RawMessage.Tags["room-id"],
+	}
+}
+
+func (m *message) parseChannelMessage() *channelMessage {
+	return &channelMessage{
+		RawMessage: m.RawMessage,
+		Channel:    m.Channel,
+	}
+}
+
+func (m *message) parseEmotes() []*Emote {
+	var emotes []*Emote
+
+	rawEmotes := m.RawMessage.Tags["emotes"]
+	if rawEmotes == "" {
 		return emotes
 	}
 
-	runes := []rune(text)
+	runes := []rune(m.RawMessage.Message)
 
-	emoteSlice := strings.Split(emoteTag, "/")
-	for i := range emoteSlice {
-		spl := strings.Split(emoteSlice[i], ":")
-		pos := strings.Split(spl[1], ",")
-		sp := strings.Split(pos[0], "-")
-		start, _ := strconv.Atoi(sp[0])
-		end, _ := strconv.Atoi(sp[1])
-		id := spl[0]
+	for _, v := range strings.Split(rawEmotes, "/") {
+		split := strings.SplitN(v, ":", 2)
+		pos := strings.SplitN(split[1], ",", 2)
+		indexPair := strings.SplitN(pos[0], "-", 2)
+		firstIndex, _ := strconv.Atoi(indexPair[0])
+		lastIndex, _ := strconv.Atoi(indexPair[1])
+
 		e := &Emote{
-			ID:    id,
-			Count: strings.Count(emoteSlice[i], "-"),
-			Name:  string(runes[start : end+1]),
+			Name:  string(runes[firstIndex:lastIndex]),
+			ID:    split[0],
+			Count: strings.Count(split[1], ",") + 1,
 		}
 
 		emotes = append(emotes, e)
 	}
+
 	return emotes
 }
 

@@ -26,23 +26,60 @@ func TestCanParseRawMessage(t *testing.T) {
 	assertStringsEqual(t, "Thrashh5, FeelsWayTooAmazingMan kinda", message.RawMessage.Message)
 }
 
-func TestCanParseActionMessage(t *testing.T) {
-	testMessage := "@badges=subscriber/6,premium/1;color=#FF0000;display-name=Redflamingo13;emotes=;id=2a31a9df-d6ff-4840-b211-a2547c7e656e;mod=0;room-id=11148817;subscriber=1;tmi-sent-ts=1490382457309;turbo=0;user-id=78424343;user-type= :redflamingo13!redflamingo13@redflamingo13.tmi.twitch.tv PRIVMSG #pajlada :\u0001ACTION Thrashh5, FeelsWayTooAmazingMan kinda\u0001"
+func TestCanParsePRIVMSGMessage(t *testing.T) {
+	testMessage := "@badges=subscriber/6,premium/1;color=#FF0000;display-name=Redflamingo13;emotes=;id=2a31a9df-d6ff-4840-b211-a2547c7e656e;mod=0;room-id=11148817;subscriber=1;tmi-sent-ts=1490382457309;turbo=0;user-id=78424343;user-type= :redflamingo13!redflamingo13@redflamingo13.tmi.twitch.tv PRIVMSG #pajlada :Thrashh5, FeelsWayTooAmazingMan kinda"
+
 	message := parseMessage(testMessage)
+	user, privateMessage := message.parsePRIVMSGMessage()
 
 	assertStringsEqual(t, "pajlada", message.Channel)
-	assertIntsEqual(t, 6, message.Badges["subscriber"])
-	assertStringsEqual(t, "#FF0000", message.Color)
-	assertStringsEqual(t, "Redflamingo13", message.DisplayName)
-	assertIntsEqual(t, 0, len(message.Emotes))
-	assertStringsEqual(t, "0", message.Tags["mod"])
-	assertStringsEqual(t, "Thrashh5, FeelsWayTooAmazingMan kinda", message.Text)
-	if message.Type != PRIVMSG {
+
+	assertStringsEqual(t, "78424343", user.ID)
+	assertStringsEqual(t, "redflamingo13", user.Name)
+	assertStringsEqual(t, "Redflamingo13", user.DisplayName)
+	assertStringsEqual(t, "#FF0000", user.Color)
+	assertIntsEqual(t, 6, user.Badges["subscriber"])
+	assertIntsEqual(t, 1, user.Badges["premium"])
+
+	if privateMessage.Type != PRIVMSG {
 		t.Error("parsing message type failed")
 	}
-	assertStringsEqual(t, "redflamingo13", message.Username)
-	assertStringsEqual(t, "", message.UserType)
-	assertTrue(t, message.Action, "parsing action failed")
+	assertStringsEqual(t, "PRIVMSG", privateMessage.RawType)
+	assertStringsEqual(t, "Thrashh5, FeelsWayTooAmazingMan kinda", privateMessage.Message)
+	assertStringsEqual(t, "11148817", privateMessage.RoomID)
+	assertStringsEqual(t, "2a31a9df-d6ff-4840-b211-a2547c7e656e", privateMessage.ID)
+	assertInt64sEqual(t, 1490382457309, privateMessage.Time.UnixNano()/1e6)
+	assertFalse(t, privateMessage.Action, "parsing Action failed")
+	assertIntsEqual(t, 0, len(privateMessage.Emotes))
+	assertIntsEqual(t, 0, privateMessage.Bits)
+}
+
+func TestCanParseActionMessage(t *testing.T) {
+	testMessage := "@badges=subscriber/6,premium/1;color=#FF0000;display-name=Redflamingo13;emotes=;id=2a31a9df-d6ff-4840-b211-a2547c7e656e;mod=0;room-id=11148817;subscriber=1;tmi-sent-ts=1490382457309;turbo=0;user-id=78424343;user-type= :redflamingo13!redflamingo13@redflamingo13.tmi.twitch.tv PRIVMSG #pajlada :\u0001ACTION Thrashh5, FeelsWayTooAmazingMan kinda\u0001"
+
+	message := parseMessage(testMessage)
+	user, privateMessage := message.parsePRIVMSGMessage()
+
+	assertStringsEqual(t, "pajlada", message.Channel)
+
+	assertStringsEqual(t, "78424343", user.ID)
+	assertStringsEqual(t, "redflamingo13", user.Name)
+	assertStringsEqual(t, "Redflamingo13", user.DisplayName)
+	assertStringsEqual(t, "#FF0000", user.Color)
+	assertIntsEqual(t, 6, user.Badges["subscriber"])
+	assertIntsEqual(t, 1, user.Badges["premium"])
+
+	if privateMessage.Type != PRIVMSG {
+		t.Error("parsing message type failed")
+	}
+	assertStringsEqual(t, "PRIVMSG", privateMessage.RawType)
+	assertStringsEqual(t, "Thrashh5, FeelsWayTooAmazingMan kinda", privateMessage.Message)
+	assertStringsEqual(t, "11148817", privateMessage.RoomID)
+	assertStringsEqual(t, "2a31a9df-d6ff-4840-b211-a2547c7e656e", privateMessage.ID)
+	assertInt64sEqual(t, 1490382457309, privateMessage.Time.UnixNano()/1e6)
+	assertTrue(t, privateMessage.Action, "parsing Action failed")
+	assertIntsEqual(t, 0, len(privateMessage.Emotes))
+	assertIntsEqual(t, 0, privateMessage.Bits)
 }
 
 func TestCanParseWhisper(t *testing.T) {
@@ -106,8 +143,9 @@ func TestCanParseEmoteMessage(t *testing.T) {
 	testMessage := "@badges=;color=#008000;display-name=Zugren;emotes=120232:0-6,13-19,26-32,39-45,52-58;id=51c290e9-1b50-497c-bb03-1667e1afe6e4;mod=0;room-id=11148817;sent-ts=1490382458685;subscriber=0;tmi-sent-ts=1490382456776;turbo=0;user-id=65897106;user-type= :zugren!zugren@zugren.tmi.twitch.tv PRIVMSG #pajlada :TriHard Clap TriHard Clap TriHard Clap TriHard Clap TriHard Clap"
 
 	message := parseMessage(testMessage)
+	_, privateMessage := message.parsePRIVMSGMessage()
 
-	assertIntsEqual(t, 1, len(message.Emotes))
+	assertIntsEqual(t, 1, len(privateMessage.Emotes))
 }
 
 func TestCanParseUserNoticeMessage(t *testing.T) {
