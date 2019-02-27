@@ -96,13 +96,14 @@ func parseMessage(line string) *message {
 func parseMiddle(middle string) (string, string, string) {
 	var rawType, channel, username string
 
-	for _, v := range strings.SplitN(middle, " ", 3) {
-		if strings.Contains(v, "!") {
-			username = strings.SplitN(v, "!", 2)[0]
-		} else if strings.Contains(v, "#") {
-			channel = strings.TrimPrefix(v, "#")
-		} else {
+	for i, v := range strings.SplitN(middle, " ", 3) {
+		switch {
+		case i == 1:
 			rawType = v
+		case strings.Contains(v, "!"):
+			username = strings.SplitN(v, "!", 2)[0]
+		case strings.Contains(v, "#"):
+			channel = strings.TrimPrefix(v, "#")
 		}
 	}
 
