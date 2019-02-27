@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestCanParseMessage(t *testing.T) {
+func TestCanParseRawMessage(t *testing.T) {
 	testMessage := "@badges=subscriber/6,premium/1;color=#FF0000;display-name=Redflamingo13;emotes=;id=2a31a9df-d6ff-4840-b211-a2547c7e656e;mod=0;room-id=11148817;subscriber=1;tmi-sent-ts=1490382457309;turbo=0;user-id=78424343;user-type= :redflamingo13!redflamingo13@redflamingo13.tmi.twitch.tv PRIVMSG #pajlada :Thrashh5, FeelsWayTooAmazingMan kinda"
 
 	message := parseMessage(testMessage)
