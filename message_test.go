@@ -54,8 +54,12 @@ func TestCanParsePRIVMSGMessage(t *testing.T) {
 	assertStringsEqual(t, "redflamingo13", user.Name)
 	assertStringsEqual(t, "Redflamingo13", user.DisplayName)
 	assertStringsEqual(t, "#FF0000", user.Color)
-	assertIntsEqual(t, 6, user.Badges["subscriber"])
-	assertIntsEqual(t, 1, user.Badges["premium"])
+
+	expectedBadges := map[string]int{
+		"subscriber": 6,
+		"premium":    1,
+	}
+	assertStringIntMapsEqual(t, expectedBadges, user.Badges)
 
 	if privateMessage.Type != PRIVMSG {
 		t.Error("parsing message type failed")
@@ -97,7 +101,9 @@ func TestCanParseWHISPERMessage(t *testing.T) {
 	assertStringsEqual(t, "danielps1", user.Name)
 	assertStringsEqual(t, "Danielps1", user.DisplayName)
 	assertStringsEqual(t, "#00FF7F", user.Color)
-	assertIntsEqual(t, 0, len(user.Badges))
+
+	expectedBadges := map[string]int{}
+	assertStringIntMapsEqual(t, expectedBadges, user.Badges)
 
 	if whisperMessage.Type != WHISPER {
 		t.Error("parsing message type failed")

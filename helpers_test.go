@@ -50,6 +50,29 @@ func assertStringSlicesEqual(t *testing.T, expected, actual []string) {
 	}
 }
 
+func assertStringIntMapsEqual(t *testing.T, expected, actual map[string]int) {
+	if actual == nil {
+		t.Errorf("actual map was nil")
+	}
+
+	if len(expected) != len(actual) {
+		t.Errorf("actual map was not the same length as the expected map")
+	}
+
+	for k, v := range expected {
+		got, ok := actual[k]
+		if !ok {
+			t.Errorf("actual map doesn't contain key \"%s\"", k)
+			continue
+		}
+
+		if v != got {
+			t.Errorf("actual map value \"%d\" was not equal to expected value \"%d\" in key \"%s\"", got, v, k)
+			continue
+		}
+	}
+}
+
 func assertErrorsEqual(t *testing.T, expected, actual error) {
 	if expected != actual {
 		t.Errorf("failed asserting that error \"%s\" is expected \"%s\"", actual, expected)
