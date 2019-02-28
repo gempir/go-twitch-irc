@@ -149,6 +149,47 @@ func TestCanParseBanMessage(t *testing.T) {
 	assertStringsEqual(t, "taleof4gamers", clearchatMessage.TargetUsername)
 }
 
+func TestCanParseROOMSTATEMessage(t *testing.T) {
+	testMessage := `@broadcaster-lang=en;emote-only=0;followers-only=10;r9k=0;rituals=0;room-id=408892348;slow=0;subs-only=0 :tmi.twitch.tv ROOMSTATE #clippyassistant`
+
+	message := parseMessage(testMessage)
+	roomstateMessage := message.parseROOMSTATEMessage()
+
+	if roomstateMessage.Type != ROOMSTATE {
+		t.Error("parsing ROOMSTATE message failed")
+	}
+	assertStringsEqual(t, "ROOMSTATE", roomstateMessage.RawType)
+	assertStringsEqual(t, "", roomstateMessage.Message)
+	assertStringsEqual(t, "clippyassistant", roomstateMessage.Channel)
+	assertStringsEqual(t, "408892348", roomstateMessage.RoomID)
+	assertStringsEqual(t, "en", roomstateMessage.Language)
+
+	expectedState := map[string]int{
+		"emote-only":     0,
+		"followers-only": 10,
+		"r9k":            0,
+		"rituals":        0,
+		"slow":           0,
+		"subs-only":      0,
+	}
+	assertStringIntMapsEqual(t, expectedState, roomstateMessage.State)
+}
+
+func TestCanParseROOMSTATEChangeMessage(t *testing.T) {
+	testMessage := `@followers-only=-1;room-id=408892348 :tmi.twitch.tv ROOMSTATE #clippyassistant`
+
+	message := parseMessage(testMessage)
+	roomstateMessage := message.parseROOMSTATEMessage()
+
+	assertStringsEqual(t, "", roomstateMessage.Language)
+
+	expectedState := map[string]int{
+		"followers-only": -1,
+	}
+	assertStringIntMapsEqual(t, expectedState, roomstateMessage.State)
+
+}
+
 func TestCanParseUserNoticeMessage(t *testing.T) {
 	testMessage := `@badges=moderator/1,subscriber/24,premium/1;color=#33FFFF;display-name=Baxx;emotes=;id=4d737a10-03ff-48a7-aca1-a5624ebac91d;login=baxx;mod=1;msg-id=subgift;msg-param-months=7;msg-param-recipient-display-name=Nclnat;msg-param-recipient-id=84027795;msg-param-recipient-user-name=nclnat;msg-param-sender-count=7;msg-param-sub-plan-name=look\sat\sthose\sshitty\semotes,\srip\s$5\sLUL;msg-param-sub-plan=1000;room-id=11148817;subscriber=1;system-msg=Baxx\sgifted\sa\sTier\s1\ssub\sto\sNclnat!\sThey\shave\sgiven\s7\sGift\sSubs\sin\sthe\schannel!;tmi-sent-ts=1527341500077;turbo=0;user-id=59504812;user-type=mod :tmi.twitch.tv USERNOTICE #pajlada`
 	message := parseMessage(testMessage)
@@ -171,18 +212,6 @@ func TestCanParseUserNoticeRaidMessage(t *testing.T) {
 
 	assertStringsEqual(t, message.Tags["msg-id"], "raid")
 	assertStringsEqual(t, message.Channel, "othertestchannel")
-}
-
-func TestCanParseRoomstateMessage(t *testing.T) {
-	testMessage := `@broadcaster-lang=<broadcaster-lang>;r9k=<r9k>;slow=<slow>;subs-only=<subs-only> :tmi.twitch.tv ROOMSTATE #nothing`
-
-	message := parseMessage(testMessage)
-
-	if message.Type != ROOMSTATE {
-		t.Error("parsing ROOMSTATE message failed")
-	}
-
-	assertStringsEqual(t, message.Channel, "nothing")
 }
 
 func TestCanParseJoinPart(t *testing.T) {

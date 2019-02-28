@@ -74,7 +74,7 @@ type WHISPERMessage struct {
 type ROOMSTATEMessage struct {
 	roomMessage
 	Language string
-	State    map[string]interface{}
+	State    map[string]int
 }
 
 // USERNOTICEMessage  data you receive from USERNOTICE message type

@@ -206,6 +206,38 @@ func (m *message) parseCLEARCHATMessage() *CLEARCHATMessage {
 	return &clearchatMessage
 }
 
+func (m *message) parseROOMSTATEMessage() *ROOMSTATEMessage {
+	roomstateMessage := ROOMSTATEMessage{
+		roomMessage: *m.parseRoomMessage(),
+		Language:    m.RawMessage.Tags["broadcaster-lang"],
+	}
+
+	roomstateMessage.parseState()
+
+	return &roomstateMessage
+}
+
+func (m *ROOMSTATEMessage) parseState() {
+	m.State = make(map[string]int)
+
+	m.addState("emote-only")
+	m.addState("followers-only")
+	m.addState("r9k")
+	m.addState("rituals")
+	m.addState("slow")
+	m.addState("subs-only")
+}
+
+func (m *ROOMSTATEMessage) addState(tag string) {
+	rawValue, ok := m.Tags[tag]
+	if !ok {
+		return
+	}
+
+	value, _ := strconv.Atoi(rawValue)
+	m.State[tag] = value
+}
+
 func (m *message) parseUser() *User {
 	user := User{
 		ID:          m.RawMessage.Tags["user-id"],
