@@ -298,8 +298,8 @@ func TestCanReceivePRIVMSGMessage(t *testing.T) {
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnNewMessage(func(channel string, user User, message Message) {
-		received = message.Text
+	client.OnNewMessage(func(channel string, user User, message PRIVMSGMessage) {
+		received = message.Message
 		close(wait)
 	})
 
@@ -324,8 +324,8 @@ func TestCanReceiveWHISPERMessage(t *testing.T) {
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnNewWhisper(func(user User, message Message) {
-		received = message.Text
+	client.OnNewWhisper(func(user User, message WHISPERMessage) {
+		received = message.Message
 		close(wait)
 	})
 
@@ -345,13 +345,13 @@ func TestCanReceiveCLEARCHATMessage(t *testing.T) {
 	testMessage := `@ban-duration=1;ban-reason=testing\sxd;room-id=11148817;target-user-id=40910607 :tmi.twitch.tv CLEARCHAT #pajlada :ampzyh`
 
 	wait := make(chan struct{})
-	var received string
+	var received int
 
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnNewClearchatMessage(func(channel string, user User, message Message) {
-		received = message.Text
+	client.OnNewClearchatMessage(func(channel string, message CLEARCHATMessage) {
+		received = message.BanDuration
 		close(wait)
 	})
 
@@ -364,7 +364,7 @@ func TestCanReceiveCLEARCHATMessage(t *testing.T) {
 		t.Fatal("no message sent")
 	}
 
-	assertStringsEqual(t, "ampzyh was timed out for 1: testing xd", received)
+	assertIntsEqual(t, 1, received)
 }
 
 func TestCanReceiveROOMSTATEMessage(t *testing.T) {
@@ -376,7 +376,7 @@ func TestCanReceiveROOMSTATEMessage(t *testing.T) {
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnNewRoomstateMessage(func(channel string, user User, message Message) {
+	client.OnNewRoomstateMessage(func(channel string, message ROOMSTATEMessage) {
 		received = message.Tags["slow"]
 		close(wait)
 	})
@@ -402,7 +402,7 @@ func TestCanReceiveUSERNOTICEMessage(t *testing.T) {
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnNewUsernoticeMessage(func(channel string, user User, message Message) {
+	client.OnNewUsernoticeMessage(func(channel string, user User, message USERNOTICEMessage) {
 		received = message.Tags["msg-param-months"]
 		close(wait)
 	})
@@ -427,7 +427,7 @@ func TestCanReceiveUSERNOTICEMessageResub(t *testing.T) {
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnNewUsernoticeMessage(func(channel string, user User, message Message) {
+	client.OnNewUsernoticeMessage(func(channel string, user User, message USERNOTICEMessage) {
 		received = message.Tags["msg-param-months"]
 		close(wait)
 	})
@@ -450,10 +450,10 @@ func checkNoticeMessage(t *testing.T, testMessage string, requirements map[strin
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnNewNoticeMessage(func(channel string, user User, message Message) {
+	client.OnNewNoticeMessage(func(channel string, message NOTICEMessage) {
 		received["msg-id"] = message.Tags["msg-id"]
 		received["channel"] = channel
-		received["text"] = message.Text
+		received["text"] = message.Message
 		received["raw"] = message.Raw
 		close(wait)
 	})
@@ -499,7 +499,7 @@ func TestCanReceiveUSERStateMessage(t *testing.T) {
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnNewUserstateMessage(func(channel string, user User, message Message) {
+	client.OnNewUserstateMessage(func(channel string, user User, message USERSTATEMessage) {
 		received = message.Tags["mod"]
 		close(wait)
 	})
@@ -576,8 +576,8 @@ func TestCanReceiveUNSETMessage(t *testing.T) {
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnNewUnsetMessage(func(rawMessage string) {
-		received = rawMessage
+	client.OnNewUnsetMessage(func(rawMessage RawMessage) {
+		received = rawMessage.Raw
 		close(wait)
 	})
 

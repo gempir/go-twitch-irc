@@ -477,40 +477,47 @@ func (c *Client) handleLine(line string) error {
 	}
 
 	if strings.HasPrefix(line, "@") {
-		channel, user, clientMessage := ParseMessage(line)
+		message := parseMessage(line)
 
-		switch clientMessage.Type {
+		switch message.RawMessage.Type {
 		case PRIVMSG:
 			if c.onNewMessage != nil {
-				c.onNewMessage(channel, *user, *clientMessage)
+				user, privateMessage := message.parsePRIVMSGMessage()
+				c.onNewMessage(message.Channel, *user, *privateMessage)
 			}
 		case WHISPER:
 			if c.onNewWhisper != nil {
-				c.onNewWhisper(*user, *clientMessage)
+				user, whisperMessage := message.parseWHISPERMessage()
+				c.onNewWhisper(*user, *whisperMessage)
 			}
 		case ROOMSTATE:
 			if c.onNewRoomstateMessage != nil {
-				c.onNewRoomstateMessage(channel, *user, *clientMessage)
+				roomstateMessage := message.parseROOMSTATEMessage()
+				c.onNewRoomstateMessage(message.Channel, *roomstateMessage)
 			}
 		case CLEARCHAT:
 			if c.onNewClearchatMessage != nil {
-				c.onNewClearchatMessage(channel, *user, *clientMessage)
+				clearchatMessage := message.parseCLEARCHATMessage()
+				c.onNewClearchatMessage(message.Channel, *clearchatMessage)
 			}
 		case USERNOTICE:
 			if c.onNewUsernoticeMessage != nil {
-				c.onNewUsernoticeMessage(channel, *user, *clientMessage)
+				user, usernoticeMessage := message.parseUSERNOTICEMessage()
+				c.onNewUsernoticeMessage(message.Channel, *user, *usernoticeMessage)
 			}
 		case NOTICE:
 			if c.onNewNoticeMessage != nil {
-				c.onNewNoticeMessage(channel, *user, *clientMessage)
+				noticeMessage := message.parseNOTICEMessage()
+				c.onNewNoticeMessage(message.Channel, *noticeMessage)
 			}
 		case USERSTATE:
 			if c.onNewUserstateMessage != nil {
-				c.onNewUserstateMessage(channel, *user, *clientMessage)
+				user, userstateMessage := message.parseUSERSTATEMessage()
+				c.onNewUserstateMessage(message.Channel, *user, *userstateMessage)
 			}
 		case UNSET:
 			if c.onNewUnsetMessage != nil {
-				c.onNewUnsetMessage(clientMessage.Raw)
+				c.onNewUnsetMessage(message.RawMessage)
 			}
 		}
 
@@ -562,35 +569,6 @@ func (c *Client) handleLine(line string) error {
 	}
 
 	return nil
-}
-
-// ParseMessage parse a raw ircv3 twitch
-func ParseMessage(line string) (string, *User, *Message) {
-	message := parseMessage(line)
-
-	channel := message.Channel
-
-	user := &User{
-		UserID:      message.UserID,
-		Username:    message.Username,
-		DisplayName: message.DisplayName,
-		UserType:    message.UserType,
-		Color:       message.Color,
-		Badges:      message.Badges,
-	}
-
-	clientMessage := &Message{
-		Type:      message.Type,
-		Time:      message.Time,
-		Action:    message.Action,
-		Emotes:    message.Emotes,
-		Tags:      message.Tags,
-		Text:      message.Text,
-		Raw:       message.Raw,
-		ChannelID: message.ChannelID,
-	}
-
-	return channel, user, clientMessage
 }
 
 // tAtomBool atomic bool for writing/reading across threads
