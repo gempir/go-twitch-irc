@@ -190,11 +190,15 @@ func (m *message) parseWHISPERMessage() (*User, *WHISPERMessage) {
 func (m *message) parseCLEARCHATMessage() *CLEARCHATMessage {
 	clearchatMessage := CLEARCHATMessage{
 		chatMessage:  *m.parseChatMessage(),
+		MsgID:        "Clear",
 		TargetUserID: m.RawMessage.Tags["target-user-id"],
 	}
 
 	clearchatMessage.TargetUsername = clearchatMessage.Message
 	clearchatMessage.Message = ""
+	if clearchatMessage.TargetUsername != "" {
+		clearchatMessage.MsgID = "Ban"
+	}
 
 	rawBanDuration, ok := m.RawMessage.Tags["ban-duration"]
 	if !ok {
@@ -203,6 +207,10 @@ func (m *message) parseCLEARCHATMessage() *CLEARCHATMessage {
 
 	banDuration, _ := strconv.Atoi(rawBanDuration)
 	clearchatMessage.BanDuration = banDuration
+	if banDuration != 0 {
+		clearchatMessage.MsgID = "Timeout"
+	}
+
 	return &clearchatMessage
 }
 

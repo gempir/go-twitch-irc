@@ -128,10 +128,11 @@ func TestCanParseCLEARCHATMessage(t *testing.T) {
 	assertStringsEqual(t, "CLEARCHAT", clearchatMessage.RawType)
 	assertStringsEqual(t, "", clearchatMessage.Message)
 	assertStringsEqual(t, "408892348", clearchatMessage.RoomID)
+	assertStringsEqual(t, "Clear", clearchatMessage.MsgID)
 }
 
 func TestCanParseBanMessage(t *testing.T) {
-	testMessage := `@ban-duration=3;room-id=408892348;target-user-id=39489382;tmi-sent-ts=1551290562042 :tmi.twitch.tv CLEARCHAT #clippyassistant :taleof4gamers`
+	testMessage := `@room-id=408892348;target-user-id=39489382;tmi-sent-ts=1551290562042 :tmi.twitch.tv CLEARCHAT #clippyassistant :taleof4gamers`
 
 	message := parseMessage(testMessage)
 	clearchatMessage := message.parseCLEARCHATMessage()
@@ -144,9 +145,20 @@ func TestCanParseBanMessage(t *testing.T) {
 	assertStringsEqual(t, "CLEARCHAT", clearchatMessage.RawType)
 	assertStringsEqual(t, "", clearchatMessage.Message)
 	assertStringsEqual(t, "408892348", clearchatMessage.RoomID)
-	assertIntsEqual(t, 3, clearchatMessage.BanDuration)
+	assertStringsEqual(t, "Ban", clearchatMessage.MsgID)
+	assertIntsEqual(t, 0, clearchatMessage.BanDuration)
 	assertStringsEqual(t, "39489382", clearchatMessage.TargetUserID)
 	assertStringsEqual(t, "taleof4gamers", clearchatMessage.TargetUsername)
+}
+
+func TestCanParseTimeoutMessage(t *testing.T) {
+	testMessage := `@ban-duration=3;room-id=408892348;target-user-id=39489382;tmi-sent-ts=1551290562042 :tmi.twitch.tv CLEARCHAT #clippyassistant :taleof4gamers`
+
+	message := parseMessage(testMessage)
+	clearchatMessage := message.parseCLEARCHATMessage()
+
+	assertStringsEqual(t, "Timeout", clearchatMessage.MsgID)
+	assertIntsEqual(t, 3, clearchatMessage.BanDuration)
 }
 
 func TestCanParseROOMSTATEMessage(t *testing.T) {

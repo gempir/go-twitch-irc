@@ -52,6 +52,7 @@ type RawMessage struct {
 // CLEARCHATMessage data you receive from CLEARCHAT message type
 type CLEARCHATMessage struct {
 	chatMessage
+	MsgID          string // Clear, Ban, Timeout
 	BanDuration    int
 	TargetUserID   string
 	TargetUsername string
