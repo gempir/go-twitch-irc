@@ -112,12 +112,12 @@ type Client struct {
 	channelsMtx            *sync.RWMutex
 	onConnect              func()
 	onNewWhisper           func(user User, message WHISPERMessage)
-	onNewMessage           func(channel string, user User, message PRIVMSGMessage)
-	onNewRoomstateMessage  func(channel string, message ROOMSTATEMessage)
-	onNewClearchatMessage  func(channel string, message CLEARCHATMessage)
-	onNewUsernoticeMessage func(channel string, user User, message USERNOTICEMessage)
-	onNewNoticeMessage     func(channel string, message NOTICEMessage)
-	onNewUserstateMessage  func(channel string, user User, message USERSTATEMessage)
+	onNewMessage           func(user User, message PRIVMSGMessage)
+	onNewRoomstateMessage  func(message ROOMSTATEMessage)
+	onNewClearchatMessage  func(message CLEARCHATMessage)
+	onNewUsernoticeMessage func(user User, message USERNOTICEMessage)
+	onNewNoticeMessage     func(message NOTICEMessage)
+	onNewUserstateMessage  func(user User, message USERSTATEMessage)
 	onUserJoin             func(channel, user string)
 	onUserPart             func(channel, user string)
 	onNewUnsetMessage      func(message RawMessage)
@@ -172,7 +172,7 @@ func (c *Client) OnNewWhisper(callback func(user User, message WHISPERMessage)) 
 }
 
 // OnNewMessage attach callback to new standard chat messages
-func (c *Client) OnNewMessage(callback func(channel string, user User, message PRIVMSGMessage)) {
+func (c *Client) OnNewMessage(callback func(user User, message PRIVMSGMessage)) {
 	c.onNewMessage = callback
 }
 
@@ -182,27 +182,27 @@ func (c *Client) OnConnect(callback func()) {
 }
 
 // OnNewRoomstateMessage attach callback to new messages such as submode enabled
-func (c *Client) OnNewRoomstateMessage(callback func(channel string, message ROOMSTATEMessage)) {
+func (c *Client) OnNewRoomstateMessage(callback func(message ROOMSTATEMessage)) {
 	c.onNewRoomstateMessage = callback
 }
 
 // OnNewClearchatMessage attach callback to new messages such as timeouts
-func (c *Client) OnNewClearchatMessage(callback func(channel string, message CLEARCHATMessage)) {
+func (c *Client) OnNewClearchatMessage(callback func(message CLEARCHATMessage)) {
 	c.onNewClearchatMessage = callback
 }
 
 // OnNewUsernoticeMessage attach callback to new usernotice message such as sub, resub, and raids
-func (c *Client) OnNewUsernoticeMessage(callback func(channel string, user User, message USERNOTICEMessage)) {
+func (c *Client) OnNewUsernoticeMessage(callback func(user User, message USERNOTICEMessage)) {
 	c.onNewUsernoticeMessage = callback
 }
 
 // OnNewNoticeMessage attach callback to new notice message such as hosts
-func (c *Client) OnNewNoticeMessage(callback func(channel string, message NOTICEMessage)) {
+func (c *Client) OnNewNoticeMessage(callback func(message NOTICEMessage)) {
 	c.onNewNoticeMessage = callback
 }
 
 // OnNewUserstateMessage attach callback to new userstate
-func (c *Client) OnNewUserstateMessage(callback func(channel string, user User, message USERSTATEMessage)) {
+func (c *Client) OnNewUserstateMessage(callback func(user User, message USERSTATEMessage)) {
 	c.onNewUserstateMessage = callback
 }
 
@@ -483,7 +483,7 @@ func (c *Client) handleLine(line string) error {
 		case PRIVMSG:
 			if c.onNewMessage != nil {
 				user, privateMessage := message.parsePRIVMSGMessage()
-				c.onNewMessage(message.Channel, *user, *privateMessage)
+				c.onNewMessage(*user, *privateMessage)
 			}
 		case WHISPER:
 			if c.onNewWhisper != nil {
@@ -493,27 +493,27 @@ func (c *Client) handleLine(line string) error {
 		case ROOMSTATE:
 			if c.onNewRoomstateMessage != nil {
 				roomstateMessage := message.parseROOMSTATEMessage()
-				c.onNewRoomstateMessage(message.Channel, *roomstateMessage)
+				c.onNewRoomstateMessage(*roomstateMessage)
 			}
 		case CLEARCHAT:
 			if c.onNewClearchatMessage != nil {
 				clearchatMessage := message.parseCLEARCHATMessage()
-				c.onNewClearchatMessage(message.Channel, *clearchatMessage)
+				c.onNewClearchatMessage(*clearchatMessage)
 			}
 		case USERNOTICE:
 			if c.onNewUsernoticeMessage != nil {
 				user, usernoticeMessage := message.parseUSERNOTICEMessage()
-				c.onNewUsernoticeMessage(message.Channel, *user, *usernoticeMessage)
+				c.onNewUsernoticeMessage(*user, *usernoticeMessage)
 			}
 		case NOTICE:
 			if c.onNewNoticeMessage != nil {
 				noticeMessage := message.parseNOTICEMessage()
-				c.onNewNoticeMessage(message.Channel, *noticeMessage)
+				c.onNewNoticeMessage(*noticeMessage)
 			}
 		case USERSTATE:
 			if c.onNewUserstateMessage != nil {
 				user, userstateMessage := message.parseUSERSTATEMessage()
-				c.onNewUserstateMessage(message.Channel, *user, *userstateMessage)
+				c.onNewUserstateMessage(*user, *userstateMessage)
 			}
 		case UNSET:
 			if c.onNewUnsetMessage != nil {
