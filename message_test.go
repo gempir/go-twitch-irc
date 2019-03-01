@@ -308,6 +308,31 @@ func TestCanParseUSERNOTICERitualMessage(t *testing.T) {
 	assertStringsEqual(t, "Seventoes is new here!", usernoticeMessage.SystemMsg)
 }
 
+func TestCanParseUSERSTATEMessage(t *testing.T) {
+	testMessage := `@badges=;color=#1E90FF;display-name=FletcherCodes;emote-sets=0,87321,269983,269986,568076,1548253;mod=0;subscriber=0;user-type= :tmi.twitch.tv USERSTATE #clippyassistant`
+
+	message := parseMessage(testMessage)
+	user, userstateMessage := message.parseUSERSTATEMessage()
+
+	assertStringsEqual(t, "", user.ID)
+	assertStringsEqual(t, "fletchercodes", user.Name)
+	assertStringsEqual(t, "FletcherCodes", user.DisplayName)
+	assertStringsEqual(t, "#1E90FF", user.Color)
+
+	expectedBadges := map[string]int{}
+	assertStringIntMapsEqual(t, expectedBadges, user.Badges)
+
+	if userstateMessage.Type != USERSTATE {
+		t.Error("parsing USERSTATE message failed")
+	}
+	assertStringsEqual(t, "USERSTATE", userstateMessage.RawType)
+	assertStringsEqual(t, "", userstateMessage.Message)
+	assertStringsEqual(t, "clippyassistant", userstateMessage.Channel)
+
+	expectedEmoteSets := []string{"0", "87321", "269983", "269986", "568076", "1548253"}
+	assertStringSlicesEqual(t, expectedEmoteSets, userstateMessage.EmoteSets)
+}
+
 func TestCanParseJoinPart(t *testing.T) {
 	testMessage := `:username123!username123@username123.tmi.twitch.tv JOIN #mychannel`
 

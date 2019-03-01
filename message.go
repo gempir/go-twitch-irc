@@ -292,6 +292,20 @@ func (m *USERNOTICEMessage) paramToInt(tag string) {
 	m.MsgParams[tag], _ = strconv.Atoi(rawValue.(string))
 }
 
+func (m *message) parseUSERSTATEMessage() (*User, *USERSTATEMessage) {
+	userstateMessage := USERSTATEMessage{
+		channelMessage: *m.parseChannelMessage(),
+	}
+
+	rawEmoteSets, ok := userstateMessage.Tags["emote-sets"]
+	if !ok {
+		return m.parseUser(), &userstateMessage
+	}
+
+	userstateMessage.EmoteSets = strings.Split(rawEmoteSets, ",")
+	return m.parseUser(), &userstateMessage
+}
+
 func (m *message) parseUser() *User {
 	user := User{
 		ID:          m.RawMessage.Tags["user-id"],
