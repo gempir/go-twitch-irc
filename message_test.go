@@ -190,28 +190,122 @@ func TestCanParseROOMSTATEChangeMessage(t *testing.T) {
 
 }
 
-func TestCanParseUserNoticeMessage(t *testing.T) {
-	testMessage := `@badges=moderator/1,subscriber/24,premium/1;color=#33FFFF;display-name=Baxx;emotes=;id=4d737a10-03ff-48a7-aca1-a5624ebac91d;login=baxx;mod=1;msg-id=subgift;msg-param-months=7;msg-param-recipient-display-name=Nclnat;msg-param-recipient-id=84027795;msg-param-recipient-user-name=nclnat;msg-param-sender-count=7;msg-param-sub-plan-name=look\sat\sthose\sshitty\semotes,\srip\s$5\sLUL;msg-param-sub-plan=1000;room-id=11148817;subscriber=1;system-msg=Baxx\sgifted\sa\sTier\s1\ssub\sto\sNclnat!\sThey\shave\sgiven\s7\sGift\sSubs\sin\sthe\schannel!;tmi-sent-ts=1527341500077;turbo=0;user-id=59504812;user-type=mod :tmi.twitch.tv USERNOTICE #pajlada`
-	message := parseMessage(testMessage)
+func TestCanParseUSERNOTICESubMessage(t *testing.T) {
+	testMessage := `@badges=staff/1,broadcaster/1,turbo/1;color=#008000;display-name=ronni;emotes=;id=db25007f-7a18-43eb-9379-80131e44d633;login=ronni;mod=0;msg-id=resub;msg-param-cumulative-months=6;msg-param-streak-months=2;msg-param-should-share-streak=1;msg-param-sub-plan=Prime;msg-param-sub-plan-name=Prime;room-id=1337;subscriber=1;system-msg=ronni\shas\ssubscribed\sfor\s6\smonths!;tmi-sent-ts=1507246572675;turbo=1;user-id=1337;user-type=staff :tmi.twitch.tv USERNOTICE #dallas :Great stream -- keep it up!`
 
-	if message.Type != USERNOTICE {
+	message := parseMessage(testMessage)
+	user, usernoticeMessage := message.parseUSERNOTICEMessage()
+
+	assertStringsEqual(t, "1337", user.ID)
+	assertStringsEqual(t, "ronni", user.Name)
+	assertStringsEqual(t, "ronni", user.DisplayName)
+	assertStringsEqual(t, "#008000", user.Color)
+
+	expectedBadges := map[string]int{
+		"staff":       1,
+		"broadcaster": 1,
+		"turbo":       1,
+	}
+	assertStringIntMapsEqual(t, expectedBadges, user.Badges)
+
+	if usernoticeMessage.Type != USERNOTICE {
 		t.Error("parsing USERNOTICE message failed")
 	}
+	assertStringsEqual(t, "USERNOTICE", usernoticeMessage.RawType)
+	assertStringsEqual(t, "Great stream -- keep it up!", usernoticeMessage.Message)
+	assertStringsEqual(t, "dallas", usernoticeMessage.Channel)
+	assertStringsEqual(t, "1337", usernoticeMessage.RoomID)
+	assertStringsEqual(t, "db25007f-7a18-43eb-9379-80131e44d633", usernoticeMessage.ID)
+	assertFalse(t, usernoticeMessage.Action, "")
+	assertIntsEqual(t, 0, len(usernoticeMessage.Emotes))
+	assertStringsEqual(t, "resub", usernoticeMessage.MsgID)
 
-	assertStringsEqual(t, message.Tags["msg-id"], "subgift")
-	assertStringsEqual(t, message.Channel, "pajlada")
+	expectedParams := map[string]interface{}{
+		"msg-param-cumulative-months":   6,
+		"msg-param-streak-months":       2,
+		"msg-param-should-share-streak": true,
+		"msg-param-sub-plan":            "Prime",
+		"msg-param-sub-plan-name":       "Prime",
+	}
+	assertStringInterfaceMapsEqual(t, expectedParams, usernoticeMessage.MsgParams)
+
+	assertStringsEqual(t, "ronni has subscribed for 6 months!", usernoticeMessage.SystemMsg)
 }
 
-func TestCanParseUserNoticeRaidMessage(t *testing.T) {
-	testMessage := `@badges=turbo/1;color=#9ACD32;display-name=TestChannel;emotes=;id=3d830f12-795c-447d-af3c-ea05e40fbddb;login=testchannel;mod=0;msg-id=raid;msg-param-displayName=TestChannel;msg-param-login=testchannel;msg-param-viewerCount=15;room-id=56379257;subscriber=0;system-msg=15\sraiders\sfrom\sTestChannel\shave\sjoined\n!;tmi-sent-ts=1507246572675;tmi-sent-ts=1507246572675;turbo=1;user-id=123456;user-type= :tmi.twitch.tv USERNOTICE #othertestchannel`
+func TestCanParseUSERNOTICEGiftSubMessage(t *testing.T) {
+	testMessage := `@badges=staff/1,premium/1;color=#0000FF;display-name=TWW2;emotes=;id=e9176cd8-5e22-4684-ad40-ce53c2561c5e;login=tww2;mod=0;msg-id=subgift;msg-param-months=1;msg-param-recipient-display-name=Mr_Woodchuck;msg-param-recipient-id=89614178;msg-param-recipient-name=mr_woodchuck;msg-param-sub-plan-name=House\sof\sNyoro~n;msg-param-sub-plan=1000;room-id=19571752;subscriber=0;system-msg=TWW2\sgifted\sa\sTier\s1\ssub\sto\sMr_Woodchuck!;tmi-sent-ts=1521159445153;turbo=0;user-id=13405587;user-type=staff :tmi.twitch.tv USERNOTICE #forstycup`
+
 	message := parseMessage(testMessage)
+	_, usernoticeMessage := message.parseUSERNOTICEMessage()
 
-	if message.Type != USERNOTICE {
-		t.Error("parsing USERNOTICE message failed")
+	assertStringsEqual(t, "subgift", usernoticeMessage.MsgID)
+
+	expectedParams := map[string]interface{}{
+		"msg-param-months":                 1,
+		"msg-param-recipient-display-name": "Mr_Woodchuck", // Maybe create a target User
+		"msg-param-recipient-id":           "89614178",
+		"msg-param-recipient-name":         "mr_woodchuck",
+		"msg-param-sub-plan-name":          "House of Nyoro~n",
+		"msg-param-sub-plan":               "1000",
 	}
+	assertStringInterfaceMapsEqual(t, expectedParams, usernoticeMessage.MsgParams)
 
-	assertStringsEqual(t, message.Tags["msg-id"], "raid")
-	assertStringsEqual(t, message.Channel, "othertestchannel")
+	assertStringsEqual(t, "TWW2 gifted a Tier 1 sub to Mr_Woodchuck!", usernoticeMessage.SystemMsg)
+}
+
+func TestCanParseUSERNOTICEAnonymousGiftSubMessage(t *testing.T) {
+	testMessage := `@badges=broadcaster/1,subscriber/6;color=;display-name=qa_subs_partner;emotes=;flags=;id=b1818e3c-0005-490f-ad0a-804957ddd760;login=qa_subs_partner;mod=0;msg-id=anonsubgift;msg-param-months=3;msg-param-recipient-display-name=TenureCalculator;msg-param-recipient-id=135054130;msg-param-recipient-user-name=tenurecalculator;msg-param-sub-plan-name=t111;msg-param-sub-plan=1000;room-id=196450059;subscriber=1;system-msg=An\sanonymous\suser\sgifted\sa\sTier\s1\ssub\sto\sTenureCalculator!\s;tmi-sent-ts=1542063432068;turbo=0;user-id=196450059;user-type= :tmi.twitch.tv USERNOTICE #qa_subs_partner`
+
+	message := parseMessage(testMessage)
+	_, usernoticeMessage := message.parseUSERNOTICEMessage()
+
+	assertStringsEqual(t, "anonsubgift", usernoticeMessage.MsgID)
+
+	expectedParams := map[string]interface{}{
+		"msg-param-months":                 3,
+		"msg-param-recipient-display-name": "TenureCalculator", // Maybe create a target User
+		"msg-param-recipient-id":           "135054130",
+		"msg-param-recipient-user-name":    "tenurecalculator",
+		"msg-param-sub-plan-name":          "t111",
+		"msg-param-sub-plan":               "1000",
+	}
+	assertStringInterfaceMapsEqual(t, expectedParams, usernoticeMessage.MsgParams)
+
+	assertStringsEqual(t, "An anonymous user gifted a Tier 1 sub to TenureCalculator!", usernoticeMessage.SystemMsg)
+}
+
+func TestCanParseUSERNOTICERaidMessage(t *testing.T) {
+	testMessage := `@badges=turbo/1;color=#9ACD32;display-name=TestChannel;emotes=;id=3d830f12-795c-447d-af3c-ea05e40fbddb;login=testchannel;mod=0;msg-id=raid;msg-param-displayName=TestChannel;msg-param-login=testchannel;msg-param-viewerCount=15;room-id=56379257;subscriber=0;system-msg=15\sraiders\sfrom\sTestChannel\shave\sjoined\n!;tmi-sent-ts=1507246572675;turbo=1;user-id=123456;user-type= :tmi.twitch.tv USERNOTICE #othertestchannel`
+
+	message := parseMessage(testMessage)
+	_, usernoticeMessage := message.parseUSERNOTICEMessage()
+
+	assertStringsEqual(t, "raid", usernoticeMessage.MsgID)
+
+	expectedParams := map[string]interface{}{
+		"msg-param-displayName": "TestChannel",
+		"msg-param-login":       "testchannel",
+		"msg-param-viewerCount": 15,
+	}
+	assertStringInterfaceMapsEqual(t, expectedParams, usernoticeMessage.MsgParams)
+
+	assertStringsEqual(t, "15 raiders from TestChannel have joined!", usernoticeMessage.SystemMsg)
+}
+
+func TestCanParseUSERNOTICERitualMessage(t *testing.T) {
+	testMessage := `@badges=;color=;display-name=SevenTest1;emotes=30259:0-6;id=37feed0f-b9c7-4c3a-b475-21c6c6d21c3d;login=seventest1;mod=0;msg-id=ritual;msg-param-ritual-name=new_chatter;room-id=6316121;subscriber=0;system-msg=Seventoes\sis\snew\shere!;tmi-sent-ts=1508363903826;turbo=0;user-id=131260580;user-type= :tmi.twitch.tv USERNOTICE #seventoes :HeyGuys`
+
+	message := parseMessage(testMessage)
+	_, usernoticeMessage := message.parseUSERNOTICEMessage()
+
+	assertStringsEqual(t, "ritual", usernoticeMessage.MsgID)
+
+	expectedParams := map[string]interface{}{
+		"msg-param-ritual-name": "new_chatter",
+	}
+	assertStringInterfaceMapsEqual(t, expectedParams, usernoticeMessage.MsgParams)
+
+	assertStringsEqual(t, "Seventoes is new here!", usernoticeMessage.SystemMsg)
 }
 
 func TestCanParseJoinPart(t *testing.T) {

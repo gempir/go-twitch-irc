@@ -238,6 +238,60 @@ func (m *ROOMSTATEMessage) addState(tag string) {
 	m.State[tag] = value
 }
 
+func (m *message) parseUSERNOTICEMessage() (*User, *USERNOTICEMessage) {
+	usernoticeMessage := USERNOTICEMessage{
+		chatMessage: *m.parseChatMessage(),
+		userMessage: *m.parseUserMessage(),
+		MsgID:       m.RawMessage.Tags["msg-id"],
+	}
+
+	usernoticeMessage.parseMsgParams()
+
+	rawSystemMsg, ok := usernoticeMessage.Tags["system-msg"]
+	if !ok {
+		return m.parseUser(), &usernoticeMessage
+	}
+	rawSystemMsg = strings.ReplaceAll(rawSystemMsg, "\\s", " ")
+	rawSystemMsg = strings.ReplaceAll(rawSystemMsg, "\\n", "")
+	usernoticeMessage.SystemMsg = strings.TrimSpace(rawSystemMsg)
+
+	return m.parseUser(), &usernoticeMessage
+}
+
+func (m *USERNOTICEMessage) parseMsgParams() {
+	m.MsgParams = make(map[string]interface{})
+
+	for k, v := range m.Tags {
+		if strings.Contains(k, "msg-param") {
+			m.MsgParams[k] = strings.ReplaceAll(v, "\\s", " ")
+		}
+	}
+
+	m.paramToInt("msg-param-cumulative-months")
+	m.paramToInt("msg-param-months")
+	m.paramToBool("msg-param-should-share-streak")
+	m.paramToInt("msg-param-streak-months")
+	m.paramToInt("msg-param-viewerCount")
+}
+
+func (m *USERNOTICEMessage) paramToBool(tag string) {
+	rawValue, ok := m.MsgParams[tag]
+	if !ok {
+		return
+	}
+
+	m.MsgParams[tag] = rawValue.(string) == "1"
+}
+
+func (m *USERNOTICEMessage) paramToInt(tag string) {
+	rawValue, ok := m.MsgParams[tag]
+	if !ok {
+		return
+	}
+
+	m.MsgParams[tag], _ = strconv.Atoi(rawValue.(string))
+}
+
 func (m *message) parseUser() *User {
 	user := User{
 		ID:          m.RawMessage.Tags["user-id"],
