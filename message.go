@@ -306,6 +306,13 @@ func (m *message) parseUSERSTATEMessage() (*User, *USERSTATEMessage) {
 	return m.parseUser(), &userstateMessage
 }
 
+func (m *message) parseNOTICEMessage() *NOTICEMessage {
+	return &NOTICEMessage{
+		channelMessage: *m.parseChannelMessage(),
+		MsgID:          m.RawMessage.Tags["msg-id"],
+	}
+}
+
 func (m *message) parseUser() *User {
 	user := User{
 		ID:          m.RawMessage.Tags["user-id"],

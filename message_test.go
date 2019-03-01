@@ -333,6 +333,21 @@ func TestCanParseUSERSTATEMessage(t *testing.T) {
 	assertStringSlicesEqual(t, expectedEmoteSets, userstateMessage.EmoteSets)
 }
 
+func TestCanParseNOTICEMessage(t *testing.T) {
+	testMessage := `@msg-id=subs_on :tmi.twitch.tv NOTICE #clippyassistant :This room is now in subscribers-only mode.`
+
+	message := parseMessage(testMessage)
+	noticeMessage := message.parseNOTICEMessage()
+
+	if noticeMessage.Type != NOTICE {
+		t.Error("parsing NOTICE message failed")
+	}
+	assertStringsEqual(t, "NOTICE", noticeMessage.RawType)
+	assertStringsEqual(t, "This room is now in subscribers-only mode.", noticeMessage.Message)
+	assertStringsEqual(t, "clippyassistant", noticeMessage.Channel)
+	assertStringsEqual(t, "subs_on", noticeMessage.MsgID)
+}
+
 func TestCanParseJoinPart(t *testing.T) {
 	testMessage := `:username123!username123@username123.tmi.twitch.tv JOIN #mychannel`
 
