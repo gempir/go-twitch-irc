@@ -91,6 +91,9 @@ type Client struct {
 	onUserPart             func(channel, user string)
 	onNewUnsetMessage      func(rawMessage string)
 
+	onPingSent     func()
+	onPongReceived func()
+
 	// read is the incoming messages channel, normally buffered with ReadBufferSize
 	read chan (string)
 
@@ -124,11 +127,6 @@ type Client struct {
 	// SetupCmd is the command that is ran on successful connection to Twitch. Useful if you are proxying or something to run a custom command on connect.
 	// The variable must be modified before calling Connect or the command will not run.
 	SetupCmd string
-
-	dataMutex sync.Mutex
-
-	pingsSent     uint
-	pongsReceived uint
 }
 
 // NewClient to create a new client
@@ -207,6 +205,16 @@ func (c *Client) OnUserPart(callback func(channel, user string)) {
 // OnNewUnsetMessage attaches callback to messages that didn't parse properly. Should only be used if you're debugging the message parsing
 func (c *Client) OnNewUnsetMessage(callback func(rawMessage string)) {
 	c.onNewUnsetMessage = callback
+}
+
+// OnPingSent attaches callback that's called whenever the client sends out a ping message
+func (c *Client) OnPingSent(callback func()) {
+	c.onPingSent = callback
+}
+
+// OnPongReceived attaches callback that's called whenever the client receives a pong to one of its previously sent out ping messages
+func (c *Client) OnPongReceived(callback func()) {
+	c.onPongReceived = callback
 }
 
 // Say write something in a chat
@@ -424,17 +432,17 @@ func (c *Client) startPinger(closer io.Closer, wg *sync.WaitGroup) {
 				continue
 
 			case <-time.After(c.IdlePingInterval):
-				c.dataMutex.Lock()
-				c.pingsSent++
-				c.dataMutex.Unlock()
+				if c.onPingSent != nil {
+					c.onPingSent()
+				}
 				c.send(pingMessage)
 
 				select {
 				case <-c.pongReceived:
 					// Received pong message within the time limit, we're good
-					c.dataMutex.Lock()
-					c.pongsReceived++
-					c.dataMutex.Unlock()
+					if c.onPongReceived != nil {
+						c.onPongReceived()
+					}
 					continue
 
 				case <-time.After(c.PongTimeout):

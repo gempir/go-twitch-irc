@@ -1305,12 +1305,16 @@ func TestWriter(t *testing.T) {
 }
 
 func TestPinger(t *testing.T) {
-	// t.Parallel()
+	t.Parallel()
 	const idlePingInterval = 300 * time.Millisecond
 
 	wait := make(chan bool)
 
 	var conn net.Conn
+
+	var pingpongMutex sync.Mutex
+	var pingsSent int
+	var pongsReceived int
 
 	host := startServer(t, func(c net.Conn) {
 		conn = c
@@ -1323,6 +1327,17 @@ func TestPinger(t *testing.T) {
 	})
 	client := newTestClient(host)
 	client.IdlePingInterval = idlePingInterval
+	client.OnPingSent(func() {
+		pingpongMutex.Lock()
+		pingsSent++
+		pingpongMutex.Unlock()
+	})
+
+	client.OnPongReceived(func() {
+		pingpongMutex.Lock()
+		pongsReceived++
+		pingpongMutex.Unlock()
+	})
 
 	go client.Connect()
 
@@ -1338,13 +1353,13 @@ func TestPinger(t *testing.T) {
 	go func() {
 		for {
 			<-time.After(5 * time.Millisecond)
-			client.dataMutex.Lock()
-			if client.pingsSent == client.pongsReceived {
-				wait <- client.pingsSent == 1
-				client.dataMutex.Unlock()
+			pingpongMutex.Lock()
+			if pingsSent == pongsReceived {
+				wait <- pingsSent == 1
+				pingpongMutex.Unlock()
 				return
 			}
-			client.dataMutex.Unlock()
+			pingpongMutex.Unlock()
 		}
 	}()
 
