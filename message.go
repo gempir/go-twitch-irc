@@ -10,7 +10,9 @@ import (
 type MessageType int
 
 const (
-	// UNSET is the default message type, for whenever a new message type is added by twitch that we don't parse yet
+	// ERROR is for messages that didn't parse properly
+	ERROR MessageType = -2
+	// UNSET is for message types we currently don't support
 	UNSET MessageType = -1
 	// WHISPER private messages
 	WHISPER MessageType = 0
@@ -68,7 +70,7 @@ func parseMessage(line string) *message {
 	if !strings.HasPrefix(line, "@") {
 		return &message{
 			RawMessage: RawMessage{
-				Type:    UNSET,
+				Type:    ERROR,
 				Raw:     line,
 				Message: line,
 			},
@@ -76,6 +78,19 @@ func parseMessage(line string) *message {
 	}
 
 	split := strings.SplitN(line, " :", 3)
+
+	// Sometimes Twitch can fail to send the full value
+	// @badges=;color=;display-name=ZZZi;emotes=;flags=;id=75bb6b6b-e36c-49af-a293-16024738ab92;mod=0;room-id=36029255;subscriber=0;tmi-sent-ts=1551476573570;turbo
+	if len(split) == 1 {
+		return &message{
+			RawMessage: RawMessage{
+				Type:    ERROR,
+				Raw:     line,
+				Message: line,
+			},
+		}
+	}
+
 	if len(split) < 3 {
 		for i := 0; i < 3-len(split); i++ {
 			split = append(split, "")

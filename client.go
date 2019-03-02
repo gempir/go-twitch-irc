@@ -122,6 +122,7 @@ type Client struct {
 	onUserJoin             func(channel, user string)
 	onUserPart             func(channel, user string)
 	onNewUnsetMessage      func(message RawMessage)
+	onNewErrorMessage      func(message RawMessage)
 
 	// pingerRunning indicates whether the pinger go-routine is running or not
 	pingerRunning tAtomBool
@@ -217,9 +218,14 @@ func (c *Client) OnUserPart(callback func(channel, user string)) {
 	c.onUserPart = callback
 }
 
-// OnNewUnsetMessage attaches callback to messages that didn't parse properly. Should only be used if you're debugging the message parsing
+// OnNewUnsetMessage attaches callback to message types we currently don't support
 func (c *Client) OnNewUnsetMessage(callback func(message RawMessage)) {
 	c.onNewUnsetMessage = callback
+}
+
+// OnNewErrorMessage attaches callback to messages that didn't parse properly. Should only be used if you're debugging the message parsing.
+func (c *Client) OnNewErrorMessage(callback func(message RawMessage)) {
+	c.onNewErrorMessage = callback
 }
 
 // Say write something in a chat
@@ -519,6 +525,10 @@ func (c *Client) handleLine(line string) error {
 		case UNSET:
 			if c.onNewUnsetMessage != nil {
 				c.onNewUnsetMessage(message.RawMessage)
+			}
+		case ERROR:
+			if c.onNewErrorMessage != nil {
+				c.onNewErrorMessage(message.RawMessage)
 			}
 		}
 
