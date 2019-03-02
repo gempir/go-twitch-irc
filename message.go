@@ -170,8 +170,8 @@ func parseTags(tagsRaw string) map[string]string {
 	return tags
 }
 
-func (m *message) parseWHISPERMessage() (*User, *WHISPERMessage) {
-	whisperMessage := WHISPERMessage{
+func (m *message) parseWhisperMessage() (*User, *WhisperMessage) {
+	whisperMessage := WhisperMessage{
 		RawMessage:  m.RawMessage,
 		userMessage: *m.parseUserMessage(),
 	}
@@ -184,8 +184,8 @@ func (m *message) parseWHISPERMessage() (*User, *WHISPERMessage) {
 	return m.parseUser(), &whisperMessage
 }
 
-func (m *message) parsePRIVMSGMessage() (*User, *PRIVMSGMessage) {
-	privateMessage := PRIVMSGMessage{
+func (m *message) parsePrivateMessage() (*User, *PrivateMessage) {
+	privateMessage := PrivateMessage{
 		chatMessage: *m.parseChatMessage(),
 		userMessage: *m.parseUserMessage(),
 	}
@@ -204,8 +204,8 @@ func (m *message) parsePRIVMSGMessage() (*User, *PRIVMSGMessage) {
 	return m.parseUser(), &privateMessage
 }
 
-func (m *message) parseCLEARCHATMessage() *CLEARCHATMessage {
-	clearchatMessage := CLEARCHATMessage{
+func (m *message) parseClearChatMessage() *ClearChatMessage {
+	clearchatMessage := ClearChatMessage{
 		chatMessage:  *m.parseChatMessage(),
 		MsgID:        "Clear",
 		TargetUserID: m.RawMessage.Tags["target-user-id"],
@@ -231,8 +231,8 @@ func (m *message) parseCLEARCHATMessage() *CLEARCHATMessage {
 	return &clearchatMessage
 }
 
-func (m *message) parseROOMSTATEMessage() *ROOMSTATEMessage {
-	roomstateMessage := ROOMSTATEMessage{
+func (m *message) parseRoomStateMessage() *RoomStateMessage {
+	roomstateMessage := RoomStateMessage{
 		roomMessage: *m.parseRoomMessage(),
 		Language:    m.RawMessage.Tags["broadcaster-lang"],
 		State:       make(map[string]int),
@@ -248,7 +248,7 @@ func (m *message) parseROOMSTATEMessage() *ROOMSTATEMessage {
 	return &roomstateMessage
 }
 
-func (m *ROOMSTATEMessage) addState(tag string) {
+func (m *RoomStateMessage) addState(tag string) {
 	rawValue, ok := m.Tags[tag]
 	if !ok {
 		return
@@ -258,8 +258,8 @@ func (m *ROOMSTATEMessage) addState(tag string) {
 	m.State[tag] = value
 }
 
-func (m *message) parseUSERNOTICEMessage() (*User, *USERNOTICEMessage) {
-	usernoticeMessage := USERNOTICEMessage{
+func (m *message) parseUserNoticeMessage() (*User, *UserNoticeMessage) {
+	usernoticeMessage := UserNoticeMessage{
 		chatMessage: *m.parseChatMessage(),
 		userMessage: *m.parseUserMessage(),
 		MsgID:       m.RawMessage.Tags["msg-id"],
@@ -277,7 +277,7 @@ func (m *message) parseUSERNOTICEMessage() (*User, *USERNOTICEMessage) {
 	return m.parseUser(), &usernoticeMessage
 }
 
-func (m *USERNOTICEMessage) parseMsgParams() {
+func (m *UserNoticeMessage) parseMsgParams() {
 	m.MsgParams = make(map[string]interface{})
 
 	for tag, value := range m.Tags {
@@ -299,7 +299,7 @@ func (m *USERNOTICEMessage) parseMsgParams() {
 
 }
 
-func (m *USERNOTICEMessage) paramToBool(tag string) {
+func (m *UserNoticeMessage) paramToBool(tag string) {
 	rawValue, ok := m.MsgParams[tag]
 	if !ok {
 		return
@@ -308,7 +308,7 @@ func (m *USERNOTICEMessage) paramToBool(tag string) {
 	m.MsgParams[tag] = rawValue.(string) == "1"
 }
 
-func (m *USERNOTICEMessage) paramToInt(tag string) {
+func (m *UserNoticeMessage) paramToInt(tag string) {
 	rawValue, ok := m.MsgParams[tag]
 	if !ok {
 		return
@@ -317,8 +317,8 @@ func (m *USERNOTICEMessage) paramToInt(tag string) {
 	m.MsgParams[tag], _ = strconv.Atoi(rawValue.(string))
 }
 
-func (m *message) parseUSERSTATEMessage() (*User, *USERSTATEMessage) {
-	userstateMessage := USERSTATEMessage{
+func (m *message) parseUserStateMessage() (*User, *UserStateMessage) {
+	userstateMessage := UserStateMessage{
 		channelMessage: *m.parseChannelMessage(),
 	}
 
@@ -330,8 +330,8 @@ func (m *message) parseUSERSTATEMessage() (*User, *USERSTATEMessage) {
 	return m.parseUser(), &userstateMessage
 }
 
-func (m *message) parseNOTICEMessage() *NOTICEMessage {
-	return &NOTICEMessage{
+func (m *message) parseNoticeMessage() *NoticeMessage {
+	return &NoticeMessage{
 		channelMessage: *m.parseChannelMessage(),
 		MsgID:          m.RawMessage.Tags["msg-id"],
 	}
