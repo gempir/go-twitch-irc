@@ -304,7 +304,6 @@ func (m *UserNoticeMessage) parseMsgParams() {
 	m.paramToInt("msg-param-streak-months")
 	m.paramToInt("msg-param-threshold")
 	m.paramToInt("msg-param-viewerCount")
-
 }
 
 func (m *UserNoticeMessage) paramToBool(tag string) {

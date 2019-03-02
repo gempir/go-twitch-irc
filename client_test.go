@@ -350,7 +350,7 @@ func TestCanReceiveCLEARCHATMessage(t *testing.T) {
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnNewClearchatMessage(func(message ClearChatMessage) {
+	client.OnNewClearChatMessage(func(message ClearChatMessage) {
 		received = message.BanDuration
 		close(wait)
 	})
@@ -376,7 +376,7 @@ func TestCanReceiveROOMSTATEMessage(t *testing.T) {
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnNewRoomstateMessage(func(message RoomStateMessage) {
+	client.OnNewRoomStateMessage(func(message RoomStateMessage) {
 		received = message.Tags["slow"]
 		close(wait)
 	})
@@ -402,7 +402,7 @@ func TestCanReceiveUSERNOTICEMessage(t *testing.T) {
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnNewUsernoticeMessage(func(user User, message UserNoticeMessage) {
+	client.OnNewUserNoticeMessage(func(user User, message UserNoticeMessage) {
 		received = message.Tags["msg-param-months"]
 		close(wait)
 	})
@@ -427,7 +427,7 @@ func TestCanReceiveUSERNOTICEMessageResub(t *testing.T) {
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnNewUsernoticeMessage(func(user User, message UserNoticeMessage) {
+	client.OnNewUserNoticeMessage(func(user User, message UserNoticeMessage) {
 		received = message.Tags["msg-param-months"]
 		close(wait)
 	})
@@ -499,7 +499,7 @@ func TestCanReceiveUSERStateMessage(t *testing.T) {
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnNewUserstateMessage(func(user User, message UserStateMessage) {
+	client.OnNewUserStateMessage(func(user User, message UserStateMessage) {
 		received = message.Tags["mod"]
 		close(wait)
 	})

@@ -110,10 +110,10 @@ type Client struct {
 	onConnect              func()
 	onNewWhisper           func(user User, message WhisperMessage)
 	onNewMessage           func(user User, message PrivateMessage)
-	onNewClearchatMessage  func(message ClearChatMessage)
-	onNewRoomstateMessage  func(message RoomStateMessage)
-	onNewUsernoticeMessage func(user User, message UserNoticeMessage)
-	onNewUserstateMessage  func(user User, message UserStateMessage)
+	onNewClearChatMessage  func(message ClearChatMessage)
+	onNewRoomStateMessage  func(message RoomStateMessage)
+	onNewUserNoticeMessage func(user User, message UserNoticeMessage)
+	onNewUserStateMessage  func(user User, message UserStateMessage)
 	onNewNoticeMessage     func(message NoticeMessage)
 	onUserJoin             func(channel, user string)
 	onUserPart             func(channel, user string)
@@ -179,24 +179,24 @@ func (c *Client) OnConnect(callback func()) {
 	c.onConnect = callback
 }
 
-// OnNewClearchatMessage attach callback to new messages such as timeouts
-func (c *Client) OnNewClearchatMessage(callback func(message ClearChatMessage)) {
-	c.onNewClearchatMessage = callback
+// OnNewClearChatMessage attach callback to new messages such as timeouts
+func (c *Client) OnNewClearChatMessage(callback func(message ClearChatMessage)) {
+	c.onNewClearChatMessage = callback
 }
 
-// OnNewRoomstateMessage attach callback to new messages such as submode enabled
-func (c *Client) OnNewRoomstateMessage(callback func(message RoomStateMessage)) {
-	c.onNewRoomstateMessage = callback
+// OnNewRoomStateMessage attach callback to new messages such as submode enabled
+func (c *Client) OnNewRoomStateMessage(callback func(message RoomStateMessage)) {
+	c.onNewRoomStateMessage = callback
 }
 
-// OnNewUsernoticeMessage attach callback to new usernotice message such as sub, resub, and raids
-func (c *Client) OnNewUsernoticeMessage(callback func(user User, message UserNoticeMessage)) {
-	c.onNewUsernoticeMessage = callback
+// OnNewUserNoticeMessage attach callback to new usernotice message such as sub, resub, and raids
+func (c *Client) OnNewUserNoticeMessage(callback func(user User, message UserNoticeMessage)) {
+	c.onNewUserNoticeMessage = callback
 }
 
-// OnNewUserstateMessage attach callback to new userstate
-func (c *Client) OnNewUserstateMessage(callback func(user User, message UserStateMessage)) {
-	c.onNewUserstateMessage = callback
+// OnNewUserStateMessage attach callback to new userstate
+func (c *Client) OnNewUserStateMessage(callback func(user User, message UserStateMessage)) {
+	c.onNewUserStateMessage = callback
 }
 
 // OnNewNoticeMessage attach callback to new notice message such as hosts
@@ -494,24 +494,24 @@ func (c *Client) handleLine(line string) error {
 				c.onNewMessage(*user, *privateMessage)
 			}
 		case CLEARCHAT:
-			if c.onNewClearchatMessage != nil {
+			if c.onNewClearChatMessage != nil {
 				clearchatMessage := message.parseClearChatMessage()
-				c.onNewClearchatMessage(*clearchatMessage)
+				c.onNewClearChatMessage(*clearchatMessage)
 			}
 		case ROOMSTATE:
-			if c.onNewRoomstateMessage != nil {
+			if c.onNewRoomStateMessage != nil {
 				roomstateMessage := message.parseRoomStateMessage()
-				c.onNewRoomstateMessage(*roomstateMessage)
+				c.onNewRoomStateMessage(*roomstateMessage)
 			}
 		case USERNOTICE:
-			if c.onNewUsernoticeMessage != nil {
+			if c.onNewUserNoticeMessage != nil {
 				user, usernoticeMessage := message.parseUserNoticeMessage()
-				c.onNewUsernoticeMessage(*user, *usernoticeMessage)
+				c.onNewUserNoticeMessage(*user, *usernoticeMessage)
 			}
 		case USERSTATE:
-			if c.onNewUserstateMessage != nil {
+			if c.onNewUserStateMessage != nil {
 				user, userstateMessage := message.parseUserStateMessage()
-				c.onNewUserstateMessage(*user, *userstateMessage)
+				c.onNewUserStateMessage(*user, *userstateMessage)
 			}
 		case NOTICE:
 			if c.onNewNoticeMessage != nil {
