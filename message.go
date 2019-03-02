@@ -430,7 +430,7 @@ func (m *message) parseEmotes() []*Emote {
 		lastIndex, _ := strconv.Atoi(indexPair[1])
 
 		e := &Emote{
-			Name:  string(runes[firstIndex:lastIndex]),
+			Name:  string(runes[firstIndex : lastIndex+1]),
 			ID:    split[0],
 			Count: strings.Count(split[1], ",") + 1,
 		}
