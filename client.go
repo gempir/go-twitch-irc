@@ -42,16 +42,12 @@ type User struct {
 
 // RawMessage data you receive from TMI
 type RawMessage struct {
-	Type    MessageType
-	RawType string
-	Raw     string
-	Tags    map[string]string
-	Message string
+	rawMessage
 }
 
 // WhisperMessage data you receive from WHISPER message type
 type WhisperMessage struct {
-	RawMessage
+	rawMessage
 	userMessage
 }
 
@@ -524,11 +520,17 @@ func (c *Client) handleLine(line string) error {
 			}
 		case UNSET:
 			if c.onNewUnsetMessage != nil {
-				c.onNewUnsetMessage(message.RawMessage)
+				rawMessage := RawMessage{
+					rawMessage: message.RawMessage,
+				}
+				c.onNewUnsetMessage(rawMessage)
 			}
 		case ERROR:
 			if c.onNewErrorMessage != nil {
-				c.onNewErrorMessage(message.RawMessage)
+				rawMessage := RawMessage{
+					rawMessage: message.RawMessage,
+				}
+				c.onNewErrorMessage(rawMessage)
 			}
 		}
 
