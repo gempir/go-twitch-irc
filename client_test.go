@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/textproto"
 	"reflect"
@@ -1317,7 +1316,6 @@ func TestPinger(t *testing.T) {
 		conn = c
 	}, func(message string) {
 		if message == pingMessage {
-			log.Println("1. SERVER sending a pong response")
 			// Send an emulated pong
 			fmt.Fprintf(conn, formatPong(strings.Split(message, " :")[1])+"\r\n")
 			wait <- true
@@ -1336,16 +1334,12 @@ func TestPinger(t *testing.T) {
 
 	wait = make(chan bool)
 
-	log.Println("2. Check channels 2")
-
 	// Ping has been sent by server
 	go func() {
-		log.Println("3. Start checking pings and pongs values")
 		for {
 			<-time.After(5 * time.Millisecond)
 			client.dataMutex.Lock()
 			if client.pingsSent == client.pongsReceived {
-				log.Println("4. Pings sent is the same as pongs received")
 				wait <- client.pingsSent == 1
 				client.dataMutex.Unlock()
 				return
@@ -1360,8 +1354,6 @@ func TestPinger(t *testing.T) {
 	case <-time.After(time.Second * 3):
 		t.Fatal("Did not receive a pong")
 	}
-
-	log.Println("5. Success!")
 
 	client.Disconnect()
 }

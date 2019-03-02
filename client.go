@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/textproto"
 	"strings"
@@ -298,14 +297,12 @@ func (c *Client) Connect() error {
 			continue
 
 		default:
-			log.Println("[CONNECTION INFORMATION] Closing down connection, not reconnecting:", err)
 			return err
 		}
 	}
 }
 
 func (c *Client) makeConnection(dialer *net.Dialer, conf *tls.Config) (err error) {
-	log.Println("[CONNECTION INFORMATION] Make connection start")
 	var conn net.Conn
 	if c.TLS {
 		conn, err = tls.DialWithDialer(dialer, "tcp", c.IrcAddress, conf)
@@ -349,8 +346,6 @@ func (c *Client) makeConnection(dialer *net.Dialer, conf *tls.Config) (err error
 
 	// Wait for the reader, pinger, and writer to close
 	wg.Wait()
-
-	log.Println("[CONNECTION INFORMATION] Make connection end")
 
 	return
 }
@@ -397,7 +392,6 @@ func (c *Client) startReader(reader io.Reader, wg *sync.WaitGroup) {
 		messages := strings.Split(line, "\r\n")
 		for _, msg := range messages {
 			if !c.connActive.get() && strings.Contains(msg, ":tmi.twitch.tv 001") {
-				log.Println("[CONNECTION INFORMATION] Successfully connected to Twitch!")
 				c.connActive.set(true)
 				c.initialJoins()
 				if c.onConnect != nil {
@@ -430,7 +424,6 @@ func (c *Client) startPinger(closer io.Closer, wg *sync.WaitGroup) {
 				continue
 
 			case <-time.After(c.IdlePingInterval):
-				log.Println("[CONNECTION INFORMATION] Sending ping")
 				c.dataMutex.Lock()
 				c.pingsSent++
 				c.dataMutex.Unlock()
@@ -438,7 +431,6 @@ func (c *Client) startPinger(closer io.Closer, wg *sync.WaitGroup) {
 
 				select {
 				case <-c.pongReceived:
-					log.Println("[CONNECTION INFORMATION] Received pong")
 					// Received pong message within the time limit, we're good
 					c.dataMutex.Lock()
 					c.pongsReceived++
@@ -446,7 +438,6 @@ func (c *Client) startPinger(closer io.Closer, wg *sync.WaitGroup) {
 					continue
 
 				case <-time.After(c.PongTimeout):
-					log.Println("[CONNECTION INFORMATION] Pong was now received within the given interval, attemping to reconnect")
 					// No pong message was received within the pong timeout, disconnect
 					c.clientReconnect.Close()
 					closer.Close()
@@ -554,13 +545,10 @@ func (c *Client) handleLine(line string) error {
 
 	// Handle PONG
 	if line == expectedPongMessage {
-		log.Println("Received pong message")
 		// Received a pong that was sent by us
 		select {
 		case c.pongReceived <- true:
-			log.Println("Successfully sent pong received signal on channel")
 		default:
-			panic("penis")
 		}
 
 		return nil
@@ -638,7 +626,6 @@ func (c *Client) handleLine(line string) error {
 			}
 		}
 		if strings.Contains(line, "tmi.twitch.tv RECONNECT") {
-			log.Println("[CONNECTION INFORMATION] Received a reconnect message from twitch, attempting to reconnect")
 			// https://dev.twitch.tv/docs/irc/commands/#reconnect-twitch-commands
 			return errReconnect
 		}
