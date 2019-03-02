@@ -21,81 +21,32 @@ func TestCantParseInvalidMessage(t *testing.T) {
 }
 
 func TestCanParseRawMessage(t *testing.T) {
-	testMessage := "@badges=subscriber/6,premium/1;color=#FF0000;display-name=Redflamingo13;emotes=;id=2a31a9df-d6ff-4840-b211-a2547c7e656e;mod=0;room-id=11148817;subscriber=1;tmi-sent-ts=1490382457309;turbo=0;user-id=78424343;user-type= :redflamingo13!redflamingo13@redflamingo13.tmi.twitch.tv PRIVMSG #pajlada :Thrashh5, FeelsWayTooAmazingMan kinda"
+	testMessage := "@badges=premium/1;color=#DAA520;display-name=FletcherCodes;emotes=;flags=;id=6efffc70-27a1-4637-9111-44e5104bb7da;mod=0;room-id=408892348;subscriber=0;tmi-sent-ts=1551473087761;turbo=0;user-id=269899575;user-type= :fletchercodes!fletchercodes@fletchercodes.tmi.twitch.tv PRIVMSG #clippyassistant :Chew your food slower... it's healthier"
 
 	message := parseMessage(testMessage)
 
-	assertStringsEqual(t, "pajlada", message.Channel)
-	assertStringsEqual(t, "redflamingo13", message.Username)
+	assertStringsEqual(t, "clippyassistant", message.Channel)
+	assertStringsEqual(t, "fletchercodes", message.Username)
 	if message.RawMessage.Type != PRIVMSG {
 		t.Error("parsing message type failed")
 	}
 	assertStringsEqual(t, "PRIVMSG", message.RawMessage.RawType)
-	assertStringsEqual(t, "subscriber/6,premium/1", message.RawMessage.Tags["badges"])
-	assertStringsEqual(t, "#FF0000", message.RawMessage.Tags["color"])
-	assertStringsEqual(t, "Redflamingo13", message.RawMessage.Tags["display-name"])
+	assertStringsEqual(t, "premium/1", message.RawMessage.Tags["badges"])
+	assertStringsEqual(t, "#DAA520", message.RawMessage.Tags["color"])
+	assertStringsEqual(t, "FletcherCodes", message.RawMessage.Tags["display-name"])
 	assertStringsEqual(t, "", message.RawMessage.Tags["emotes"])
-	assertStringsEqual(t, "2a31a9df-d6ff-4840-b211-a2547c7e656e", message.RawMessage.Tags["id"])
-	assertStringsEqual(t, "11148817", message.RawMessage.Tags["room-id"])
-	assertStringsEqual(t, "1490382457309", message.RawMessage.Tags["tmi-sent-ts"])
-	assertStringsEqual(t, "78424343", message.RawMessage.Tags["user-id"])
-	assertStringsEqual(t, "Thrashh5, FeelsWayTooAmazingMan kinda", message.RawMessage.Message)
-}
-
-func TestCanParsePRIVMSGMessage(t *testing.T) {
-	testMessage := "@badges=subscriber/6,premium/1;color=#FF0000;display-name=Redflamingo13;emotes=;id=2a31a9df-d6ff-4840-b211-a2547c7e656e;mod=0;room-id=11148817;subscriber=1;tmi-sent-ts=1490382457309;turbo=0;user-id=78424343;user-type= :redflamingo13!redflamingo13@redflamingo13.tmi.twitch.tv PRIVMSG #pajlada :Thrashh5, FeelsWayTooAmazingMan kinda"
-
-	message := parseMessage(testMessage)
-	user, privateMessage := message.parsePRIVMSGMessage()
-
-	assertStringsEqual(t, "pajlada", message.Channel)
-
-	assertStringsEqual(t, "78424343", user.ID)
-	assertStringsEqual(t, "redflamingo13", user.Name)
-	assertStringsEqual(t, "Redflamingo13", user.DisplayName)
-	assertStringsEqual(t, "#FF0000", user.Color)
-
-	expectedBadges := map[string]int{
-		"subscriber": 6,
-		"premium":    1,
-	}
-	assertStringIntMapsEqual(t, expectedBadges, user.Badges)
-
-	if privateMessage.Type != PRIVMSG {
-		t.Error("parsing message type failed")
-	}
-	assertStringsEqual(t, "PRIVMSG", privateMessage.RawType)
-	assertStringsEqual(t, "Thrashh5, FeelsWayTooAmazingMan kinda", privateMessage.Message)
-	assertStringsEqual(t, "11148817", privateMessage.RoomID)
-	assertStringsEqual(t, "2a31a9df-d6ff-4840-b211-a2547c7e656e", privateMessage.ID)
-	assertFalse(t, privateMessage.Action, "parsing Action failed")
-	assertIntsEqual(t, 0, len(privateMessage.Emotes))
-	assertIntsEqual(t, 0, privateMessage.Bits)
-}
-
-func TestCanParseActionMessage(t *testing.T) {
-	testMessage := "@badges=subscriber/6,premium/1;color=#FF0000;display-name=Redflamingo13;emotes=;id=2a31a9df-d6ff-4840-b211-a2547c7e656e;mod=0;room-id=11148817;subscriber=1;tmi-sent-ts=1490382457309;turbo=0;user-id=78424343;user-type= :redflamingo13!redflamingo13@redflamingo13.tmi.twitch.tv PRIVMSG #pajlada :\u0001ACTION Thrashh5, FeelsWayTooAmazingMan kinda\u0001"
-
-	message := parseMessage(testMessage)
-	_, privateMessage := message.parsePRIVMSGMessage()
-
-	assertTrue(t, privateMessage.Action, "parsing Action failed")
-}
-
-func TestCanParseEmoteMessage(t *testing.T) {
-	testMessage := "@badges=;color=#008000;display-name=Zugren;emotes=120232:0-6,13-19,26-32,39-45,52-58;id=51c290e9-1b50-497c-bb03-1667e1afe6e4;mod=0;room-id=11148817;sent-ts=1490382458685;subscriber=0;tmi-sent-ts=1490382456776;turbo=0;user-id=65897106;user-type= :zugren!zugren@zugren.tmi.twitch.tv PRIVMSG #pajlada :TriHard Clap TriHard Clap TriHard Clap TriHard Clap TriHard Clap"
-
-	message := parseMessage(testMessage)
-	_, privateMessage := message.parsePRIVMSGMessage()
-
-	assertIntsEqual(t, 1, len(privateMessage.Emotes))
+	assertStringsEqual(t, "6efffc70-27a1-4637-9111-44e5104bb7da", message.RawMessage.Tags["id"])
+	assertStringsEqual(t, "408892348", message.RawMessage.Tags["room-id"])
+	assertStringsEqual(t, "1551473087761", message.RawMessage.Tags["tmi-sent-ts"])
+	assertStringsEqual(t, "269899575", message.RawMessage.Tags["user-id"])
+	assertStringsEqual(t, "Chew your food slower... it's healthier", message.RawMessage.Message)
 }
 
 func TestCanParseWHISPERMessage(t *testing.T) {
 	testMessage := "@badges=;color=#00FF7F;display-name=Danielps1;emotes=;message-id=20;thread-id=32591953_77829817;turbo=0;user-id=32591953;user-type= :danielps1!danielps1@danielps1.tmi.twitch.tv WHISPER gempir :i like memes"
 
 	message := parseMessage(testMessage)
-	user, whisperMessage := message.parseWHISPERMessage()
+	user, whisperMessage := message.parseWhisperMessage()
 
 	assertStringsEqual(t, "32591953", user.ID)
 	assertStringsEqual(t, "danielps1", user.Name)
@@ -114,72 +65,143 @@ func TestCanParseWHISPERMessage(t *testing.T) {
 	assertFalse(t, whisperMessage.Action, "parsing action failed")
 }
 
-func TestCanParseCLEARCHATMessage(t *testing.T) {
-	testMessage := `@room-id=408892348;tmi-sent-ts=1551290606462 :tmi.twitch.tv CLEARCHAT #clippyassistant`
+func TestCanParsePRIVMSGMessage(t *testing.T) {
+	testMessage := "@badges=premium/1;color=#DAA520;display-name=FletcherCodes;emotes=;flags=;id=6efffc70-27a1-4637-9111-44e5104bb7da;mod=0;room-id=408892348;subscriber=0;tmi-sent-ts=1551473087761;turbo=0;user-id=269899575;user-type= :fletchercodes!fletchercodes@fletchercodes.tmi.twitch.tv PRIVMSG #clippyassistant :Chew your food slower... it's healthier"
 
 	message := parseMessage(testMessage)
-	clearchatMessage := message.parseCLEARCHATMessage()
+	user, privateMessage := message.parsePrivateMessage()
 
-	assertStringsEqual(t, message.Channel, "clippyassistant")
+	assertStringsEqual(t, "269899575", user.ID)
+	assertStringsEqual(t, "fletchercodes", user.Name)
+	assertStringsEqual(t, "FletcherCodes", user.DisplayName)
+	assertStringsEqual(t, "#DAA520", user.Color)
+
+	expectedBadges := map[string]int{
+		"premium": 1,
+	}
+	assertStringIntMapsEqual(t, expectedBadges, user.Badges)
+
+	if privateMessage.Type != PRIVMSG {
+		t.Error("parsing message type failed")
+	}
+	assertStringsEqual(t, "PRIVMSG", privateMessage.RawType)
+	assertStringsEqual(t, "Chew your food slower... it's healthier", privateMessage.Message)
+
+	assertStringsEqual(t, "clippyassistant", privateMessage.Channel)
+
+	assertStringsEqual(t, "408892348", privateMessage.RoomID)
+
+	assertStringsEqual(t, "6efffc70-27a1-4637-9111-44e5104bb7da", privateMessage.ID)
+
+	assertFalse(t, privateMessage.Action, "parsing Action failed")
+	assertIntsEqual(t, 0, len(privateMessage.Emotes))
+
+	assertIntsEqual(t, 0, privateMessage.Bits)
+}
+
+func TestCanParseActionMessage(t *testing.T) {
+	testMessage := "@badges=premium/1;color=#DAA520;display-name=FletcherCodes;emotes=;flags=;id=6efffc70-27a1-4637-9111-44e5104bb7da;mod=0;room-id=408892348;subscriber=0;tmi-sent-ts=1551473087761;turbo=0;user-id=269899575;user-type= :fletchercodes!fletchercodes@fletchercodes.tmi.twitch.tv PRIVMSG #clippyassistant :\u0001ACTION Thrashh5, FeelsWayTooAmazingMan kinda\u0001"
+
+	message := parseMessage(testMessage)
+	_, privateMessage := message.parsePrivateMessage()
+
+	assertTrue(t, privateMessage.Action, "parsing Action failed")
+}
+
+func TestCanParseEmoteMessage(t *testing.T) {
+	testMessage := "@badges=;color=#008000;display-name=Zugren;emotes=120232:0-6,13-19,26-32,39-45,52-58;id=51c290e9-1b50-497c-bb03-1667e1afe6e4;mod=0;room-id=11148817;sent-ts=1490382458685;subscriber=0;tmi-sent-ts=1490382456776;turbo=0;user-id=65897106;user-type= :zugren!zugren@zugren.tmi.twitch.tv PRIVMSG #pajlada :TriHard Clap TriHard Clap TriHard Clap TriHard Clap TriHard Clap"
+
+	message := parseMessage(testMessage)
+	_, privateMessage := message.parsePrivateMessage()
+
+	assertIntsEqual(t, 1, len(privateMessage.Emotes))
+	assertStringsEqual(t, "120232", privateMessage.Emotes[0].ID)
+	assertStringsEqual(t, "TriHard", privateMessage.Emotes[0].Name)
+	assertIntsEqual(t, 5, privateMessage.Emotes[0].Count)
+}
+
+func TestCanParseBitsMessage(t *testing.T) {
+	testMessage := "@badges=bits/5000;bits=5000;color=#007EFF;display-name=FletcherCodes;emotes=;flags=;id=405c4ccb-7d69-4a57-ac16-292e72ba288b;mod=0;room-id=408892348;subscriber=0;tmi-sent-ts=1551478518354;turbo=0;user-id=269899575;user-type= :fletchercodes!fletchercodes@fletchercodes.tmi.twitch.tv PRIVMSG #clippyassistant :showlove5000 Chew your food slower... it's healthier"
+
+	message := parseMessage(testMessage)
+	_, privateMessage := message.parsePrivateMessage()
+
+	assertIntsEqual(t, 5000, privateMessage.Bits)
+}
+
+func TestCanParseCLEARCHATMessage(t *testing.T) {
+	testMessage := "@room-id=408892348;tmi-sent-ts=1551538661807 :tmi.twitch.tv CLEARCHAT #clippyassistant"
+
+	message := parseMessage(testMessage)
+	clearchatMessage := message.parseClearChatMessage()
 
 	if clearchatMessage.Type != CLEARCHAT {
 		t.Error("parsing CLEARCHAT message failed")
 	}
 	assertStringsEqual(t, "CLEARCHAT", clearchatMessage.RawType)
 	assertStringsEqual(t, "", clearchatMessage.Message)
+
+	assertStringsEqual(t, clearchatMessage.Channel, "clippyassistant")
+
 	assertStringsEqual(t, "408892348", clearchatMessage.RoomID)
+
 	assertStringsEqual(t, "Clear", clearchatMessage.MsgID)
 }
 
 func TestCanParseBanMessage(t *testing.T) {
-	testMessage := `@room-id=408892348;target-user-id=39489382;tmi-sent-ts=1551290562042 :tmi.twitch.tv CLEARCHAT #clippyassistant :taleof4gamers`
+	testMessage := "@room-id=408892348;target-user-id=269899575;tmi-sent-ts=1551538522968 :tmi.twitch.tv CLEARCHAT #clippyassistant :fletchercodes"
 
 	message := parseMessage(testMessage)
-	clearchatMessage := message.parseCLEARCHATMessage()
-
-	assertStringsEqual(t, message.Channel, "clippyassistant")
+	clearchatMessage := message.parseClearChatMessage()
 
 	if clearchatMessage.Type != CLEARCHAT {
 		t.Error("parsing CLEARCHAT message failed")
 	}
 	assertStringsEqual(t, "CLEARCHAT", clearchatMessage.RawType)
 	assertStringsEqual(t, "", clearchatMessage.Message)
+
+	assertStringsEqual(t, clearchatMessage.Channel, "clippyassistant")
+
 	assertStringsEqual(t, "408892348", clearchatMessage.RoomID)
+
 	assertStringsEqual(t, "Ban", clearchatMessage.MsgID)
 	assertIntsEqual(t, 0, clearchatMessage.BanDuration)
-	assertStringsEqual(t, "39489382", clearchatMessage.TargetUserID)
-	assertStringsEqual(t, "taleof4gamers", clearchatMessage.TargetUsername)
+	assertStringsEqual(t, "269899575", clearchatMessage.TargetUserID)
+	assertStringsEqual(t, "fletchercodes", clearchatMessage.TargetUsername)
 }
 
 func TestCanParseTimeoutMessage(t *testing.T) {
-	testMessage := `@ban-duration=3;room-id=408892348;target-user-id=39489382;tmi-sent-ts=1551290562042 :tmi.twitch.tv CLEARCHAT #clippyassistant :taleof4gamers`
+	testMessage := "@ban-duration=5;room-id=408892348;target-user-id=269899575;tmi-sent-ts=1551538496775 :tmi.twitch.tv CLEARCHAT #clippyassistant :fletchercodes"
 
 	message := parseMessage(testMessage)
-	clearchatMessage := message.parseCLEARCHATMessage()
+	clearchatMessage := message.parseClearChatMessage()
 
 	assertStringsEqual(t, "Timeout", clearchatMessage.MsgID)
-	assertIntsEqual(t, 3, clearchatMessage.BanDuration)
+	assertIntsEqual(t, 5, clearchatMessage.BanDuration)
 }
 
 func TestCanParseROOMSTATEMessage(t *testing.T) {
-	testMessage := `@broadcaster-lang=en;emote-only=0;followers-only=10;r9k=0;rituals=0;room-id=408892348;slow=0;subs-only=0 :tmi.twitch.tv ROOMSTATE #clippyassistant`
+	testMessage := "@broadcaster-lang=en;emote-only=0;followers-only=-1;r9k=1;rituals=0;room-id=408892348;slow=0;subs-only=0 :tmi.twitch.tv ROOMSTATE #clippyassistant"
 
 	message := parseMessage(testMessage)
-	roomstateMessage := message.parseROOMSTATEMessage()
+	roomstateMessage := message.parseRoomStateMessage()
 
 	if roomstateMessage.Type != ROOMSTATE {
 		t.Error("parsing ROOMSTATE message failed")
 	}
 	assertStringsEqual(t, "ROOMSTATE", roomstateMessage.RawType)
 	assertStringsEqual(t, "", roomstateMessage.Message)
+
 	assertStringsEqual(t, "clippyassistant", roomstateMessage.Channel)
+
 	assertStringsEqual(t, "408892348", roomstateMessage.RoomID)
+
 	assertStringsEqual(t, "en", roomstateMessage.Language)
 
 	expectedState := map[string]int{
 		"emote-only":     0,
-		"followers-only": 10,
-		"r9k":            0,
+		"followers-only": -1,
+		"r9k":            1,
 		"rituals":        0,
 		"slow":           0,
 		"subs-only":      0,
@@ -188,35 +210,34 @@ func TestCanParseROOMSTATEMessage(t *testing.T) {
 }
 
 func TestCanParseROOMSTATEChangeMessage(t *testing.T) {
-	testMessage := `@followers-only=-1;room-id=408892348 :tmi.twitch.tv ROOMSTATE #clippyassistant`
+	testMessage := `@followers-only=10;room-id=408892348 :tmi.twitch.tv ROOMSTATE #clippyassistant`
 
 	message := parseMessage(testMessage)
-	roomstateMessage := message.parseROOMSTATEMessage()
+	roomstateMessage := message.parseRoomStateMessage()
 
 	assertStringsEqual(t, "", roomstateMessage.Language)
 
 	expectedState := map[string]int{
-		"followers-only": -1,
+		"followers-only": 10,
 	}
 	assertStringIntMapsEqual(t, expectedState, roomstateMessage.State)
 
 }
 
 func TestCanParseUSERNOTICESubMessage(t *testing.T) {
-	testMessage := `@badges=staff/1,broadcaster/1,turbo/1;color=#008000;display-name=ronni;emotes=;id=db25007f-7a18-43eb-9379-80131e44d633;login=ronni;mod=0;msg-id=resub;msg-param-cumulative-months=6;msg-param-streak-months=2;msg-param-should-share-streak=1;msg-param-sub-plan=Prime;msg-param-sub-plan-name=Prime;room-id=1337;subscriber=1;system-msg=ronni\shas\ssubscribed\sfor\s6\smonths!;tmi-sent-ts=1507246572675;turbo=1;user-id=1337;user-type=staff :tmi.twitch.tv USERNOTICE #dallas :Great stream -- keep it up!`
+	testMessage := "@badges=subscriber/0,premium/1;color=;display-name=FletcherCodes;emotes=;flags=;id=57cbe8d9-8d17-4760-b1e7-0d888e1fdc60;login=fletchercodes;mod=0;msg-id=sub;msg-param-cumulative-months=0;msg-param-months=0;msg-param-should-share-streak=0;msg-param-sub-plan-name=The\\sWhatevas;msg-param-sub-plan=Prime;room-id=408892348;subscriber=1;system-msg=fletchercodes\\ssubscribed\\swith\\sTwitch\\sPrime.;tmi-sent-ts=1551486064328;turbo=0;user-id=269899575;user-type= :tmi.twitch.tv USERNOTICE #clippyassistant"
 
 	message := parseMessage(testMessage)
-	user, usernoticeMessage := message.parseUSERNOTICEMessage()
+	user, usernoticeMessage := message.parseUserNoticeMessage()
 
-	assertStringsEqual(t, "1337", user.ID)
-	assertStringsEqual(t, "ronni", user.Name)
-	assertStringsEqual(t, "ronni", user.DisplayName)
-	assertStringsEqual(t, "#008000", user.Color)
+	assertStringsEqual(t, "269899575", user.ID)
+	assertStringsEqual(t, "fletchercodes", user.Name)
+	assertStringsEqual(t, "FletcherCodes", user.DisplayName)
+	assertStringsEqual(t, "", user.Color)
 
 	expectedBadges := map[string]int{
-		"staff":       1,
-		"broadcaster": 1,
-		"turbo":       1,
+		"subscriber": 0,
+		"premium":    1,
 	}
 	assertStringIntMapsEqual(t, expectedBadges, user.Badges)
 
@@ -224,52 +245,59 @@ func TestCanParseUSERNOTICESubMessage(t *testing.T) {
 		t.Error("parsing USERNOTICE message failed")
 	}
 	assertStringsEqual(t, "USERNOTICE", usernoticeMessage.RawType)
-	assertStringsEqual(t, "Great stream -- keep it up!", usernoticeMessage.Message)
-	assertStringsEqual(t, "dallas", usernoticeMessage.Channel)
-	assertStringsEqual(t, "1337", usernoticeMessage.RoomID)
-	assertStringsEqual(t, "db25007f-7a18-43eb-9379-80131e44d633", usernoticeMessage.ID)
+	assertStringsEqual(t, "", usernoticeMessage.Message)
+
+	assertStringsEqual(t, "clippyassistant", usernoticeMessage.Channel)
+
+	assertStringsEqual(t, "408892348", usernoticeMessage.RoomID)
+
+	assertStringsEqual(t, "57cbe8d9-8d17-4760-b1e7-0d888e1fdc60", usernoticeMessage.ID)
+
 	assertFalse(t, usernoticeMessage.Action, "")
 	assertIntsEqual(t, 0, len(usernoticeMessage.Emotes))
-	assertStringsEqual(t, "resub", usernoticeMessage.MsgID)
+
+	assertStringsEqual(t, "sub", usernoticeMessage.MsgID)
 
 	expectedParams := map[string]interface{}{
-		"msg-param-cumulative-months":   6,
-		"msg-param-streak-months":       2,
-		"msg-param-should-share-streak": true,
+		"msg-param-cumulative-months":   0,
+		"msg-param-months":              0,
+		"msg-param-should-share-streak": false,
+		"msg-param-sub-plan-name":       "The Whatevas",
 		"msg-param-sub-plan":            "Prime",
-		"msg-param-sub-plan-name":       "Prime",
 	}
 	assertStringInterfaceMapsEqual(t, expectedParams, usernoticeMessage.MsgParams)
 
-	assertStringsEqual(t, "ronni has subscribed for 6 months!", usernoticeMessage.SystemMsg)
+	assertStringsEqual(t, "fletchercodes subscribed with Twitch Prime.", usernoticeMessage.SystemMsg)
 }
 
-func TestCanParseUSERNOTICEGiftSubMessage(t *testing.T) {
-	testMessage := `@badges=staff/1,premium/1;color=#0000FF;display-name=TWW2;emotes=;id=e9176cd8-5e22-4684-ad40-ce53c2561c5e;login=tww2;mod=0;msg-id=subgift;msg-param-months=1;msg-param-recipient-display-name=Mr_Woodchuck;msg-param-recipient-id=89614178;msg-param-recipient-name=mr_woodchuck;msg-param-sub-plan-name=House\sof\sNyoro~n;msg-param-sub-plan=1000;room-id=19571752;subscriber=0;system-msg=TWW2\sgifted\sa\sTier\s1\ssub\sto\sMr_Woodchuck!;tmi-sent-ts=1521159445153;turbo=0;user-id=13405587;user-type=staff :tmi.twitch.tv USERNOTICE #forstycup`
+func TestCanParseUSERNOTICESubGiftMessage(t *testing.T) {
+	testMessage := "@badges=subscriber/0,premium/1;color=#00FF7F;display-name=FletcherCodes;emotes=;flags=;id=b608909e-2089-4f97-9475-f2cd93f6717a;login=fletchercodes;mod=0;msg-id=subgift;msg-param-months=1;msg-param-origin-id=da\\s39\\sa3\\see\\s5e\\s6b\\s4b\\s0d\\s32\\s55\\sbf\\sef\\s95\\s60\\s18\\s90\\saf\\sd8\\s07\\s09;msg-param-recipient-display-name=NSFletcher;msg-param-recipient-id=418105091;msg-param-recipient-user-name=nsfletcher;msg-param-sender-count=0;msg-param-sub-plan-name=Channel\\sSubscription\\s(clippyassistant);msg-param-sub-plan=1000;room-id=408892348;subscriber=1;system-msg=FletcherCodes\\sgifted\\sa\\sTier\\s1\\ssub\\sto\\sNSFletcher!;tmi-sent-ts=1551487298580;turbo=0;user-id=79793581;user-type= :tmi.twitch.tv USERNOTICE #clippyassistant"
 
 	message := parseMessage(testMessage)
-	_, usernoticeMessage := message.parseUSERNOTICEMessage()
+	_, usernoticeMessage := message.parseUserNoticeMessage()
 
 	assertStringsEqual(t, "subgift", usernoticeMessage.MsgID)
 
 	expectedParams := map[string]interface{}{
 		"msg-param-months":                 1,
-		"msg-param-recipient-display-name": "Mr_Woodchuck", // Maybe create a target User
-		"msg-param-recipient-id":           "89614178",
-		"msg-param-recipient-name":         "mr_woodchuck",
-		"msg-param-sub-plan-name":          "House of Nyoro~n",
+		"msg-param-origin-id":              "da 39 a3 ee 5e 6b 4b 0d 32 55 bf ef 95 60 18 90 af d8 07 09",
+		"msg-param-recipient-display-name": "NSFletcher",
+		"msg-param-recipient-id":           "418105091",
+		"msg-param-recipient-user-name":    "nsfletcher",
+		"msg-param-sender-count":           0,
+		"msg-param-sub-plan-name":          "Channel Subscription (clippyassistant)",
 		"msg-param-sub-plan":               "1000",
 	}
 	assertStringInterfaceMapsEqual(t, expectedParams, usernoticeMessage.MsgParams)
 
-	assertStringsEqual(t, "TWW2 gifted a Tier 1 sub to Mr_Woodchuck!", usernoticeMessage.SystemMsg)
+	assertStringsEqual(t, "FletcherCodes gifted a Tier 1 sub to NSFletcher!", usernoticeMessage.SystemMsg)
 }
 
 func TestCanParseUSERNOTICEAnonymousGiftSubMessage(t *testing.T) {
 	testMessage := `@badges=broadcaster/1,subscriber/6;color=;display-name=qa_subs_partner;emotes=;flags=;id=b1818e3c-0005-490f-ad0a-804957ddd760;login=qa_subs_partner;mod=0;msg-id=anonsubgift;msg-param-months=3;msg-param-recipient-display-name=TenureCalculator;msg-param-recipient-id=135054130;msg-param-recipient-user-name=tenurecalculator;msg-param-sub-plan-name=t111;msg-param-sub-plan=1000;room-id=196450059;subscriber=1;system-msg=An\sanonymous\suser\sgifted\sa\sTier\s1\ssub\sto\sTenureCalculator!\s;tmi-sent-ts=1542063432068;turbo=0;user-id=196450059;user-type= :tmi.twitch.tv USERNOTICE #qa_subs_partner`
 
 	message := parseMessage(testMessage)
-	_, usernoticeMessage := message.parseUSERNOTICEMessage()
+	_, usernoticeMessage := message.parseUserNoticeMessage()
 
 	assertStringsEqual(t, "anonsubgift", usernoticeMessage.MsgID)
 
@@ -287,28 +315,45 @@ func TestCanParseUSERNOTICEAnonymousGiftSubMessage(t *testing.T) {
 }
 
 func TestCanParseUSERNOTICERaidMessage(t *testing.T) {
-	testMessage := `@badges=turbo/1;color=#9ACD32;display-name=TestChannel;emotes=;id=3d830f12-795c-447d-af3c-ea05e40fbddb;login=testchannel;mod=0;msg-id=raid;msg-param-displayName=TestChannel;msg-param-login=testchannel;msg-param-viewerCount=15;room-id=56379257;subscriber=0;system-msg=15\sraiders\sfrom\sTestChannel\shave\sjoined\n!;tmi-sent-ts=1507246572675;turbo=1;user-id=123456;user-type= :tmi.twitch.tv USERNOTICE #othertestchannel`
+	testMessage := "@badges=partner/1;color=#00FF7F;display-name=FletcherCodes;emotes=;flags=;id=7a61cd41-f049-466b-9654-43e5bfc554aa;login=fletchercodes;mod=0;msg-id=raid;msg-param-displayName=FletcherCodes;msg-param-login=fletchercodes;msg-param-profileImageURL=https://static-cdn.jtvnw.net/jtv_user_pictures/herr_currywurst-profile_image-e6c037c9d321b955-70x70.jpeg;msg-param-viewerCount=538;room-id=269899575;subscriber=0;system-msg=538\\sraiders\\sfrom\\sFletcherCodes\\shave\\sjoined\\n!;tmi-sent-ts=1551490358542;turbo=0;user-id=269899575;user-type= :tmi.twitch.tv USERNOTICE #clippyassistant"
 
 	message := parseMessage(testMessage)
-	_, usernoticeMessage := message.parseUSERNOTICEMessage()
+	_, usernoticeMessage := message.parseUserNoticeMessage()
 
 	assertStringsEqual(t, "raid", usernoticeMessage.MsgID)
 
 	expectedParams := map[string]interface{}{
-		"msg-param-displayName": "TestChannel",
-		"msg-param-login":       "testchannel",
-		"msg-param-viewerCount": 15,
+		"msg-param-displayName":     "FletcherCodes",
+		"msg-param-login":           "fletchercodes",
+		"msg-param-profileImageURL": "https://static-cdn.jtvnw.net/jtv_user_pictures/herr_currywurst-profile_image-e6c037c9d321b955-70x70.jpeg",
+		"msg-param-viewerCount":     538,
 	}
 	assertStringInterfaceMapsEqual(t, expectedParams, usernoticeMessage.MsgParams)
 
-	assertStringsEqual(t, "15 raiders from TestChannel have joined!", usernoticeMessage.SystemMsg)
+	assertStringsEqual(t, "538 raiders from FletcherCodes have joined!", usernoticeMessage.SystemMsg)
+}
+
+func TestCanParseUSERNOTICEUnraidMessage(t *testing.T) {
+	testMessage := "@badges=broadcaster/1;color=#8A2BE2;display-name=FletcherCodes;emotes=;flags=;id=06e33f48-c728-4332-b4bc-b7eae6f59f3c;login=fletchercodes;mod=0;msg-id=unraid;room-id=269899575;subscriber=0;system-msg=The\\sraid\\shas\\sbeen\\scancelled.;tmi-sent-ts=1551518456143;turbo=0;user-id=269899575;user-type= :tmi.twitch.tv USERNOTICE #fletchercodes"
+
+	message := parseMessage(testMessage)
+	_, usernoticeMessage := message.parseUserNoticeMessage()
+
+	assertStringsEqual(t, "unraid", usernoticeMessage.MsgID)
+
+	expectedParams := map[string]interface{}{}
+	assertStringInterfaceMapsEqual(t, expectedParams, usernoticeMessage.MsgParams)
+
+	assertStringsEqual(t, "The raid has been cancelled.", usernoticeMessage.SystemMsg)
 }
 
 func TestCanParseUSERNOTICERitualMessage(t *testing.T) {
-	testMessage := `@badges=;color=;display-name=SevenTest1;emotes=30259:0-6;id=37feed0f-b9c7-4c3a-b475-21c6c6d21c3d;login=seventest1;mod=0;msg-id=ritual;msg-param-ritual-name=new_chatter;room-id=6316121;subscriber=0;system-msg=Seventoes\sis\snew\shere!;tmi-sent-ts=1508363903826;turbo=0;user-id=131260580;user-type= :tmi.twitch.tv USERNOTICE #seventoes :HeyGuys`
+	testMessage := "@badges=;color=;display-name=FletcherCodes;emotes=64138:0-8;flags=;id=e4090aa9-8079-41ff-904d-64c7a2193ee0;login=fletchercodes;mod=0;msg-id=ritual;msg-param-ritual-name=new_chatter;room-id=408892348;subscriber=0;system-msg=@FletcherCodes\\sis\\snew\\shere.\\sSay\\shello!;tmi-sent-ts=1551487438943;turbo=0;user-id=412636239;user-type= :tmi.twitch.tv USERNOTICE #clippyassistant :SeemsGood"
 
 	message := parseMessage(testMessage)
-	_, usernoticeMessage := message.parseUSERNOTICEMessage()
+	_, usernoticeMessage := message.parseUserNoticeMessage()
+
+	assertStringsEqual(t, "SeemsGood", usernoticeMessage.Message)
 
 	assertStringsEqual(t, "ritual", usernoticeMessage.MsgID)
 
@@ -317,14 +362,14 @@ func TestCanParseUSERNOTICERitualMessage(t *testing.T) {
 	}
 	assertStringInterfaceMapsEqual(t, expectedParams, usernoticeMessage.MsgParams)
 
-	assertStringsEqual(t, "Seventoes is new here!", usernoticeMessage.SystemMsg)
+	assertStringsEqual(t, "@FletcherCodes is new here. Say hello!", usernoticeMessage.SystemMsg)
 }
 
 func TestCanParseUSERSTATEMessage(t *testing.T) {
-	testMessage := `@badges=;color=#1E90FF;display-name=FletcherCodes;emote-sets=0,87321,269983,269986,568076,1548253;mod=0;subscriber=0;user-type= :tmi.twitch.tv USERSTATE #clippyassistant`
+	testMessage := "@badges=;color=#1E90FF;display-name=FletcherCodes;emote-sets=0,87321,269983,269986,568076,1548253;mod=0;subscriber=0;user-type= :tmi.twitch.tv USERSTATE #clippyassistant"
 
 	message := parseMessage(testMessage)
-	user, userstateMessage := message.parseUSERSTATEMessage()
+	user, userstateMessage := message.parseUserStateMessage()
 
 	assertStringsEqual(t, "", user.ID)
 	assertStringsEqual(t, "fletchercodes", user.Name)
@@ -346,10 +391,10 @@ func TestCanParseUSERSTATEMessage(t *testing.T) {
 }
 
 func TestCanParseNOTICEMessage(t *testing.T) {
-	testMessage := `@msg-id=subs_on :tmi.twitch.tv NOTICE #clippyassistant :This room is now in subscribers-only mode.`
+	testMessage := "@msg-id=subs_on :tmi.twitch.tv NOTICE #clippyassistant :This room is now in subscribers-only mode."
 
 	message := parseMessage(testMessage)
-	noticeMessage := message.parseNOTICEMessage()
+	noticeMessage := message.parseNoticeMessage()
 
 	if noticeMessage.Type != NOTICE {
 		t.Error("parsing NOTICE message failed")
