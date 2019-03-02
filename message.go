@@ -30,8 +30,16 @@ const (
 	NOTICE MessageType = 6
 )
 
+type rawMessage struct {
+	Type    MessageType
+	RawType string
+	Raw     string
+	Tags    map[string]string
+	Message string
+}
+
 type channelMessage struct {
-	RawMessage
+	rawMessage
 	Channel string
 }
 
@@ -61,7 +69,7 @@ type Emote struct {
 
 // message is purely for internal use
 type message struct {
-	RawMessage RawMessage
+	RawMessage rawMessage
 	Channel    string
 	Username   string
 }
@@ -69,7 +77,7 @@ type message struct {
 func parseMessage(line string) *message {
 	if !strings.HasPrefix(line, "@") {
 		return &message{
-			RawMessage: RawMessage{
+			RawMessage: rawMessage{
 				Type:    UNSET,
 				Raw:     line,
 				Message: line,
@@ -83,7 +91,7 @@ func parseMessage(line string) *message {
 	// @badges=;color=;display-name=ZZZi;emotes=;flags=;id=75bb6b6b-e36c-49af-a293-16024738ab92;mod=0;room-id=36029255;subscriber=0;tmi-sent-ts=1551476573570;turbo
 	if len(split) == 1 {
 		return &message{
-			RawMessage: RawMessage{
+			RawMessage: rawMessage{
 				Type:    ERROR,
 				Raw:     line,
 				Message: line,
@@ -100,7 +108,7 @@ func parseMessage(line string) *message {
 
 	rawType, channel, username := parseMiddle(split[1])
 
-	rawMessage := RawMessage{
+	rawMessage := rawMessage{
 		Type:    parseMessageType(rawType),
 		RawType: rawType,
 		Raw:     line,
@@ -172,7 +180,7 @@ func parseTags(tagsRaw string) map[string]string {
 
 func (m *message) parseWhisperMessage() (*User, *WhisperMessage) {
 	whisperMessage := WhisperMessage{
-		RawMessage:  m.RawMessage,
+		rawMessage:  m.RawMessage,
 		userMessage: *m.parseUserMessage(),
 	}
 
@@ -394,7 +402,7 @@ func (m *message) parseRoomMessage() *roomMessage {
 
 func (m *message) parseChannelMessage() *channelMessage {
 	return &channelMessage{
-		RawMessage: m.RawMessage,
+		rawMessage: m.RawMessage,
 		Channel:    m.Channel,
 	}
 }
