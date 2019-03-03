@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/textproto"
 	"strings"
@@ -29,6 +30,20 @@ var (
 
 	// ErrLoginAuthenticationFailed returned from Connect() when either the wrong or a malformed oauth token is used
 	ErrLoginAuthenticationFailed = errors.New("login authentication failed")
+
+	// ErrConnectionIsNotOpen is returned by Disconnect in case you call it without being connected
+	ErrConnectionIsNotOpen = errors.New("connection is not open")
+
+	// WriteBufferSize can be modified to change the write channel buffer size. Must be configured before NewClient is called to take effect
+	WriteBufferSize = 512
+
+	// ReadBufferSize can be modified to change the read channel buffer size. Must be configured before NewClient is called to take effect
+	ReadBufferSize = 64
+)
+
+// Internal errors
+var (
+	errReconnect = errors.New("reconnect")
 )
 
 // User data you receive from TMI
@@ -101,10 +116,9 @@ type Client struct {
 	ircUser                string
 	ircToken               string
 	TLS                    bool
-	connection             net.Conn
 	connActive             tAtomBool
-	disconnected           tAtomBool
 	channels               map[string]bool
+	channelUserlistMutex   *sync.RWMutex
 	channelUserlist        map[string]map[string]bool
 	channelsMtx            *sync.RWMutex
 	onConnect              func()
@@ -120,8 +134,20 @@ type Client struct {
 	onNewUnsetMessage      func(message RawMessage)
 	onNewErrorMessage      func(message RawMessage)
 
-	// pingerRunning indicates whether the pinger go-routine is running or not
-	pingerRunning tAtomBool
+	onPingSent     func()
+	onPongReceived func()
+
+	// read is the incoming messages channel, normally buffered with ReadBufferSize
+	read chan (string)
+
+	// write is the outgoing messages channel, normally buffered with WriteBufferSize
+	write chan (string)
+
+	// clientReconnect is closed whenever the client needs to reconnect for connection issue reasons
+	clientReconnect chanCloser
+
+	// userDisconnect is closed when the user calls Disconnect
+	userDisconnect chanCloser
 
 	// pongReceived is listened to by the pinger go-routine after it has sent off a ping. will be triggered by handleLine
 	pongReceived chan bool
@@ -155,12 +181,17 @@ func NewClient(username, oauth string) *Client {
 		channels:        map[string]bool{},
 		channelUserlist: map[string]map[string]bool{},
 		channelsMtx:     &sync.RWMutex{},
-		pongReceived:    make(chan bool),
 		messageReceived: make(chan bool),
 
+		read:  make(chan string, ReadBufferSize),
+		write: make(chan string, WriteBufferSize),
+
+		// NOTE: IdlePingInterval must be higher than PongTimeout
 		SendPings:        true,
 		IdlePingInterval: time.Second * 15,
 		PongTimeout:      time.Second * 5,
+
+		channelUserlistMutex: &sync.RWMutex{},
 	}
 }
 
@@ -222,6 +253,15 @@ func (c *Client) OnNewUnsetMessage(callback func(message RawMessage)) {
 // OnNewErrorMessage attaches callback to messages that didn't parse properly. Should only be used if you're debugging the message parsing.
 func (c *Client) OnNewErrorMessage(callback func(message RawMessage)) {
 	c.onNewErrorMessage = callback
+
+// OnPingSent attaches callback that's called whenever the client sends out a ping message
+func (c *Client) OnPingSent(callback func()) {
+	c.onPingSent = callback
+}
+
+// OnPongReceived attaches callback that's called whenever the client receives a pong to one of its previously sent out ping messages
+func (c *Client) OnPongReceived(callback func()) {
+	c.onPongReceived = callback
 }
 
 // Say write something in a chat
@@ -251,7 +291,9 @@ func (c *Client) Join(channel string) {
 	}
 
 	c.channels[channel] = true
+	c.channelUserlistMutex.Lock()
 	c.channelUserlist[channel] = map[string]bool{}
+	c.channelUserlistMutex.Unlock()
 	c.channelsMtx.Unlock()
 }
 
@@ -263,18 +305,21 @@ func (c *Client) Depart(channel string) {
 
 	c.channelsMtx.Lock()
 	delete(c.channels, channel)
+	c.channelUserlistMutex.Lock()
 	delete(c.channelUserlist, channel)
+	c.channelUserlistMutex.Unlock()
 	c.channelsMtx.Unlock()
 }
 
 // Disconnect close current connection
 func (c *Client) Disconnect() error {
-	c.connActive.set(false)
-	c.disconnected.set(true)
-	if c.connection != nil {
-		return c.connection.Close()
+	if !c.connActive.get() {
+		return ErrConnectionIsNotOpen
 	}
-	return errors.New("connection not open")
+
+	c.userDisconnect.Close()
+
+	return nil
 }
 
 // Connect connect the client to the irc server
@@ -284,8 +329,6 @@ func (c *Client) Connect() error {
 	} else if c.IrcAddress == "" && !c.TLS {
 		c.IrcAddress = ircTwitch
 	}
-
-	c.disconnected.set(false)
 
 	dialer := &net.Dialer{
 		KeepAlive: time.Second * 10,
@@ -300,36 +343,72 @@ func (c *Client) Connect() error {
 	} else {
 		conf = &tls.Config{}
 	}
+
 	for {
-		if c.disconnected.get() {
-			return ErrClientDisconnected
-		}
+		err := c.makeConnection(dialer, conf)
 
-		var err error
-		if c.TLS {
-			c.connection, err = tls.DialWithDialer(dialer, "tcp", c.IrcAddress, conf)
-		} else {
-			c.connection, err = dialer.Dial("tcp", c.IrcAddress)
-		}
-		if err != nil {
-			return err
-		}
-
-		go c.setupConnection()
-
-		err = c.readConnection(c.connection)
-		if err != nil {
-			if err == ErrLoginAuthenticationFailed {
-				return err
-			}
-			time.Sleep(time.Millisecond * 200)
+		switch err {
+		case errReconnect:
 			continue
+
+		default:
+			return err
 		}
 	}
 }
 
+func (c *Client) makeConnection(dialer *net.Dialer, conf *tls.Config) (err error) {
+	var conn net.Conn
+	if c.TLS {
+		conn, err = tls.DialWithDialer(dialer, "tcp", c.IrcAddress, conf)
+	} else {
+		conn, err = dialer.Dial("tcp", c.IrcAddress)
+	}
+	if err != nil {
+		return
+	}
+
+	wg := sync.WaitGroup{}
+	c.clientReconnect.Reset()
+	c.userDisconnect.Reset()
+
+	// Start the connection reader in a separate go-routine
+	wg.Add(1)
+	go c.startReader(conn, &wg)
+
+	if c.SendPings {
+		// If SendPings is true (which it is by default), start the thread
+		// responsible for managing sending pings and reading pongs
+		// in a separate go-routine
+		wg.Add(1)
+		c.startPinger(conn, &wg)
+	}
+
+	// Send the initial connection messages (like logging in, getting the CAP REQ stuff)
+	c.setupConnection(conn)
+
+	// Start the connection writer in a separate go-routine
+	wg.Add(1)
+	go c.startWriter(conn, &wg)
+
+	// start the parser in the same go-routine as makeConnection was called from
+	// the error returned from parser will be forwarded to the caller of makeConnection
+	// and that error will decide whether or not to reconnect
+	err = c.startParser()
+
+	conn.Close()
+	c.clientReconnect.Close()
+
+	// Wait for the reader, pinger, and writer to close
+	wg.Wait()
+
+	return
+}
+
 // Userlist returns the userlist for a given channel
 func (c *Client) Userlist(channel string) ([]string, error) {
+	c.channelUserlistMutex.RLock()
+	defer c.channelUserlistMutex.RUnlock()
 	usermap, ok := c.channelUserlist[channel]
 	if !ok || usermap == nil {
 		return nil, fmt.Errorf("Could not find userlist for channel '%s' in client", channel)
@@ -351,13 +430,19 @@ func (c *Client) SetIRCToken(ircToken string) {
 	c.ircToken = ircToken
 }
 
-func (c *Client) readConnection(conn net.Conn) error {
-	reader := bufio.NewReader(conn)
-	tp := textproto.NewReader(reader)
+func (c *Client) startReader(reader io.Reader, wg *sync.WaitGroup) {
+	defer func() {
+		c.clientReconnect.Close()
+
+		wg.Done()
+	}()
+
+	tp := textproto.NewReader(bufio.NewReader(reader))
+
 	for {
 		line, err := tp.ReadLine()
 		if err != nil {
-			return err
+			return
 		}
 		messages := strings.Split(line, "\r\n")
 		for _, msg := range messages {
@@ -367,63 +452,109 @@ func (c *Client) readConnection(conn net.Conn) error {
 				if c.onConnect != nil {
 					c.onConnect()
 				}
-				if c.SendPings && !c.pingerRunning.get() {
-					go c.startPinger()
+			}
+			c.read <- msg
+		}
+	}
+}
+
+func (c *Client) startPinger(closer io.Closer, wg *sync.WaitGroup) {
+	c.pongReceived = make(chan bool, 1)
+
+	go func() {
+		defer func() {
+			wg.Done()
+		}()
+
+		for {
+			select {
+			case <-c.clientReconnect.channel:
+				return
+
+			case <-c.userDisconnect.channel:
+				return
+
+			case <-c.messageReceived:
+				// Interrupt idle ping interval
+				continue
+
+			case <-time.After(c.IdlePingInterval):
+				if c.onPingSent != nil {
+					c.onPingSent()
+				}
+				c.send(pingMessage)
+
+				select {
+				case <-c.pongReceived:
+					// Received pong message within the time limit, we're good
+					if c.onPongReceived != nil {
+						c.onPongReceived()
+					}
+					continue
+
+				case <-time.After(c.PongTimeout):
+					// No pong message was received within the pong timeout, disconnect
+					c.clientReconnect.Close()
+					closer.Close()
 				}
 			}
-			if err = c.handleLine(msg); err != nil {
+		}
+	}()
+}
+
+func (c *Client) setupConnection(conn net.Conn) {
+	if c.SetupCmd != "" {
+		conn.Write([]byte(c.SetupCmd + "\r\n"))
+	}
+	conn.Write([]byte("PASS " + c.ircToken + "\r\n"))
+	conn.Write([]byte("NICK " + c.ircUser + "\r\n"))
+	conn.Write([]byte("CAP REQ :twitch.tv/tags\r\n"))
+	conn.Write([]byte("CAP REQ :twitch.tv/commands\r\n"))
+	conn.Write([]byte("CAP REQ :twitch.tv/membership\r\n"))
+}
+
+func (c *Client) startWriter(writer io.WriteCloser, wg *sync.WaitGroup) {
+	defer func() {
+		wg.Done()
+	}()
+	for {
+		select {
+		case <-c.clientReconnect.channel:
+			return
+
+		case <-c.userDisconnect.channel:
+			return
+
+		case msg := <-c.write:
+			_, err := writer.Write([]byte(msg + "\r\n"))
+			if err != nil {
+				// Attempt to re-send failed messages
+				c.write <- msg
+
+				writer.Close()
+				c.clientReconnect.Close()
+				return
+			}
+		}
+	}
+}
+
+func (c *Client) startParser() error {
+	for {
+		// reader
+		select {
+		case msg := <-c.read:
+			if err := c.handleLine(msg); err != nil {
 				return err
 			}
+
+		case <-c.clientReconnect.channel:
+			return errReconnect
+
+		case <-c.userDisconnect.channel:
+			return ErrClientDisconnected
 		}
 	}
-}
-
-func (c *Client) startPinger() {
-	c.pingerRunning.set(true)
-	defer func() {
-		c.pingerRunning.set(false)
-	}()
-
-	for c.connActive.get() {
-		select {
-		case <-c.messageReceived:
-			// Interrupt idle ping interval
-			continue
-
-		case <-time.After(c.IdlePingInterval):
-			// Idle ping interval has elapsed, check if we are in a position to send a ping
-			if !c.connActive.get() {
-				continue
-			}
-
-			if !c.send(pingMessage) {
-				continue
-			}
-
-			select {
-			case <-c.pongReceived:
-				// Received pong message within the time limit, we're good
-				continue
-
-			case <-time.After(c.PongTimeout):
-				// No pong message was received within the pong timeout, disconnect
-				if c.connActive.get() && c.connection != nil {
-					c.connection.Close()
-				}
-			}
-		}
-	}
-}
-
-func (c *Client) setupConnection() {
-	if c.SetupCmd != "" {
-		c.connection.Write([]byte(c.SetupCmd + "\r\n"))
-	}
-	c.connection.Write([]byte("PASS " + c.ircToken + "\r\n"))
-	c.connection.Write([]byte("NICK " + c.ircUser + "\r\n"))
-	c.connection.Write([]byte("CAP REQ :twitch.tv/tags\r\n"))
-	c.connection.Write([]byte("CAP REQ :twitch.tv/commands\r\n"))
-	c.connection.Write([]byte("CAP REQ :twitch.tv/membership\r\n"))
 }
 
 func (c *Client) initialJoins() {
@@ -436,16 +567,17 @@ func (c *Client) initialJoins() {
 }
 
 func (c *Client) send(line string) bool {
-	for i := 0; i < 1000; i++ {
-		if !c.connActive.get() {
-			time.Sleep(time.Millisecond * 2)
-			continue
-		}
-		_, err := c.connection.Write([]byte(line + "\r\n"))
-		return err == nil
+	select {
+	case c.write <- line:
+		return true
+	default:
+		return false
 	}
+}
 
-	return false
+// Returns how many messages are left in the send buffer. Only used in tests
+func (c *Client) sendBufferLength() int {
+	return len(c.write)
 }
 
 // Errors returned from handleLine break out of readConnections, which starts a reconnect
@@ -469,12 +601,10 @@ func (c *Client) handleLine(line string) error {
 	// Handle PONG
 	if line == expectedPongMessage {
 		// Received a pong that was sent by us
-		go func() {
-			select {
-			case c.pongReceived <- true:
-			default:
-			}
-		}()
+		select {
+		case c.pongReceived <- true:
+		default:
+		}
 
 		return nil
 	}
@@ -541,6 +671,7 @@ func (c *Client) handleLine(line string) error {
 		if strings.Contains(line, "tmi.twitch.tv JOIN") {
 			channel, username := parseJoinPart(line)
 
+			c.channelUserlistMutex.Lock()
 			if c.channelUserlist[channel] == nil {
 				c.channelUserlist[channel] = map[string]bool{}
 			}
@@ -549,6 +680,7 @@ func (c *Client) handleLine(line string) error {
 			if !ok && username != c.ircUser {
 				c.channelUserlist[channel][username] = true
 			}
+			c.channelUserlistMutex.Unlock()
 
 			if c.onUserJoin != nil {
 				c.onUserJoin(channel, username)
@@ -557,7 +689,9 @@ func (c *Client) handleLine(line string) error {
 		if strings.Contains(line, "tmi.twitch.tv PART") {
 			channel, username := parseJoinPart(line)
 
+			c.channelUserlistMutex.Lock()
 			delete(c.channelUserlist[channel], username)
+			c.channelUserlistMutex.Unlock()
 
 			if c.onUserPart != nil {
 				c.onUserPart(channel, username)
@@ -565,14 +699,16 @@ func (c *Client) handleLine(line string) error {
 		}
 		if strings.Contains(line, "tmi.twitch.tv RECONNECT") {
 			// https://dev.twitch.tv/docs/irc/commands/#reconnect-twitch-commands
-			return errors.New("reconnect requested from IRC")
+			return errReconnect
 		}
 		if strings.Contains(line, "353 "+c.ircUser) {
 			channel, users := parseNames(line)
 
+			c.channelUserlistMutex.Lock()
 			for _, user := range users {
 				c.channelUserlist[channel][user] = true
 			}
+			c.channelUserlistMutex.Unlock()
 		}
 		if strings.Contains(line, "tmi.twitch.tv NOTICE * :Login authentication failed") ||
 			strings.Contains(line, "tmi.twitch.tv NOTICE * :Improperly formatted auth") ||
@@ -600,4 +736,28 @@ func (b *tAtomBool) get() bool {
 		return true
 	}
 	return false
+}
+
+// chanCloser is a helper function for abusing channels for notifications
+// this is an easy "notify many" channel
+type chanCloser struct {
+	mutex sync.Mutex
+
+	o       *sync.Once
+	channel chan (struct{})
+}
+
+func (c *chanCloser) Reset() {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.o = &sync.Once{}
+	c.channel = make(chan (struct{}))
+}
+
+func (c *chanCloser) Close() {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.o.Do(func() {
+		close(c.channel)
+	})
 }
