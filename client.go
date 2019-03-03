@@ -53,14 +53,14 @@ type WhisperMessage struct {
 
 // PrivateMessage data you receive from PRIVMSG message type
 type PrivateMessage struct {
-	chatMessage
+	tmiMessage
 	userMessage
 	Bits int
 }
 
 // ClearChatMessage data you receive from CLEARCHAT message type
 type ClearChatMessage struct {
-	chatMessage
+	tmiMessage
 	MsgID          string // Clear, Ban, Timeout
 	BanDuration    int
 	TargetUserID   string
@@ -76,7 +76,7 @@ type RoomStateMessage struct {
 
 // UserNoticeMessage  data you receive from USERNOTICE message type
 type UserNoticeMessage struct {
-	chatMessage
+	tmiMessage
 	userMessage
 	MsgID     string
 	MsgParams map[string]interface{}

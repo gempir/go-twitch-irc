@@ -48,8 +48,7 @@ type roomMessage struct {
 	RoomID string
 }
 
-// Unsure of a better name, but this isn't entirely descriptive of the contents
-type chatMessage struct {
+type tmiMessage struct {
 	roomMessage
 	ID   string // Not in CLEARCHAT
 	Time time.Time
@@ -194,7 +193,7 @@ func (m *message) parseWhisperMessage() (*User, *WhisperMessage) {
 
 func (m *message) parsePrivateMessage() (*User, *PrivateMessage) {
 	privateMessage := PrivateMessage{
-		chatMessage: *m.parseChatMessage(),
+		tmiMessage:  *m.parseTMIMessage(),
 		userMessage: *m.parseUserMessage(),
 	}
 
@@ -214,7 +213,7 @@ func (m *message) parsePrivateMessage() (*User, *PrivateMessage) {
 
 func (m *message) parseClearChatMessage() *ClearChatMessage {
 	clearchatMessage := ClearChatMessage{
-		chatMessage:  *m.parseChatMessage(),
+		tmiMessage:   *m.parseTMIMessage(),
 		MsgID:        "Clear",
 		TargetUserID: m.RawMessage.Tags["target-user-id"],
 	}
@@ -268,7 +267,7 @@ func (m *RoomStateMessage) addState(tag string) {
 
 func (m *message) parseUserNoticeMessage() (*User, *UserNoticeMessage) {
 	usernoticeMessage := UserNoticeMessage{
-		chatMessage: *m.parseChatMessage(),
+		tmiMessage:  *m.parseTMIMessage(),
 		userMessage: *m.parseUserMessage(),
 		MsgID:       m.RawMessage.Tags["msg-id"],
 	}
@@ -378,8 +377,8 @@ func (m *message) parseBadges() map[string]int {
 	return badges
 }
 
-func (m *message) parseChatMessage() *chatMessage {
-	chatMessage := chatMessage{
+func (m *message) parseTMIMessage() *tmiMessage {
+	chatMessage := tmiMessage{
 		roomMessage: *m.parseRoomMessage(),
 		ID:          m.RawMessage.Tags["id"],
 	}
