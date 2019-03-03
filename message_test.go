@@ -258,14 +258,14 @@ func TestCanParseUSERNOTICESubMessage(t *testing.T) {
 
 	assertStringsEqual(t, "sub", usernoticeMessage.MsgID)
 
-	expectedParams := map[string]interface{}{
-		"msg-param-cumulative-months":   0,
-		"msg-param-months":              0,
-		"msg-param-should-share-streak": false,
+	expectedParams := map[string]string{
+		"msg-param-cumulative-months":   "0",
+		"msg-param-months":              "0",
+		"msg-param-should-share-streak": "0",
 		"msg-param-sub-plan-name":       "The Whatevas",
 		"msg-param-sub-plan":            "Prime",
 	}
-	assertStringInterfaceMapsEqual(t, expectedParams, usernoticeMessage.MsgParams)
+	assertStringMapsEqual(t, expectedParams, usernoticeMessage.MsgParams)
 
 	assertStringsEqual(t, "fletchercodes subscribed with Twitch Prime.", usernoticeMessage.SystemMsg)
 }
@@ -278,17 +278,17 @@ func TestCanParseUSERNOTICESubGiftMessage(t *testing.T) {
 
 	assertStringsEqual(t, "subgift", usernoticeMessage.MsgID)
 
-	expectedParams := map[string]interface{}{
-		"msg-param-months":                 1,
+	expectedParams := map[string]string{
+		"msg-param-months":                 "1",
 		"msg-param-origin-id":              "da 39 a3 ee 5e 6b 4b 0d 32 55 bf ef 95 60 18 90 af d8 07 09",
 		"msg-param-recipient-display-name": "NSFletcher",
 		"msg-param-recipient-id":           "418105091",
 		"msg-param-recipient-user-name":    "nsfletcher",
-		"msg-param-sender-count":           0,
+		"msg-param-sender-count":           "0",
 		"msg-param-sub-plan-name":          "Channel Subscription (clippyassistant)",
 		"msg-param-sub-plan":               "1000",
 	}
-	assertStringInterfaceMapsEqual(t, expectedParams, usernoticeMessage.MsgParams)
+	assertStringMapsEqual(t, expectedParams, usernoticeMessage.MsgParams)
 
 	assertStringsEqual(t, "FletcherCodes gifted a Tier 1 sub to NSFletcher!", usernoticeMessage.SystemMsg)
 }
@@ -301,15 +301,15 @@ func TestCanParseUSERNOTICEAnonymousGiftSubMessage(t *testing.T) {
 
 	assertStringsEqual(t, "anonsubgift", usernoticeMessage.MsgID)
 
-	expectedParams := map[string]interface{}{
-		"msg-param-months":                 3,
+	expectedParams := map[string]string{
+		"msg-param-months":                 "3",
 		"msg-param-recipient-display-name": "TenureCalculator", // Maybe create a target User
 		"msg-param-recipient-id":           "135054130",
 		"msg-param-recipient-user-name":    "tenurecalculator",
 		"msg-param-sub-plan-name":          "t111",
 		"msg-param-sub-plan":               "1000",
 	}
-	assertStringInterfaceMapsEqual(t, expectedParams, usernoticeMessage.MsgParams)
+	assertStringMapsEqual(t, expectedParams, usernoticeMessage.MsgParams)
 
 	assertStringsEqual(t, "An anonymous user gifted a Tier 1 sub to TenureCalculator!", usernoticeMessage.SystemMsg)
 }
@@ -322,13 +322,13 @@ func TestCanParseUSERNOTICERaidMessage(t *testing.T) {
 
 	assertStringsEqual(t, "raid", usernoticeMessage.MsgID)
 
-	expectedParams := map[string]interface{}{
+	expectedParams := map[string]string{
 		"msg-param-displayName":     "FletcherCodes",
 		"msg-param-login":           "fletchercodes",
 		"msg-param-profileImageURL": "https://static-cdn.jtvnw.net/jtv_user_pictures/herr_currywurst-profile_image-e6c037c9d321b955-70x70.jpeg",
-		"msg-param-viewerCount":     538,
+		"msg-param-viewerCount":     "538",
 	}
-	assertStringInterfaceMapsEqual(t, expectedParams, usernoticeMessage.MsgParams)
+	assertStringMapsEqual(t, expectedParams, usernoticeMessage.MsgParams)
 
 	assertStringsEqual(t, "538 raiders from FletcherCodes have joined!", usernoticeMessage.SystemMsg)
 }
@@ -341,8 +341,8 @@ func TestCanParseUSERNOTICEUnraidMessage(t *testing.T) {
 
 	assertStringsEqual(t, "unraid", usernoticeMessage.MsgID)
 
-	expectedParams := map[string]interface{}{}
-	assertStringInterfaceMapsEqual(t, expectedParams, usernoticeMessage.MsgParams)
+	expectedParams := map[string]string{}
+	assertStringMapsEqual(t, expectedParams, usernoticeMessage.MsgParams)
 
 	assertStringsEqual(t, "The raid has been cancelled.", usernoticeMessage.SystemMsg)
 }
@@ -357,10 +357,10 @@ func TestCanParseUSERNOTICERitualMessage(t *testing.T) {
 
 	assertStringsEqual(t, "ritual", usernoticeMessage.MsgID)
 
-	expectedParams := map[string]interface{}{
+	expectedParams := map[string]string{
 		"msg-param-ritual-name": "new_chatter",
 	}
-	assertStringInterfaceMapsEqual(t, expectedParams, usernoticeMessage.MsgParams)
+	assertStringMapsEqual(t, expectedParams, usernoticeMessage.MsgParams)
 
 	assertStringsEqual(t, "@FletcherCodes is new here. Say hello!", usernoticeMessage.SystemMsg)
 }

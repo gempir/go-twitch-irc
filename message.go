@@ -270,9 +270,14 @@ func (m *message) parseUserNoticeMessage() (*User, *UserNoticeMessage) {
 		tmiMessage:  *m.parseTMIMessage(),
 		userMessage: *m.parseUserMessage(),
 		MsgID:       m.RawMessage.Tags["msg-id"],
+		MsgParams:   make(map[string]string),
 	}
 
-	usernoticeMessage.parseMsgParams()
+	for tag, value := range usernoticeMessage.Tags {
+		if strings.Contains(tag, "msg-param") {
+			usernoticeMessage.MsgParams[tag] = strings.ReplaceAll(value, "\\s", " ")
+		}
+	}
 
 	rawSystemMsg, ok := usernoticeMessage.Tags["system-msg"]
 	if ok {
@@ -282,45 +287,6 @@ func (m *message) parseUserNoticeMessage() (*User, *UserNoticeMessage) {
 	}
 
 	return m.parseUser(), &usernoticeMessage
-}
-
-func (m *UserNoticeMessage) parseMsgParams() {
-	m.MsgParams = make(map[string]interface{})
-
-	for tag, value := range m.Tags {
-		if strings.Contains(tag, "msg-param") {
-			m.MsgParams[tag] = strings.ReplaceAll(value, "\\s", " ")
-		}
-	}
-
-	m.paramToInt("msg-param-bits-amount")
-	m.paramToInt("msg-param-cumulative-months")
-	m.paramToInt("msg-param-mass-gift-count")
-	m.paramToInt("msg-param-months")
-	m.paramToInt("msg-param-selected-count")
-	m.paramToInt("msg-param-sender-count")
-	m.paramToBool("msg-param-should-share-streak")
-	m.paramToInt("msg-param-streak-months")
-	m.paramToInt("msg-param-threshold")
-	m.paramToInt("msg-param-viewerCount")
-}
-
-func (m *UserNoticeMessage) paramToBool(tag string) {
-	rawValue, ok := m.MsgParams[tag]
-	if !ok {
-		return
-	}
-
-	m.MsgParams[tag] = rawValue.(string) == "1"
-}
-
-func (m *UserNoticeMessage) paramToInt(tag string) {
-	rawValue, ok := m.MsgParams[tag]
-	if !ok {
-		return
-	}
-
-	m.MsgParams[tag], _ = strconv.Atoi(rawValue.(string))
 }
 
 func (m *message) parseUserStateMessage() (*User, *UserStateMessage) {

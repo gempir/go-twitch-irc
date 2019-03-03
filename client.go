@@ -79,7 +79,7 @@ type UserNoticeMessage struct {
 	tmiMessage
 	userMessage
 	MsgID     string
-	MsgParams map[string]interface{}
+	MsgParams map[string]string
 	SystemMsg string
 }
 

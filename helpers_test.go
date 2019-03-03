@@ -1,7 +1,6 @@
 package twitch
 
 import (
-	"reflect"
 	"testing"
 )
 
@@ -51,6 +50,29 @@ func assertStringSlicesEqual(t *testing.T, expected, actual []string) {
 	}
 }
 
+func assertStringMapsEqual(t *testing.T, expected, actual map[string]string) {
+	if actual == nil {
+		t.Errorf("actual map was nil")
+	}
+
+	if len(expected) != len(actual) {
+		t.Errorf("actual map was not the same length as the expected map")
+	}
+
+	for key, want := range expected {
+		got, ok := actual[key]
+		if !ok {
+			t.Errorf("actual map doesn't contain key \"%s\"", key)
+			continue
+		}
+
+		if want != got {
+			t.Errorf("actual map value \"%s\" was not equal to expected value \"%s\" in key \"%s\"", got, want, key)
+			continue
+		}
+	}
+}
+
 func assertStringIntMapsEqual(t *testing.T, expected, actual map[string]int) {
 	if actual == nil {
 		t.Errorf("actual map was nil")
@@ -69,33 +91,6 @@ func assertStringIntMapsEqual(t *testing.T, expected, actual map[string]int) {
 
 		if v != got {
 			t.Errorf("actual map value \"%d\" was not equal to expected value \"%d\" in key \"%s\"", got, v, k)
-			continue
-		}
-	}
-}
-
-func assertStringInterfaceMapsEqual(t *testing.T, expected, actual map[string]interface{}) {
-	if actual == nil {
-		t.Errorf("actual map was nil")
-	}
-
-	if len(expected) != len(actual) {
-		t.Errorf("actual map was not the same length as the expected map")
-	}
-
-	for key, want := range expected {
-		got, ok := actual[key]
-		if !ok {
-			t.Errorf("actual map doesn't contain key \"%s\"", key)
-			continue
-		}
-
-		if reflect.TypeOf(want) != reflect.TypeOf(got) {
-			t.Errorf("actual map value was not the same type as expected value in key \"%s\"", key)
-		}
-
-		if want != got {
-			t.Errorf("actual map value \"%d\" was not equal to expected value \"%d\" in key \"%s\"", got, want, key)
 			continue
 		}
 	}
