@@ -870,8 +870,8 @@ func TestCanGetUserlist(t *testing.T) {
 
 	client.Join("channel123")
 
-	client.OnNewMessage(func(channel string, user User, message Message) {
-		if message.Text == "ok go now" {
+	client.OnNewMessage(func(user User, message PrivateMessage) {
+		if message.Message == "ok go now" {
 			// test a valid channel
 			got, err := client.Userlist("channel123")
 			if err != nil {
