@@ -275,14 +275,14 @@ func (m *message) parseUserNoticeMessage() (*User, *UserNoticeMessage) {
 
 	for tag, value := range usernoticeMessage.Tags {
 		if strings.Contains(tag, "msg-param") {
-			usernoticeMessage.MsgParams[tag] = strings.ReplaceAll(value, "\\s", " ")
+			usernoticeMessage.MsgParams[tag] = strings.Replace(value, "\\s", " ", -1)
 		}
 	}
 
 	rawSystemMsg, ok := usernoticeMessage.Tags["system-msg"]
 	if ok {
-		rawSystemMsg = strings.ReplaceAll(rawSystemMsg, "\\s", " ")
-		rawSystemMsg = strings.ReplaceAll(rawSystemMsg, "\\n", "")
+		rawSystemMsg = strings.Replace(rawSystemMsg, "\\s", " ", -1)
+		rawSystemMsg = strings.Replace(rawSystemMsg, "\\n", "", -1)
 		usernoticeMessage.SystemMsg = strings.TrimSpace(rawSystemMsg)
 	}
 
