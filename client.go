@@ -253,6 +253,7 @@ func (c *Client) OnNewUnsetMessage(callback func(message RawMessage)) {
 // OnNewErrorMessage attaches callback to messages that didn't parse properly. Should only be used if you're debugging the message parsing.
 func (c *Client) OnNewErrorMessage(callback func(message RawMessage)) {
 	c.onNewErrorMessage = callback
+}
 
 // OnPingSent attaches callback that's called whenever the client sends out a ping message
 func (c *Client) OnPingSent(callback func()) {
