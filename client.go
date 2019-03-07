@@ -311,6 +311,7 @@ func (c *Client) Connect() error {
 }
 
 func (c *Client) makeConnection(dialer *net.Dialer, conf *tls.Config) (err error) {
+	c.connActive.set(false)
 	var conn net.Conn
 	if c.TLS {
 		conn, err = tls.DialWithDialer(dialer, "tcp", c.IrcAddress, conf)
