@@ -667,6 +667,31 @@ func TestCanReceiveUNSETMessage(t *testing.T) {
 	assertStringsEqual(t, testMessage, received)
 }
 
+func TestCanHandleERRORMessage(t *testing.T) {
+	testMessage := "@badges=;color=;display-name=ZZZi;emotes=;flags=;id=75bb6b6b-e36c-49af-a293-16024738ab92;mod=0;room-id=36029255;subscriber=0;tmi-sent-ts=1551476573570;turbo"
+
+	wait := make(chan struct{})
+	var received string
+
+	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
+	client := newTestClient(host)
+
+	client.OnNewErrorMessage(func(rawMessage RawMessage) {
+		received = rawMessage.Raw
+		close(wait)
+	})
+
+	go client.Connect()
+
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no message sent")
+	}
+
+	assertStringsEqual(t, testMessage, received)
+}
+
 func TestCanHandleRECONNECTMessage(t *testing.T) {
 	t.Parallel()
 	const testMessage = ":tmi.twitch.tv RECONNECT"

@@ -88,7 +88,7 @@ func parseMessage(line string) *message {
 
 	// Sometimes Twitch can fail to send the full value
 	// @badges=;color=;display-name=ZZZi;emotes=;flags=;id=75bb6b6b-e36c-49af-a293-16024738ab92;mod=0;room-id=36029255;subscriber=0;tmi-sent-ts=1551476573570;turbo
-	if len(split) == 1 {
+	if len(split) < 2 {
 		return &message{
 			RawMessage: rawMessage{
 				Type:    ERROR,
@@ -184,8 +184,7 @@ func (m *message) parseWhisperMessage() (*User, *WhisperMessage) {
 	}
 
 	if whisperMessage.Action {
-		// Remove "\u0001ACTION" from the beginning and "\u0001" from the end
-		whisperMessage.Message = whisperMessage.Message[8 : len(whisperMessage.Message)-1]
+		whisperMessage.Message = strings.TrimPrefix(whisperMessage.Message, "/me")
 	}
 
 	return m.parseUser(), &whisperMessage
@@ -378,7 +377,7 @@ func (m *message) parseUserMessage() *userMessage {
 	}
 
 	text := m.RawMessage.Message
-	if strings.HasPrefix(text, "\u0001ACTION") && strings.HasSuffix(text, "\u0001") {
+	if strings.HasPrefix(text, "\u0001ACTION") && strings.HasSuffix(text, "\u0001") || strings.HasPrefix(text, "/me") {
 		userMessage.Action = true
 	}
 

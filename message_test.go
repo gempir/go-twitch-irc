@@ -20,6 +20,17 @@ func TestCantParseInvalidMessage(t *testing.T) {
 	assertStringsEqual(t, "", message.RawMessage.Message)
 }
 
+func TestCantParsePartialMessage(t *testing.T) {
+	testMessage := "@badges=;color=;display-name=ZZZi;emotes=;flags=;id=75bb6b6b-e36c-49af-a293-16024738ab92;mod=0;room-id=36029255;subscriber=0;tmi-sent-ts=1551476573570;turbo"
+
+	message := parseMessage(testMessage)
+
+	if message.RawMessage.Type != ERROR {
+		t.Error("parsing message type failed")
+	}
+	assertStringsEqual(t, testMessage, message.RawMessage.Message)
+}
+
 func TestCanParseRawMessage(t *testing.T) {
 	testMessage := "@badges=premium/1;color=#DAA520;display-name=FletcherCodes;emotes=;flags=;id=6efffc70-27a1-4637-9111-44e5104bb7da;mod=0;room-id=408892348;subscriber=0;tmi-sent-ts=1551473087761;turbo=0;user-id=269899575;user-type= :fletchercodes!fletchercodes@fletchercodes.tmi.twitch.tv PRIVMSG #clippyassistant :Chew your food slower... it's healthier"
 
@@ -65,6 +76,15 @@ func TestCanParseWHISPERMessage(t *testing.T) {
 	assertFalse(t, whisperMessage.Action, "parsing action failed")
 }
 
+func TestCanParseWHISPERActionMessage(t *testing.T) {
+	testMessage := "@badges=;color=#1E90FF;display-name=FletcherCodes;emotes=;message-id=50;thread-id=269899575_408892348;turbo=0;user-id=269899575;user-type= :fletchercodes!fletchercodes@fletchercodes.tmi.twitch.tv WHISPER clippyassistant :/me tests whisper action"
+
+	message := parseMessage(testMessage)
+	_, whisperMessage := message.parseWhisperMessage()
+
+	assertTrue(t, whisperMessage.Action, "parsing Action failed")
+}
+
 func TestCanParsePRIVMSGMessage(t *testing.T) {
 	testMessage := "@badges=premium/1;color=#DAA520;display-name=FletcherCodes;emotes=;flags=;id=6efffc70-27a1-4637-9111-44e5104bb7da;mod=0;room-id=408892348;subscriber=0;tmi-sent-ts=1551473087761;turbo=0;user-id=269899575;user-type= :fletchercodes!fletchercodes@fletchercodes.tmi.twitch.tv PRIVMSG #clippyassistant :Chew your food slower... it's healthier"
 
@@ -99,7 +119,7 @@ func TestCanParsePRIVMSGMessage(t *testing.T) {
 	assertIntsEqual(t, 0, privateMessage.Bits)
 }
 
-func TestCanParseActionMessage(t *testing.T) {
+func TestCanParsePRIVMSGActionMessage(t *testing.T) {
 	testMessage := "@badges=premium/1;color=#DAA520;display-name=FletcherCodes;emotes=;flags=;id=6efffc70-27a1-4637-9111-44e5104bb7da;mod=0;room-id=408892348;subscriber=0;tmi-sent-ts=1551473087761;turbo=0;user-id=269899575;user-type= :fletchercodes!fletchercodes@fletchercodes.tmi.twitch.tv PRIVMSG #clippyassistant :\u0001ACTION Thrashh5, FeelsWayTooAmazingMan kinda\u0001"
 
 	message := parseMessage(testMessage)
