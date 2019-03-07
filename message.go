@@ -169,7 +169,7 @@ func parseTags(tagsRaw string) map[string]string {
 
 		var value string
 		if len(tag) > 1 {
-			value = tag[1]
+			value = strings.Replace(tag[1], "\\s", " ", -1)
 		}
 
 		tags[tag[0]] = value
