@@ -10,8 +10,6 @@ import (
 type MessageType int
 
 const (
-	// ERROR is for messages that didn't parse properly
-	ERROR MessageType = -2
 	// UNSET is for message types we currently don't support
 	UNSET MessageType = -1
 	// WHISPER private messages
@@ -37,77 +35,30 @@ type Emote struct {
 	Count int
 }
 
-// message is purely for internal use
-type message struct {
-	RawMessage rawMessage
-	Channel    string
-	Username   string
-}
-
-func parseMessage(line string) *message {
-	if !strings.HasPrefix(line, "@") {
-		return &message{
-			RawMessage: rawMessage{
-				Type:    UNSET,
-				Raw:     line,
-				Message: line,
-			},
-		}
+func parseMessage(line string) (*User, interface{}) {
+	ircMessage, err := parseIRCMessage(line)
+	if err != nil {
+		return nil, parseRawMessage(ircMessage)
 	}
 
-	split := strings.SplitN(line, " :", 3)
-
-	// Sometimes Twitch can fail to send the full value
-	// @badges=;color=;display-name=ZZZi;emotes=;flags=;id=75bb6b6b-e36c-49af-a293-16024738ab92;mod=0;room-id=36029255;subscriber=0;tmi-sent-ts=1551476573570;turbo
-	if len(split) < 2 {
-		return &message{
-			RawMessage: rawMessage{
-				Type:    ERROR,
-				Raw:     line,
-				Message: line,
-			},
-		}
+	switch ircMessage.Command {
+	case "WHISPER":
+		return parseUser(ircMessage), parseWhisperMessage(ircMessage)
+	case "PRIVMSG":
+		return parseUser(ircMessage), parsePrivateMessage(ircMessage)
+	case "CLEARCHAT":
+		return nil, parseClearChatMessage(ircMessage)
+	case "ROOMSTATE":
+		return nil, parseRoomStateMessage(ircMessage)
+	case "USERNOTICE":
+		return parseUser(ircMessage), parseUserNoticeMessage(ircMessage)
+	case "USERSTATE":
+		return parseUser(ircMessage), parseUserStateMessage(ircMessage)
+	case "NOTICE":
+		return nil, parseNoticeMessage(ircMessage)
+	default:
+		return nil, parseRawMessage(ircMessage)
 	}
-
-	// If there is only two values, message is empty. Fill it with a blank string so we can assign it to rawMessage.
-	if len(split) == 2 {
-		for i := 0; i < 3-len(split); i++ {
-			split = append(split, "")
-		}
-	}
-
-	rawType, channel, username := parseMiddle(split[1])
-
-	rawMessage := rawMessage{
-		Type:    parseMessageType(rawType),
-		RawType: rawType,
-		Raw:     line,
-		Tags:    parseTags(split[0]),
-		Message: split[2],
-	}
-
-	return &message{
-		Channel:    channel,
-		Username:   username,
-		RawMessage: rawMessage,
-	}
-}
-
-func parseMiddle(middle string) (string, string, string) {
-	var rawType, channel, username string
-
-	for i, v := range strings.SplitN(middle, " ", 3) {
-		switch {
-		case i == 1:
-			rawType = v
-		case strings.Contains(v, "!"):
-			username = strings.SplitN(v, "!", 2)[0]
-		case strings.Contains(v, "#"):
-			channel = strings.TrimPrefix(v, "#")
-		}
-	}
-
-	return rawType, channel, username
 }
 
 func parseMessageType(messageType string) MessageType {
@@ -131,254 +82,266 @@ func parseMessageType(messageType string) MessageType {
 	}
 }
 
-func parseTags(tagsRaw string) map[string]string {
-	tags := make(map[string]string)
-
-	tagsRaw = strings.TrimPrefix(tagsRaw, "@")
-	for _, v := range strings.Split(tagsRaw, ";") {
-		tag := strings.SplitN(v, "=", 2)
-
-		var value string
-		if len(tag) > 1 {
-			value = strings.Replace(tag[1], "\\s", " ", -1)
-		}
-
-		tags[tag[0]] = value
-	}
-	return tags
-}
-
-func (m *message) parseWhisperMessage() (*User, *WhisperMessage) {
-	whisperMessage := WhisperMessage{
-		rawMessage:  m.RawMessage,
-		userMessage: *m.parseUserMessage(),
-	}
-
-	if whisperMessage.Action {
-		whisperMessage.Message = strings.TrimPrefix(whisperMessage.Message, "/me")
-	}
-
-	return m.parseUser(), &whisperMessage
-}
-
-func (m *message) parsePrivateMessage() (*User, *PrivateMessage) {
-	privateMessage := PrivateMessage{
-		tmiMessage:  *m.parseTMIMessage(),
-		userMessage: *m.parseUserMessage(),
-	}
-
-	if privateMessage.Action {
-		// Remove "\u0001ACTION" from the beginning and "\u0001" from the end
-		privateMessage.Message = privateMessage.Message[8 : len(privateMessage.Message)-1]
-	}
-
-	rawBits, ok := m.RawMessage.Tags["bits"]
-	if ok {
-		bits, _ := strconv.Atoi(rawBits)
-		privateMessage.Bits = bits
-	}
-
-	return m.parseUser(), &privateMessage
-}
-
-func (m *message) parseClearChatMessage() *ClearChatMessage {
-	clearchatMessage := ClearChatMessage{
-		tmiMessage:   *m.parseTMIMessage(),
-		MsgID:        "Clear",
-		TargetUserID: m.RawMessage.Tags["target-user-id"],
-	}
-
-	clearchatMessage.TargetUsername = clearchatMessage.Message
-	clearchatMessage.Message = ""
-
-	rawBanDuration, ok := m.RawMessage.Tags["ban-duration"]
-	if ok {
-		banDuration, _ := strconv.Atoi(rawBanDuration)
-		clearchatMessage.BanDuration = banDuration
-	}
-
-	if clearchatMessage.TargetUsername != "" {
-		clearchatMessage.MsgID = "Ban"
-	}
-
-	if clearchatMessage.BanDuration != 0 {
-		clearchatMessage.MsgID = "Timeout"
-	}
-
-	return &clearchatMessage
-}
-
-func (m *message) parseRoomStateMessage() *RoomStateMessage {
-	roomstateMessage := RoomStateMessage{
-		roomMessage: *m.parseRoomMessage(),
-		Language:    m.RawMessage.Tags["broadcaster-lang"],
-		State:       make(map[string]int),
-	}
-
-	roomstateMessage.addState("emote-only")
-	roomstateMessage.addState("followers-only")
-	roomstateMessage.addState("r9k")
-	roomstateMessage.addState("rituals")
-	roomstateMessage.addState("slow")
-	roomstateMessage.addState("subs-only")
-
-	return &roomstateMessage
-}
-
-func (m *RoomStateMessage) addState(tag string) {
-	rawValue, ok := m.Tags[tag]
-	if !ok {
-		return
-	}
-
-	value, _ := strconv.Atoi(rawValue)
-	m.State[tag] = value
-}
-
-func (m *message) parseUserNoticeMessage() (*User, *UserNoticeMessage) {
-	usernoticeMessage := UserNoticeMessage{
-		tmiMessage:  *m.parseTMIMessage(),
-		userMessage: *m.parseUserMessage(),
-		MsgID:       m.RawMessage.Tags["msg-id"],
-		MsgParams:   make(map[string]string),
-	}
-
-	for tag, value := range usernoticeMessage.Tags {
-		if strings.Contains(tag, "msg-param") {
-			usernoticeMessage.MsgParams[tag] = strings.Replace(value, "\\s", " ", -1)
-		}
-	}
-
-	rawSystemMsg, ok := usernoticeMessage.Tags["system-msg"]
-	if ok {
-		rawSystemMsg = strings.Replace(rawSystemMsg, "\\s", " ", -1)
-		rawSystemMsg = strings.Replace(rawSystemMsg, "\\n", "", -1)
-		usernoticeMessage.SystemMsg = strings.TrimSpace(rawSystemMsg)
-	}
-
-	return m.parseUser(), &usernoticeMessage
-}
-
-func (m *message) parseUserStateMessage() (*User, *UserStateMessage) {
-	userstateMessage := UserStateMessage{
-		channelMessage: *m.parseChannelMessage(),
-	}
-
-	rawEmoteSets, ok := userstateMessage.Tags["emote-sets"]
-	if ok {
-		userstateMessage.EmoteSets = strings.Split(rawEmoteSets, ",")
-	}
-
-	return m.parseUser(), &userstateMessage
-}
-
-func (m *message) parseNoticeMessage() *NoticeMessage {
-	return &NoticeMessage{
-		channelMessage: *m.parseChannelMessage(),
-		MsgID:          m.RawMessage.Tags["msg-id"],
-	}
-}
-
-func (m *message) parseUser() *User {
+func parseUser(message *ircMessage) *User {
 	user := User{
-		ID:          m.RawMessage.Tags["user-id"],
-		Name:        m.Username,
-		DisplayName: m.RawMessage.Tags["display-name"],
-		Color:       m.RawMessage.Tags["color"],
-		Badges:      m.parseBadges(),
+		ID:          message.Tags["user-id"],
+		Name:        message.Source.Username,
+		DisplayName: message.Tags["display-name"],
+		Color:       message.Tags["color"],
+		Badges:      make(map[string]int),
 	}
 
-	// USERSTATE doesn't contain a Username, but it does have a display-name tag.
-	if user.Name == "" {
+	if rawBadges := message.Tags["badges"]; rawBadges != "" {
+		user.Badges = parseBadges(rawBadges)
+	}
+
+	// USERSTATE doesn't contain a Username, but it does have a display-name tag
+	if user.Name == "" && user.DisplayName != "" {
 		user.Name = strings.ToLower(user.DisplayName)
+		user.Name = strings.Replace(user.Name, " ", "", 1)
 	}
 
 	return &user
 }
-func (m *message) parseBadges() map[string]int {
+
+func parseBadges(rawBadges string) map[string]int {
 	badges := make(map[string]int)
 
-	rawBadges, ok := m.RawMessage.Tags["badges"]
-	if ok {
-		for _, v := range strings.Split(rawBadges, ",") {
-			badge := strings.SplitN(v, "/", 2)
-			if len(badge) < 2 {
-				continue
-			}
-
-			badges[badge[0]], _ = strconv.Atoi(badge[1])
-		}
+	for _, badge := range strings.Split(rawBadges, ",") {
+		pair := strings.SplitN(badge, "/", 2)
+		badges[pair[0]], _ = strconv.Atoi(pair[1])
 	}
 
 	return badges
 }
 
-func (m *message) parseTMIMessage() *tmiMessage {
-	chatMessage := tmiMessage{
-		roomMessage: *m.parseRoomMessage(),
-		ID:          m.RawMessage.Tags["id"],
+func parseRawMessage(message *ircMessage) *RawMessage {
+	rawMessage := RawMessage{
+		Raw:     message.Raw,
+		Type:    parseMessageType(message.Command),
+		RawType: message.Command,
+		Tags:    message.Tags,
 	}
 
-	rawTime, err := strconv.ParseInt(m.RawMessage.Tags["tmi-sent-ts"], 10, 64)
-	if err != nil {
-		return &chatMessage
+	for i, v := range message.Params {
+		if !strings.Contains(v, "#") {
+			rawMessage.Message = strings.Join(message.Params[i:], " ")
+			break
+		}
 	}
 
-	chatMessage.Time = time.Unix(0, int64(rawTime*1e6))
-	return &chatMessage
+	return &rawMessage
 }
 
-func (m *message) parseRoomMessage() *roomMessage {
-	return &roomMessage{
-		channelMessage: *m.parseChannelMessage(),
-		RoomID:         m.RawMessage.Tags["room-id"],
+func parseWhisperMessage(message *ircMessage) *WhisperMessage {
+	whisperMessage := WhisperMessage{
+		Raw:       message.Raw,
+		Type:      parseMessageType(message.Command),
+		RawType:   message.Command,
+		Tags:      message.Tags,
+		MessageID: message.Tags["message-id"],
+		ThreadID:  message.Tags["thread-id"],
 	}
+
+	if len(message.Params) == 2 {
+		whisperMessage.Message = message.Params[1]
+	}
+
+	whisperMessage.Target = message.Params[0]
+	whisperMessage.Emotes = parseEmotes(message.Tags["emotes"], whisperMessage.Message)
+
+	if strings.Contains(whisperMessage.Message, "/me") {
+		whisperMessage.Message = strings.TrimPrefix(whisperMessage.Message, "/me")
+		whisperMessage.Action = true
+	}
+
+	return &whisperMessage
 }
 
-func (m *message) parseChannelMessage() *channelMessage {
-	return &channelMessage{
-		rawMessage: m.RawMessage,
-		Channel:    m.Channel,
+func parsePrivateMessage(message *ircMessage) *PrivateMessage {
+	privateMessage := PrivateMessage{
+		Raw:     message.Raw,
+		Type:    parseMessageType(message.Command),
+		RawType: message.Command,
+		Tags:    message.Tags,
+		RoomID:  message.Tags["room-id"],
+		ID:      message.Tags["id"],
+		Time:    parseTime(message.Tags["tmi-sent-ts"]),
 	}
+
+	if len(message.Params) == 2 {
+		privateMessage.Message = message.Params[1]
+	}
+
+	privateMessage.Channel = strings.TrimPrefix(message.Params[0], "#")
+	privateMessage.Emotes = parseEmotes(message.Tags["emotes"], privateMessage.Message)
+
+	rawBits, ok := message.Tags["bits"]
+	if ok {
+		bits, _ := strconv.Atoi(rawBits)
+		privateMessage.Bits = bits
+	}
+
+	text := privateMessage.Message
+	if strings.HasPrefix(text, "\u0001ACTION") && strings.HasSuffix(text, "\u0001") {
+		privateMessage.Message = text[8 : len(text)-1]
+		privateMessage.Action = true
+	}
+
+	return &privateMessage
 }
 
-func (m *message) parseUserMessage() *userMessage {
-	userMessage := userMessage{
-		Emotes: m.parseEmotes(),
+func parseClearChatMessage(message *ircMessage) *ClearChatMessage {
+	clearChatMessage := ClearChatMessage{
+		Raw:          message.Raw,
+		Type:         parseMessageType(message.Command),
+		RawType:      message.Command,
+		Tags:         message.Tags,
+		RoomID:       message.Tags["room-id"],
+		Time:         parseTime(message.Tags["tmi-sent-ts"]),
+		TargetUserID: message.Tags["target-user-id"],
 	}
 
-	text := m.RawMessage.Message
-	if strings.HasPrefix(text, "\u0001ACTION") && strings.HasSuffix(text, "\u0001") || strings.HasPrefix(text, "/me") {
-		userMessage.Action = true
+	clearChatMessage.Channel = strings.TrimPrefix(message.Params[0], "#")
+
+	rawBanDuration, ok := message.Tags["ban-duration"]
+	if ok {
+		duration, _ := strconv.Atoi(rawBanDuration)
+		clearChatMessage.BanDuration = duration
 	}
 
-	return &userMessage
+	if len(message.Params) == 2 {
+		clearChatMessage.TargetUsername = message.Params[1]
+	}
+
+	return &clearChatMessage
 }
 
-func (m *message) parseEmotes() []*Emote {
+func parseRoomStateMessage(message *ircMessage) *RoomStateMessage {
+	roomStateMessage := RoomStateMessage{
+		Raw:     message.Raw,
+		Type:    parseMessageType(message.Command),
+		RawType: message.Command,
+		Tags:    message.Tags,
+		RoomID:  message.Tags["room-id"],
+		State:   make(map[string]int),
+	}
+
+	roomStateMessage.Channel = strings.TrimPrefix(message.Params[0], "#")
+
+	stateTags := []string{"emote-only", "followers-only", "r9k", "rituals", "slow", "subs-only"}
+	for _, tag := range stateTags {
+		rawValue, ok := message.Tags[tag]
+		if !ok {
+			continue
+		}
+
+		value, _ := strconv.Atoi(rawValue)
+		roomStateMessage.State[tag] = value
+	}
+
+	return &roomStateMessage
+}
+
+func parseUserNoticeMessage(message *ircMessage) *UserNoticeMessage {
+	userNoticeMessage := UserNoticeMessage{
+		Raw:       message.Raw,
+		Type:      parseMessageType(message.Command),
+		RawType:   message.Command,
+		Tags:      message.Tags,
+		RoomID:    message.Tags["room-id"],
+		ID:        message.Tags["id"],
+		Time:      parseTime(message.Tags["tmi-sent-ts"]),
+		MsgID:     message.Tags["msg-id"],
+		MsgParams: make(map[string]string),
+		SystemMsg: message.Tags["system-msg"],
+	}
+
+	if len(message.Params) == 2 {
+		userNoticeMessage.Message = message.Params[1]
+	}
+
+	userNoticeMessage.Channel = strings.TrimPrefix(message.Params[0], "#")
+	userNoticeMessage.Emotes = parseEmotes(message.Tags["emotes"], userNoticeMessage.Message)
+
+	for tag, value := range message.Tags {
+		if strings.Contains(tag, "msg-param") {
+			userNoticeMessage.MsgParams[tag] = value
+		}
+	}
+
+	return &userNoticeMessage
+}
+
+func parseUserStateMessage(message *ircMessage) *UserStateMessage {
+	userStateMessage := UserStateMessage{
+		Raw:     message.Raw,
+		Type:    parseMessageType(message.Command),
+		RawType: message.Command,
+		Tags:    message.Tags,
+	}
+
+	userStateMessage.Channel = strings.TrimPrefix(message.Params[0], "#")
+
+	rawEmoteSets, ok := message.Tags["emote-sets"]
+	if ok {
+		userStateMessage.EmoteSets = strings.Split(rawEmoteSets, ",")
+	}
+
+	return &userStateMessage
+}
+
+func parseNoticeMessage(message *ircMessage) *NoticeMessage {
+	noticeMessage := NoticeMessage{
+		Raw:     message.Raw,
+		Type:    parseMessageType(message.Command),
+		RawType: message.Command,
+		Tags:    message.Tags,
+		MsgID:   message.Tags["msg-id"],
+	}
+
+	if len(message.Params) == 2 {
+		noticeMessage.Message = message.Params[1]
+	}
+
+	noticeMessage.Channel = strings.TrimPrefix(message.Params[0], "#")
+
+	return &noticeMessage
+}
+
+func parseTime(rawTime string) time.Time {
+	if rawTime == "" {
+		return time.Time{}
+	}
+
+	time64, _ := strconv.ParseInt(rawTime, 10, 64)
+	return time.Unix(0, int64(time64*1e6))
+}
+
+func parseEmotes(rawEmotes, message string) []*Emote {
 	var emotes []*Emote
 
-	rawEmotes := m.RawMessage.Tags["emotes"]
 	if rawEmotes == "" {
 		return emotes
 	}
 
-	runes := []rune(m.RawMessage.Message)
+	runes := []rune(message)
 
 	for _, v := range strings.Split(rawEmotes, "/") {
 		split := strings.SplitN(v, ":", 2)
-		pos := strings.SplitN(split[1], ",", 2)
-		indexPair := strings.SplitN(pos[0], "-", 2)
-		firstIndex, _ := strconv.Atoi(indexPair[0])
-		lastIndex, _ := strconv.Atoi(indexPair[1])
+		pairs := strings.SplitN(split[1], ",", 2)
+		pair := strings.SplitN(pairs[0], "-", 2)
 
-		e := &Emote{
+		firstIndex, _ := strconv.Atoi(pair[0])
+		lastIndex, _ := strconv.Atoi(pair[1])
+
+		emote := &Emote{
 			Name:  string(runes[firstIndex : lastIndex+1]),
 			ID:    split[0],
 			Count: strings.Count(split[1], ",") + 1,
 		}
 
-		emotes = append(emotes, e)
+		emotes = append(emotes, emote)
 	}
 
 	return emotes

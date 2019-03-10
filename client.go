@@ -182,7 +182,6 @@ type Client struct {
 	onUserJoin             func(channel, user string)
 	onUserPart             func(channel, user string)
 	onNewUnsetMessage      func(message RawMessage)
-	onNewErrorMessage      func(message RawMessage)
 
 	onPingSent     func()
 	onPongReceived func()
@@ -298,11 +297,6 @@ func (c *Client) OnUserPart(callback func(channel, user string)) {
 // OnNewUnsetMessage attaches callback to message types we currently don't support
 func (c *Client) OnNewUnsetMessage(callback func(message RawMessage)) {
 	c.onNewUnsetMessage = callback
-}
-
-// OnNewErrorMessage attaches callback to messages that didn't parse properly. Should only be used if you're debugging the message parsing.
-func (c *Client) OnNewErrorMessage(callback func(message RawMessage)) {
-	c.onNewErrorMessage = callback
 }
 
 // OnPingSent attaches callback that's called whenever the client sends out a ping message
@@ -661,57 +655,40 @@ func (c *Client) handleLine(line string) error {
 	}
 
 	if strings.HasPrefix(line, "@") {
-		message := parseMessage(line)
+		user, message := parseMessage(line)
 
-		switch message.RawMessage.Type {
-		case WHISPER:
+		switch message.(type) {
+		case *WhisperMessage:
 			if c.onNewWhisper != nil {
-				user, whisperMessage := message.parseWhisperMessage()
-				c.onNewWhisper(*user, *whisperMessage)
+				c.onNewWhisper(*user, *message.(*WhisperMessage))
 			}
-		case PRIVMSG:
+		case *PrivateMessage:
 			if c.onNewMessage != nil {
-				user, privateMessage := message.parsePrivateMessage()
-				c.onNewMessage(*user, *privateMessage)
+				c.onNewMessage(*user, *message.(*PrivateMessage))
 			}
-		case CLEARCHAT:
+		case *ClearChatMessage:
 			if c.onNewClearChatMessage != nil {
-				clearchatMessage := message.parseClearChatMessage()
-				c.onNewClearChatMessage(*clearchatMessage)
+				c.onNewClearChatMessage(*message.(*ClearChatMessage))
 			}
-		case ROOMSTATE:
+		case *RoomStateMessage:
 			if c.onNewRoomStateMessage != nil {
-				roomstateMessage := message.parseRoomStateMessage()
-				c.onNewRoomStateMessage(*roomstateMessage)
+				c.onNewRoomStateMessage(*message.(*RoomStateMessage))
 			}
-		case USERNOTICE:
+		case *UserNoticeMessage:
 			if c.onNewUserNoticeMessage != nil {
-				user, usernoticeMessage := message.parseUserNoticeMessage()
-				c.onNewUserNoticeMessage(*user, *usernoticeMessage)
+				c.onNewUserNoticeMessage(*user, *message.(*UserNoticeMessage))
 			}
-		case USERSTATE:
+		case *UserStateMessage:
 			if c.onNewUserStateMessage != nil {
-				user, userstateMessage := message.parseUserStateMessage()
-				c.onNewUserStateMessage(*user, *userstateMessage)
+				c.onNewUserStateMessage(*user, *message.(*UserStateMessage))
 			}
-		case NOTICE:
+		case *NoticeMessage:
 			if c.onNewNoticeMessage != nil {
-				noticeMessage := message.parseNoticeMessage()
-				c.onNewNoticeMessage(*noticeMessage)
+				c.onNewNoticeMessage(*message.(*NoticeMessage))
 			}
-		case UNSET:
+		case *RawMessage:
 			if c.onNewUnsetMessage != nil {
-				rawMessage := RawMessage{
-					rawMessage: message.RawMessage,
-				}
-				c.onNewUnsetMessage(rawMessage)
-			}
-		case ERROR:
-			if c.onNewErrorMessage != nil {
-				rawMessage := RawMessage{
-					rawMessage: message.RawMessage,
-				}
-				c.onNewErrorMessage(rawMessage)
+				c.onNewUnsetMessage(*message.(*RawMessage))
 			}
 		}
 
