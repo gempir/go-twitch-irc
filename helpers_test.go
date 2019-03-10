@@ -36,6 +36,10 @@ func assertFalse(t *testing.T, actual bool, errorMessage string) {
 
 func assertStringSlicesEqual(t *testing.T, expected, actual []string) {
 	if actual == nil {
+		if expected == nil {
+			return
+		}
+
 		t.Errorf("actual slice was nil")
 	}
 
@@ -52,6 +56,10 @@ func assertStringSlicesEqual(t *testing.T, expected, actual []string) {
 
 func assertStringMapsEqual(t *testing.T, expected, actual map[string]string) {
 	if actual == nil {
+		if expected == nil {
+			return
+		}
+
 		t.Errorf("actual map was nil")
 	}
 
