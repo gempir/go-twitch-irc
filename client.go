@@ -244,6 +244,11 @@ func NewClient(username, oauth string) *Client {
 	}
 }
 
+// OnConnect attach callback to when a connection has been established
+func (c *Client) OnConnect(callback func()) {
+	c.onConnect = callback
+}
+
 // OnNewWhisper attach callback to new whisper
 func (c *Client) OnNewWhisper(callback func(user User, message WhisperMessage)) {
 	c.onNewWhisper = callback
@@ -252,11 +257,6 @@ func (c *Client) OnNewWhisper(callback func(user User, message WhisperMessage)) 
 // OnNewMessage attach callback to new standard chat messages
 func (c *Client) OnNewMessage(callback func(user User, message PrivateMessage)) {
 	c.onNewMessage = callback
-}
-
-// OnConnect attach callback to when a connection has been established
-func (c *Client) OnConnect(callback func()) {
-	c.onConnect = callback
 }
 
 // OnNewClearChatMessage attach callback to new messages such as timeouts
