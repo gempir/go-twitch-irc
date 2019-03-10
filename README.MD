@@ -131,6 +131,23 @@ type NoticeMessage struct {
 }
 ```
 
+For unsupported message types, we return RawMessage:
+```go
+type RawMessage struct {
+	Raw     string
+	Type    MessageType
+	RawType string
+	Tags    map[string]string
+	Message string
+}
+```
+
+### Available Methods
+
+ParseMessage parses a raw Twitch IRC message into a User and a message object. User can be nil.
+
+	func ParseMessage(line string) (*User, interface{})
+
 ### Client Methods
 
 These are the available methods of the client so you can get your bot going:
