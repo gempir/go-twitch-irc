@@ -30,35 +30,6 @@ const (
 	NOTICE MessageType = 6
 )
 
-type rawMessage struct {
-	Type    MessageType
-	RawType string
-	Raw     string
-	Tags    map[string]string
-	Message string
-}
-
-type channelMessage struct {
-	rawMessage
-	Channel string
-}
-
-type roomMessage struct {
-	channelMessage
-	RoomID string
-}
-
-type tmiMessage struct {
-	roomMessage
-	ID   string // Not in CLEARCHAT
-	Time time.Time
-}
-
-type userMessage struct {
-	Action bool
-	Emotes []*Emote
-}
-
 // Emote twitch emotes
 type Emote struct {
 	Name  string

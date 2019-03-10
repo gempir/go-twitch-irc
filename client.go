@@ -48,7 +48,7 @@ var (
 
 // User data you receive from TMI
 type User struct {
-	ID          string // Not in USERSTATE
+	ID          string
 	Name        string
 	DisplayName string
 	Color       string
@@ -57,26 +57,53 @@ type User struct {
 
 // RawMessage data you receive from TMI
 type RawMessage struct {
-	rawMessage
+	Raw     string
+	Type    MessageType
+	RawType string
+	Tags    map[string]string
+	Message string
 }
 
 // WhisperMessage data you receive from WHISPER message type
 type WhisperMessage struct {
-	rawMessage
-	userMessage
+	Raw       string
+	Type      MessageType
+	RawType   string
+	Tags      map[string]string
+	Message   string
+	Target    string
+	MessageID string
+	ThreadID  string
+	Emotes    []*Emote
+	Action    bool
 }
 
 // PrivateMessage data you receive from PRIVMSG message type
 type PrivateMessage struct {
-	tmiMessage
-	userMessage
-	Bits int
+	Raw     string
+	Type    MessageType
+	RawType string
+	Tags    map[string]string
+	Message string
+	Channel string
+	RoomID  string
+	ID      string
+	Time    time.Time
+	Emotes  []*Emote
+	Bits    int
+	Action  bool
 }
 
 // ClearChatMessage data you receive from CLEARCHAT message type
 type ClearChatMessage struct {
-	tmiMessage
-	MsgID          string // Clear, Ban, Timeout
+	Raw            string
+	Type           MessageType
+	RawType        string
+	Tags           map[string]string
+	Message        string
+	Channel        string
+	RoomID         string
+	Time           time.Time
 	BanDuration    int
 	TargetUserID   string
 	TargetUsername string
@@ -84,15 +111,28 @@ type ClearChatMessage struct {
 
 // RoomStateMessage data you receive from ROOMSTATE message type
 type RoomStateMessage struct {
-	roomMessage
-	Language string
-	State    map[string]int
+	Raw     string
+	Type    MessageType
+	RawType string
+	Tags    map[string]string
+	Message string
+	Channel string
+	RoomID  string
+	State   map[string]int
 }
 
 // UserNoticeMessage  data you receive from USERNOTICE message type
 type UserNoticeMessage struct {
-	tmiMessage
-	userMessage
+	Raw       string
+	Type      MessageType
+	RawType   string
+	Tags      map[string]string
+	Message   string
+	Channel   string
+	RoomID    string
+	ID        string
+	Time      time.Time
+	Emotes    []*Emote
 	MsgID     string
 	MsgParams map[string]string
 	SystemMsg string
@@ -100,14 +140,24 @@ type UserNoticeMessage struct {
 
 // UserStateMessage data you receive from the USERSTATE message type
 type UserStateMessage struct {
-	channelMessage
+	Raw       string
+	Type      MessageType
+	RawType   string
+	Tags      map[string]string
+	Message   string
+	Channel   string
 	EmoteSets []string
 }
 
 // NoticeMessage data you receive from the NOTICE message type
 type NoticeMessage struct {
-	channelMessage
-	MsgID string
+	Raw     string
+	Type    MessageType
+	RawType string
+	Tags    map[string]string
+	Message string
+	Channel string
+	MsgID   string
 }
 
 // Client client to control your connection and attach callbacks
