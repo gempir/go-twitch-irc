@@ -42,78 +42,92 @@ type User struct {
 }
 
 type WhisperMessage struct {
-	rawMessage
-	userMessage
+	Raw       string
+	Type      MessageType
+	RawType   string
+	Tags      map[string]string
+	Message   string
+	Target    string
+	MessageID string
+	ThreadID  string
+	Emotes    []*Emote
+	Action    bool
 }
 
 type PrivateMessage struct {
-	tmiMessage
-	userMessage
-	Bits int
+	Raw     string
+	Type    MessageType
+	RawType string
+	Tags    map[string]string
+	Message string
+	Channel string
+	RoomID  string
+	ID      string
+	Time    time.Time
+	Emotes  []*Emote
+	Bits    int
+	Action  bool
 }
 
 type ClearChatMessage struct {
-	tmiMessage
-	MsgID          string // Possible Values: "Clear", "Ban", "Timeout"
+	Raw            string
+	Type           MessageType
+	RawType        string
+	Tags           map[string]string
+	Message        string
+	Channel        string
+	RoomID         string
+	Time           time.Time
 	BanDuration    int
 	TargetUserID   string
 	TargetUsername string
 }
 
 type RoomStateMessage struct {
-	roomMessage
-	Language string
-	State    map[string]int
+	Raw     string
+	Type    MessageType
+	RawType string
+	Tags    map[string]string
+	Message string
+	Channel string
+	RoomID  string
+	State   map[string]int
 }
 
 type UserNoticeMessage struct {
-	tmiMessage
-	userMessage
+	Raw       string
+	Type      MessageType
+	RawType   string
+	Tags      map[string]string
+	Message   string
+	Channel   string
+	RoomID    string
+	ID        string
+	Time      time.Time
+	Emotes    []*Emote
 	MsgID     string
 	MsgParams map[string]string
 	SystemMsg string
 }
 
 type UserStateMessage struct {
-	channelMessage
+	Raw       string
+	Type      MessageType
+	RawType   string
+	Tags      map[string]string
+	Message   string
+	Channel   string
 	EmoteSets []string
 }
 
 type NoticeMessage struct {
-	channelMessage
-	MsgID string
-}
-```
-
-The embedded structs look like this:
-```go
-type rawMessage struct {
+	Raw     string
 	Type    MessageType
 	RawType string
-	Raw     string
 	Tags    map[string]string
 	Message string
-}
-
-type channelMessage struct {
-	rawMessage
 	Channel string
-}
-
-type roomMessage struct {
-	channelMessage
-	RoomID string
-}
-
-type tmiMessage struct {
-	roomMessage
-	ID   string
-	Time time.Time
-}
-
-type userMessage struct {
-	Action bool
-	Emotes []*Emote
+	MsgID   string
 }
 ```
 
