@@ -78,10 +78,6 @@ func parseIRCTags(rawTags string) map[string]string {
 	rawTags = strings.TrimPrefix(rawTags, "@")
 
 	for _, tag := range strings.Split(rawTags, ";") {
-		if !strings.Contains(tag, "=") {
-			continue
-		}
-
 		pair := strings.SplitN(tag, "=", 2)
 		key := pair[0]
 
@@ -99,6 +95,7 @@ func parseIRCTags(rawTags string) map[string]string {
 var escapeCharacters = map[string]string{
 	"\\s":  " ",
 	"\\n":  "",
+	"\\r":  "",
 	"\\:":  ";",
 	"\\\\": "\\",
 }
@@ -109,6 +106,9 @@ func parseIRCTagValue(rawValue string) string {
 	}
 
 	rawValue = strings.TrimSuffix(rawValue, "\\")
+
+	// Some Twitch values can end with a trailing \s
+	// Example: "system-msg=An\sanonymous\suser\sgifted\sa\sTier\s1\ssub\sto\sTenureCalculator!\s"
 	rawValue = strings.TrimSpace(rawValue)
 
 	return rawValue
