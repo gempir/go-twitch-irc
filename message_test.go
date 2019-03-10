@@ -30,7 +30,12 @@ func TestCantParseInvalidMessage(t *testing.T) {
 	}
 
 	assertStringsEqual(t, "message", rawMessage.RawType)
-	assertStringMapsEqual(t, nil, rawMessage.Tags)
+
+	expectedTags := map[string]string{
+		"my": "",
+	}
+	assertStringMapsEqual(t, expectedTags, rawMessage.Tags)
+
 	assertStringsEqual(t, "", rawMessage.Message)
 }
 
@@ -56,6 +61,7 @@ func TestCantParsePartialMessage(t *testing.T) {
 		"room-id":      "36029255",
 		"subscriber":   "0",
 		"tmi-sent-ts":  "1551476573570",
+		"turbo":        "",
 	}
 	assertStringMapsEqual(t, expectedTags, rawMessage.Tags)
 	assertStringsEqual(t, "", rawMessage.Message)

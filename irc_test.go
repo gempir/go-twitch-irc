@@ -68,6 +68,7 @@ func TestCantParsePartialIRCMessage(t *testing.T) {
 		"room-id":      "36029255",
 		"subscriber":   "0",
 		"tmi-sent-ts":  "1551476573570",
+		"turbo":        "",
 	}
 	assertStringMapsEqual(t, expectedTags, actual.Tags)
 
