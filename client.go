@@ -655,7 +655,7 @@ func (c *Client) handleLine(line string) error {
 	}
 
 	if strings.HasPrefix(line, "@") {
-		user, message := parseMessage(line)
+		user, message := ParseMessage(line)
 
 		switch message.(type) {
 		case *WhisperMessage:
