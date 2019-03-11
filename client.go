@@ -46,26 +46,118 @@ var (
 	errReconnect = errors.New("reconnect")
 )
 
-// User data you receive from tmi
+// User data you receive from TMI
 type User struct {
-	UserID      string
-	Username    string
+	ID          string
+	Name        string
 	DisplayName string
-	UserType    string
 	Color       string
 	Badges      map[string]int
 }
 
-// Message data you receive from tmi
-type Message struct {
-	Type      MessageType
-	Time      time.Time
-	Action    bool
-	Emotes    []*Emote
-	Tags      map[string]string
-	Text      string
+// RawMessage data you receive from TMI
+type RawMessage struct {
+	Raw     string
+	Type    MessageType
+	RawType string
+	Tags    map[string]string
+	Message string
+}
+
+// WhisperMessage data you receive from WHISPER message type
+type WhisperMessage struct {
 	Raw       string
-	ChannelID string
+	Type      MessageType
+	RawType   string
+	Tags      map[string]string
+	Message   string
+	Target    string
+	MessageID string
+	ThreadID  string
+	Emotes    []*Emote
+	Action    bool
+}
+
+// PrivateMessage data you receive from PRIVMSG message type
+type PrivateMessage struct {
+	Raw     string
+	Type    MessageType
+	RawType string
+	Tags    map[string]string
+	Message string
+	Channel string
+	RoomID  string
+	ID      string
+	Time    time.Time
+	Emotes  []*Emote
+	Bits    int
+	Action  bool
+}
+
+// ClearChatMessage data you receive from CLEARCHAT message type
+type ClearChatMessage struct {
+	Raw            string
+	Type           MessageType
+	RawType        string
+	Tags           map[string]string
+	Message        string
+	Channel        string
+	RoomID         string
+	Time           time.Time
+	BanDuration    int
+	TargetUserID   string
+	TargetUsername string
+}
+
+// RoomStateMessage data you receive from ROOMSTATE message type
+type RoomStateMessage struct {
+	Raw     string
+	Type    MessageType
+	RawType string
+	Tags    map[string]string
+	Message string
+	Channel string
+	RoomID  string
+	State   map[string]int
+}
+
+// UserNoticeMessage  data you receive from USERNOTICE message type
+type UserNoticeMessage struct {
+	Raw       string
+	Type      MessageType
+	RawType   string
+	Tags      map[string]string
+	Message   string
+	Channel   string
+	RoomID    string
+	ID        string
+	Time      time.Time
+	Emotes    []*Emote
+	MsgID     string
+	MsgParams map[string]string
+	SystemMsg string
+}
+
+// UserStateMessage data you receive from the USERSTATE message type
+type UserStateMessage struct {
+	Raw       string
+	Type      MessageType
+	RawType   string
+	Tags      map[string]string
+	Message   string
+	Channel   string
+	EmoteSets []string
+}
+
+// NoticeMessage data you receive from the NOTICE message type
+type NoticeMessage struct {
+	Raw     string
+	Type    MessageType
+	RawType string
+	Tags    map[string]string
+	Message string
+	Channel string
+	MsgID   string
 }
 
 // Client client to control your connection and attach callbacks
@@ -80,16 +172,16 @@ type Client struct {
 	channelUserlist        map[string]map[string]bool
 	channelsMtx            *sync.RWMutex
 	onConnect              func()
-	onNewWhisper           func(user User, message Message)
-	onNewMessage           func(channel string, user User, message Message)
-	onNewRoomstateMessage  func(channel string, user User, message Message)
-	onNewClearchatMessage  func(channel string, user User, message Message)
-	onNewUsernoticeMessage func(channel string, user User, message Message)
-	onNewNoticeMessage     func(channel string, user User, message Message)
-	onNewUserstateMessage  func(channel string, user User, message Message)
+	onNewWhisper           func(user User, message WhisperMessage)
+	onNewMessage           func(user User, message PrivateMessage)
+	onNewClearChatMessage  func(message ClearChatMessage)
+	onNewRoomStateMessage  func(message RoomStateMessage)
+	onNewUserNoticeMessage func(user User, message UserNoticeMessage)
+	onNewUserStateMessage  func(user User, message UserStateMessage)
+	onNewNoticeMessage     func(message NoticeMessage)
 	onUserJoin             func(channel, user string)
 	onUserPart             func(channel, user string)
-	onNewUnsetMessage      func(rawMessage string)
+	onNewUnsetMessage      func(message RawMessage)
 
 	onPingSent     func()
 	onPongReceived func()
@@ -152,44 +244,44 @@ func NewClient(username, oauth string) *Client {
 	}
 }
 
-// OnNewWhisper attach callback to new whisper
-func (c *Client) OnNewWhisper(callback func(user User, message Message)) {
-	c.onNewWhisper = callback
-}
-
-// OnNewMessage attach callback to new standard chat messages
-func (c *Client) OnNewMessage(callback func(channel string, user User, message Message)) {
-	c.onNewMessage = callback
-}
-
 // OnConnect attach callback to when a connection has been established
 func (c *Client) OnConnect(callback func()) {
 	c.onConnect = callback
 }
 
-// OnNewRoomstateMessage attach callback to new messages such as submode enabled
-func (c *Client) OnNewRoomstateMessage(callback func(channel string, user User, message Message)) {
-	c.onNewRoomstateMessage = callback
+// OnNewWhisper attach callback to new whisper
+func (c *Client) OnNewWhisper(callback func(user User, message WhisperMessage)) {
+	c.onNewWhisper = callback
 }
 
-// OnNewClearchatMessage attach callback to new messages such as timeouts
-func (c *Client) OnNewClearchatMessage(callback func(channel string, user User, message Message)) {
-	c.onNewClearchatMessage = callback
+// OnNewMessage attach callback to new standard chat messages
+func (c *Client) OnNewMessage(callback func(user User, message PrivateMessage)) {
+	c.onNewMessage = callback
 }
 
-// OnNewUsernoticeMessage attach callback to new usernotice message such as sub, resub, and raids
-func (c *Client) OnNewUsernoticeMessage(callback func(channel string, user User, message Message)) {
-	c.onNewUsernoticeMessage = callback
+// OnNewClearChatMessage attach callback to new messages such as timeouts
+func (c *Client) OnNewClearChatMessage(callback func(message ClearChatMessage)) {
+	c.onNewClearChatMessage = callback
+}
+
+// OnNewRoomStateMessage attach callback to new messages such as submode enabled
+func (c *Client) OnNewRoomStateMessage(callback func(message RoomStateMessage)) {
+	c.onNewRoomStateMessage = callback
+}
+
+// OnNewUserNoticeMessage attach callback to new usernotice message such as sub, resub, and raids
+func (c *Client) OnNewUserNoticeMessage(callback func(user User, message UserNoticeMessage)) {
+	c.onNewUserNoticeMessage = callback
+}
+
+// OnNewUserStateMessage attach callback to new userstate
+func (c *Client) OnNewUserStateMessage(callback func(user User, message UserStateMessage)) {
+	c.onNewUserStateMessage = callback
 }
 
 // OnNewNoticeMessage attach callback to new notice message such as hosts
-func (c *Client) OnNewNoticeMessage(callback func(channel string, user User, message Message)) {
+func (c *Client) OnNewNoticeMessage(callback func(message NoticeMessage)) {
 	c.onNewNoticeMessage = callback
-}
-
-// OnNewUserstateMessage attach callback to new userstate
-func (c *Client) OnNewUserstateMessage(callback func(channel string, user User, message Message)) {
-	c.onNewUserstateMessage = callback
 }
 
 // OnUserJoin attaches callback to user joins
@@ -202,8 +294,8 @@ func (c *Client) OnUserPart(callback func(channel, user string)) {
 	c.onUserPart = callback
 }
 
-// OnNewUnsetMessage attaches callback to messages that didn't parse properly. Should only be used if you're debugging the message parsing
-func (c *Client) OnNewUnsetMessage(callback func(rawMessage string)) {
+// OnNewUnsetMessage attaches callback to message types we currently don't support
+func (c *Client) OnNewUnsetMessage(callback func(message RawMessage)) {
 	c.onNewUnsetMessage = callback
 }
 
@@ -564,40 +656,40 @@ func (c *Client) handleLine(line string) error {
 	}
 
 	if strings.HasPrefix(line, "@") {
-		channel, user, clientMessage := ParseMessage(line)
+		user, message := ParseMessage(line)
 
-		switch clientMessage.Type {
-		case PRIVMSG:
-			if c.onNewMessage != nil {
-				c.onNewMessage(channel, *user, *clientMessage)
-			}
-		case WHISPER:
+		switch message.(type) {
+		case *WhisperMessage:
 			if c.onNewWhisper != nil {
-				c.onNewWhisper(*user, *clientMessage)
+				c.onNewWhisper(*user, *message.(*WhisperMessage))
 			}
-		case ROOMSTATE:
-			if c.onNewRoomstateMessage != nil {
-				c.onNewRoomstateMessage(channel, *user, *clientMessage)
+		case *PrivateMessage:
+			if c.onNewMessage != nil {
+				c.onNewMessage(*user, *message.(*PrivateMessage))
 			}
-		case CLEARCHAT:
-			if c.onNewClearchatMessage != nil {
-				c.onNewClearchatMessage(channel, *user, *clientMessage)
+		case *ClearChatMessage:
+			if c.onNewClearChatMessage != nil {
+				c.onNewClearChatMessage(*message.(*ClearChatMessage))
 			}
-		case USERNOTICE:
-			if c.onNewUsernoticeMessage != nil {
-				c.onNewUsernoticeMessage(channel, *user, *clientMessage)
+		case *RoomStateMessage:
+			if c.onNewRoomStateMessage != nil {
+				c.onNewRoomStateMessage(*message.(*RoomStateMessage))
 			}
-		case NOTICE:
+		case *UserNoticeMessage:
+			if c.onNewUserNoticeMessage != nil {
+				c.onNewUserNoticeMessage(*user, *message.(*UserNoticeMessage))
+			}
+		case *UserStateMessage:
+			if c.onNewUserStateMessage != nil {
+				c.onNewUserStateMessage(*user, *message.(*UserStateMessage))
+			}
+		case *NoticeMessage:
 			if c.onNewNoticeMessage != nil {
-				c.onNewNoticeMessage(channel, *user, *clientMessage)
+				c.onNewNoticeMessage(*message.(*NoticeMessage))
 			}
-		case USERSTATE:
-			if c.onNewUserstateMessage != nil {
-				c.onNewUserstateMessage(channel, *user, *clientMessage)
-			}
-		case UNSET:
+		case *RawMessage:
 			if c.onNewUnsetMessage != nil {
-				c.onNewUnsetMessage(clientMessage.Raw)
+				c.onNewUnsetMessage(*message.(*RawMessage))
 			}
 		}
 
@@ -655,35 +747,6 @@ func (c *Client) handleLine(line string) error {
 	}
 
 	return nil
-}
-
-// ParseMessage parse a raw ircv3 twitch
-func ParseMessage(line string) (string, *User, *Message) {
-	message := parseMessage(line)
-
-	channel := message.Channel
-
-	user := &User{
-		UserID:      message.UserID,
-		Username:    message.Username,
-		DisplayName: message.DisplayName,
-		UserType:    message.UserType,
-		Color:       message.Color,
-		Badges:      message.Badges,
-	}
-
-	clientMessage := &Message{
-		Type:      message.Type,
-		Time:      message.Time,
-		Action:    message.Action,
-		Emotes:    message.Emotes,
-		Tags:      message.Tags,
-		Text:      message.Text,
-		Raw:       message.Raw,
-		ChannelID: message.ChannelID,
-	}
-
-	return channel, user, clientMessage
 }
 
 // tAtomBool atomic bool for writing/reading across threads

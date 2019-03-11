@@ -17,8 +17,8 @@ import (
 func main() {
 	client := twitch.NewClient("justinfan123123", "oauth:123123123")
 
-	client.OnNewMessage(func(channel string, user twitch.User, message twitch.Message) {
-		fmt.Println(message.Text)
+	client.OnNewMessage(func(user twitch.User, message twitch.PrivateMessage) {
+		fmt.Println(message.Message)
 	})
 
 	client.Join("gempir")
@@ -31,29 +31,122 @@ func main() {
 ```
 ### Available Data
 
-The 2 structs twitch.User and twitch.Message look like this:
+The twitch.User and MessageType structs reflect the data Twitch provides, minus any fields that have been marked as deprecated:
 ```go
 type User struct {
-	UserID      string
-	Username    string
+	ID          string
+	Name        string
 	DisplayName string
-	UserType    string
 	Color       string
 	Badges      map[string]int
 }
 
-type Message struct {
-	Type      MessageType
-	Time      time.Time
-	Action    bool
-	Emotes    []*Emote
-	Tags      map[string]string
-	Text      string
+type WhisperMessage struct {
 	Raw       string
-	ChannelID string
+	Type      MessageType
+	RawType   string
+	Tags      map[string]string
+	Message   string
+	Target    string
+	MessageID string
+	ThreadID  string
+	Emotes    []*Emote
+	Action    bool
+}
+
+type PrivateMessage struct {
+	Raw     string
+	Type    MessageType
+	RawType string
+	Tags    map[string]string
+	Message string
+	Channel string
+	RoomID  string
+	ID      string
+	Time    time.Time
+	Emotes  []*Emote
+	Bits    int
+	Action  bool
+}
+
+type ClearChatMessage struct {
+	Raw            string
+	Type           MessageType
+	RawType        string
+	Tags           map[string]string
+	Message        string
+	Channel        string
+	RoomID         string
+	Time           time.Time
+	BanDuration    int
+	TargetUserID   string
+	TargetUsername string
+}
+
+type RoomStateMessage struct {
+	Raw     string
+	Type    MessageType
+	RawType string
+	Tags    map[string]string
+	Message string
+	Channel string
+	RoomID  string
+	State   map[string]int
+}
+
+type UserNoticeMessage struct {
+	Raw       string
+	Type      MessageType
+	RawType   string
+	Tags      map[string]string
+	Message   string
+	Channel   string
+	RoomID    string
+	ID        string
+	Time      time.Time
+	Emotes    []*Emote
+	MsgID     string
+	MsgParams map[string]string
+	SystemMsg string
+}
+
+type UserStateMessage struct {
+	Raw       string
+	Type      MessageType
+	RawType   string
+	Tags      map[string]string
+	Message   string
+	Channel   string
+	EmoteSets []string
+}
+
+type NoticeMessage struct {
+	Raw     string
+	Type    MessageType
+	RawType string
+	Tags    map[string]string
+	Message string
+	Channel string
+	MsgID   string
 }
 ```
-Channel is just a string like "lirik", note the absent #.
+
+For unsupported message types, we return RawMessage:
+```go
+type RawMessage struct {
+	Raw     string
+	Type    MessageType
+	RawType string
+	Tags    map[string]string
+	Message string
+}
+```
+
+### Available Methods
+
+ParseMessage parses a raw Twitch IRC message into a User and a message object. User can be nil.
+
+	func ParseMessage(line string) (*User, interface{})
 
 ### Client Methods
 
@@ -80,24 +173,26 @@ client.SetupCmd = "LOGIN custom_command_here" // Send a custom command on succes
 These callbacks are available to pass to the client:
 ```go
 client.OnConnect(func() {})
-client.OnNewWhisper(func(user twitch.User, message twitch.Message) {})
-client.OnNewMessage(func(channel string, user twitch.User, message twitch.Message) {})
-client.OnNewRoomstateMessage(func(channel string, user twitch.User, message twitch.Message) {})
-client.OnNewClearchatMessage(func(channel string, user twitch.User, message twitch.Message) {})
-client.OnNewUsernoticeMessage(func(channel string, user twitch.User, message twitch.Message) {})
-client.OnNewNoticeMessage(func(channel string, user twitch.User, message twitch.Message) {})
-client.OnNewUserstateMessage(func(channel string, user twitch.User, message twitch.Message) {})
+client.OnNewWhisper(func(user User, message WhisperMessage) {})
+client.OnNewMessage(func(user User, message PrivateMessage) {})
+client.OnNewClearchatMessage(func(message ClearChatMessage) {})
+client.OnNewRoomstateMessage(func(message RoomStateMessage) {})
+client.OnNewUsernoticeMessage(func(user User, message UserNoticeMessage) {})
+client.OnNewUserstateMessage(func(user User, message UserStateMessage) {})
+client.OnNewNoticeMessage(func(message NoticeMessage) {})
 client.OnUserJoin(func(channel, user string) {})
 client.OnUserPart(func(channel, user string) {})
 ```
+
 ### Message Types
 
 If you ever need more than basic PRIVMSG, this might be for you.
-These are the 6 major message types currently supported:
+These are the 7 major message types currently supported:
 
-	PRIVMSG
 	WHISPER
-	ROOMSTATE
+	PRIVMSG
 	CLEARCHAT
+	ROOMSTATE
 	USERNOTICE
+	USERSTATE
     NOTICE
