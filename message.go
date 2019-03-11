@@ -36,7 +36,7 @@ type Emote struct {
 }
 
 // ParseMessage parse a raw Twitch IRC message
-func ParseMessage(line string) (*User, interface{}) {
+func ParseMessage(line string) (*User, Message) {
 	ircMessage, err := parseIRCMessage(line)
 	if err != nil {
 		return nil, parseRawMessage(ircMessage)

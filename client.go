@@ -55,6 +55,11 @@ type User struct {
 	Badges      map[string]int
 }
 
+// Message interface that all messages implement
+type Message interface {
+	GetType() MessageType
+}
+
 // RawMessage data you receive from TMI
 type RawMessage struct {
 	Raw     string
@@ -62,6 +67,10 @@ type RawMessage struct {
 	RawType string
 	Tags    map[string]string
 	Message string
+}
+
+func (msg *RawMessage) GetType() MessageType {
+	return msg.Type
 }
 
 // WhisperMessage data you receive from WHISPER message type
@@ -76,6 +85,10 @@ type WhisperMessage struct {
 	ThreadID  string
 	Emotes    []*Emote
 	Action    bool
+}
+
+func (msg *WhisperMessage) GetType() MessageType {
+	return msg.Type
 }
 
 // PrivateMessage data you receive from PRIVMSG message type
@@ -94,6 +107,10 @@ type PrivateMessage struct {
 	Action  bool
 }
 
+func (msg *PrivateMessage) GetType() MessageType {
+	return msg.Type
+}
+
 // ClearChatMessage data you receive from CLEARCHAT message type
 type ClearChatMessage struct {
 	Raw            string
@@ -109,6 +126,10 @@ type ClearChatMessage struct {
 	TargetUsername string
 }
 
+func (msg *ClearChatMessage) GetType() MessageType {
+	return msg.Type
+}
+
 // RoomStateMessage data you receive from ROOMSTATE message type
 type RoomStateMessage struct {
 	Raw     string
@@ -119,6 +140,10 @@ type RoomStateMessage struct {
 	Channel string
 	RoomID  string
 	State   map[string]int
+}
+
+func (msg *RoomStateMessage) GetType() MessageType {
+	return msg.Type
 }
 
 // UserNoticeMessage  data you receive from USERNOTICE message type
@@ -138,6 +163,10 @@ type UserNoticeMessage struct {
 	SystemMsg string
 }
 
+func (msg *UserNoticeMessage) GetType() MessageType {
+	return msg.Type
+}
+
 // UserStateMessage data you receive from the USERSTATE message type
 type UserStateMessage struct {
 	Raw       string
@@ -149,6 +178,10 @@ type UserStateMessage struct {
 	EmoteSets []string
 }
 
+func (msg *UserStateMessage) GetType() MessageType {
+	return msg.Type
+}
+
 // NoticeMessage data you receive from the NOTICE message type
 type NoticeMessage struct {
 	Raw     string
@@ -158,6 +191,10 @@ type NoticeMessage struct {
 	Message string
 	Channel string
 	MsgID   string
+}
+
+func (msg *NoticeMessage) GetType() MessageType {
+	return msg.Type
 }
 
 // Client client to control your connection and attach callbacks
@@ -658,38 +695,38 @@ func (c *Client) handleLine(line string) error {
 	if strings.HasPrefix(line, "@") {
 		user, message := ParseMessage(line)
 
-		switch message.(type) {
+		switch msg := message.(type) {
 		case *WhisperMessage:
 			if c.onNewWhisper != nil {
-				c.onNewWhisper(*user, *message.(*WhisperMessage))
+				c.onNewWhisper(*user, *msg)
 			}
 		case *PrivateMessage:
 			if c.onNewMessage != nil {
-				c.onNewMessage(*user, *message.(*PrivateMessage))
+				c.onNewMessage(*user, *msg)
 			}
 		case *ClearChatMessage:
 			if c.onNewClearChatMessage != nil {
-				c.onNewClearChatMessage(*message.(*ClearChatMessage))
+				c.onNewClearChatMessage(*msg)
 			}
 		case *RoomStateMessage:
 			if c.onNewRoomStateMessage != nil {
-				c.onNewRoomStateMessage(*message.(*RoomStateMessage))
+				c.onNewRoomStateMessage(*msg)
 			}
 		case *UserNoticeMessage:
 			if c.onNewUserNoticeMessage != nil {
-				c.onNewUserNoticeMessage(*user, *message.(*UserNoticeMessage))
+				c.onNewUserNoticeMessage(*user, *msg)
 			}
 		case *UserStateMessage:
 			if c.onNewUserStateMessage != nil {
-				c.onNewUserStateMessage(*user, *message.(*UserStateMessage))
+				c.onNewUserStateMessage(*user, *msg)
 			}
 		case *NoticeMessage:
 			if c.onNewNoticeMessage != nil {
-				c.onNewNoticeMessage(*message.(*NoticeMessage))
+				c.onNewNoticeMessage(*msg)
 			}
 		case *RawMessage:
 			if c.onNewUnsetMessage != nil {
-				c.onNewUnsetMessage(*message.(*RawMessage))
+				c.onNewUnsetMessage(*msg)
 			}
 		}
 
