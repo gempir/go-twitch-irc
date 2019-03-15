@@ -364,6 +364,7 @@ func TestCanReceivePRIVMSGMessage(t *testing.T) {
 
 	client.OnNewMessage(func(user User, message PrivateMessage) {
 		received = message.Message
+		assertMessageTypesEqual(t, PRIVMSG, message.GetType())
 		close(wait)
 	})
 
@@ -391,6 +392,7 @@ func TestCanReceiveWHISPERMessage(t *testing.T) {
 
 	client.OnNewWhisper(func(user User, message WhisperMessage) {
 		received = message.Message
+		assertMessageTypesEqual(t, WHISPER, message.GetType())
 		close(wait)
 	})
 
@@ -418,6 +420,7 @@ func TestCanReceiveCLEARCHATMessage(t *testing.T) {
 
 	client.OnNewClearChatMessage(func(message ClearChatMessage) {
 		received = message.BanDuration
+		assertMessageTypesEqual(t, CLEARCHAT, message.GetType())
 		close(wait)
 	})
 
@@ -445,6 +448,7 @@ func TestCanReceiveROOMSTATEMessage(t *testing.T) {
 
 	client.OnNewRoomStateMessage(func(message RoomStateMessage) {
 		received = message.Tags["slow"]
+		assertMessageTypesEqual(t, ROOMSTATE, message.GetType())
 		close(wait)
 	})
 
@@ -472,6 +476,7 @@ func TestCanReceiveUSERNOTICEMessage(t *testing.T) {
 
 	client.OnNewUserNoticeMessage(func(user User, message UserNoticeMessage) {
 		received = message.Tags["msg-param-months"]
+		assertMessageTypesEqual(t, USERNOTICE, message.GetType())
 		close(wait)
 	})
 
@@ -524,6 +529,7 @@ func checkNoticeMessage(t *testing.T, testMessage string, requirements map[strin
 		received["channel"] = message.Channel
 		received["text"] = message.Message
 		received["raw"] = message.Raw
+		assertMessageTypesEqual(t, NOTICE, message.GetType())
 		close(wait)
 	})
 
@@ -573,6 +579,7 @@ func TestCanReceiveUSERStateMessage(t *testing.T) {
 
 	client.OnNewUserStateMessage(func(user User, message UserStateMessage) {
 		received = message.Tags["mod"]
+		assertMessageTypesEqual(t, USERSTATE, message.GetType())
 		close(wait)
 	})
 
@@ -653,6 +660,7 @@ func TestCanReceiveUNSETMessage(t *testing.T) {
 
 	client.OnNewUnsetMessage(func(rawMessage RawMessage) {
 		received = rawMessage.Raw
+		assertMessageTypesEqual(t, UNSET, rawMessage.GetType())
 		close(wait)
 	})
 

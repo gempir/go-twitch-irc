@@ -110,6 +110,12 @@ func assertErrorsEqual(t *testing.T, expected, actual error) {
 	}
 }
 
+func assertMessageTypesEqual(t *testing.T, expected, actual MessageType) {
+	if expected != actual {
+		t.Errorf("failed asserting that MessageType \"%d\" is expected \"%d\"", actual, expected)
+	}
+}
+
 // formats a ping-signature (i.e. go-twitch-irc) into a full-fledged pong response (i.e. ":tmi.twitch.tv PONG tmi.twitch.tv :go-twitch-irc")
 func formatPong(signature string) string {
 	return ":tmi.twitch.tv PONG tmi.twitch.tv :" + signature
