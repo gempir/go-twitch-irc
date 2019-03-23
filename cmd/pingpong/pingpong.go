@@ -33,7 +33,7 @@ func main() {
 	m := sync.Mutex{}
 	pingsReceived := 0
 
-	client.OnNewMessage(func(message twitch.PrivateMessage) {
+	client.OnPrivateMessage(func(message twitch.PrivateMessage) {
 		if strings.Contains(strings.ToLower(message.Message), "ping") {
 			log.Println(message.User.Name, "PONG", message.Message)
 			m.Lock()
