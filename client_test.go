@@ -362,7 +362,7 @@ func TestCanReceivePRIVMSGMessage(t *testing.T) {
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnNewMessage(func(user User, message PrivateMessage) {
+	client.OnNewMessage(func(message PrivateMessage) {
 		received = message.Message
 		assertMessageTypesEqual(t, PRIVMSG, message.GetType())
 		close(wait)
@@ -390,7 +390,7 @@ func TestCanReceiveWHISPERMessage(t *testing.T) {
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnNewWhisper(func(user User, message WhisperMessage) {
+	client.OnNewWhisper(func(message WhisperMessage) {
 		received = message.Message
 		assertMessageTypesEqual(t, WHISPER, message.GetType())
 		close(wait)
@@ -474,7 +474,7 @@ func TestCanReceiveUSERNOTICEMessage(t *testing.T) {
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnNewUserNoticeMessage(func(user User, message UserNoticeMessage) {
+	client.OnNewUserNoticeMessage(func(message UserNoticeMessage) {
 		received = message.Tags["msg-param-months"]
 		assertMessageTypesEqual(t, USERNOTICE, message.GetType())
 		close(wait)
@@ -501,7 +501,7 @@ func TestCanReceiveUSERNOTICEMessageResub(t *testing.T) {
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnNewUserNoticeMessage(func(user User, message UserNoticeMessage) {
+	client.OnNewUserNoticeMessage(func(message UserNoticeMessage) {
 		received = message.Tags["msg-param-months"]
 		close(wait)
 	})
@@ -577,7 +577,7 @@ func TestCanReceiveUSERStateMessage(t *testing.T) {
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnNewUserStateMessage(func(user User, message UserStateMessage) {
+	client.OnNewUserStateMessage(func(message UserStateMessage) {
 		received = message.Tags["mod"]
 		assertMessageTypesEqual(t, USERSTATE, message.GetType())
 		close(wait)
@@ -599,13 +599,13 @@ func TestCanReceiveJOINMessage(t *testing.T) {
 	testMessage := `:username123!username123@username123.tmi.twitch.tv JOIN #mychannel`
 
 	wait := make(chan struct{})
-	var received string
+	var received UserJoinMessage
 
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnUserJoin(func(channel, user string) {
-		received = user
+	client.OnUserJoin(func(message UserJoinMessage) {
+		received = message
 		close(wait)
 	})
 
@@ -618,7 +618,9 @@ func TestCanReceiveJOINMessage(t *testing.T) {
 		t.Fatal("no message sent")
 	}
 
-	assertStringsEqual(t, "username123", received)
+	assertStringsEqual(t, "username123", received.User)
+	assertStringsEqual(t, "mychannel", received.Channel)
+	assertMessageTypesEqual(t, JOIN, received.GetType())
 }
 
 func TestCanReceivePARTMessage(t *testing.T) {
@@ -626,13 +628,13 @@ func TestCanReceivePARTMessage(t *testing.T) {
 	testMessage := `:username123!username123@username123.tmi.twitch.tv PART #mychannel`
 
 	wait := make(chan struct{})
-	var received string
+	var received UserPartMessage
 
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnUserPart(func(channel, user string) {
-		received = user
+	client.OnUserPart(func(message UserPartMessage) {
+		received = message
 		close(wait)
 	})
 
@@ -645,7 +647,9 @@ func TestCanReceivePARTMessage(t *testing.T) {
 		t.Fatal("no message sent")
 	}
 
-	assertStringsEqual(t, "username123", received)
+	assertStringsEqual(t, "username123", received.User)
+	assertStringsEqual(t, "mychannel", received.Channel)
+	assertMessageTypesEqual(t, PART, received.GetType())
 }
 
 func TestCanReceiveUNSETMessage(t *testing.T) {
@@ -878,7 +882,7 @@ func TestCanGetUserlist(t *testing.T) {
 
 	client.Join("channel123")
 
-	client.OnNewMessage(func(user User, message PrivateMessage) {
+	client.OnNewMessage(func(message PrivateMessage) {
 		if message.Message == "ok go now" {
 			// test a valid channel
 			got, err := client.Userlist("channel123")

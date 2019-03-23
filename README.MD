@@ -173,15 +173,15 @@ client.SetupCmd = "LOGIN custom_command_here" // Send a custom command on succes
 These callbacks are available to pass to the client:
 ```go
 client.OnConnect(func() {})
-client.OnNewWhisper(func(user User, message WhisperMessage) {})
-client.OnNewMessage(func(user User, message PrivateMessage) {})
+client.OnNewWhisper(func(message WhisperMessage) {})
+client.OnNewMessage(func(message PrivateMessage) {})
 client.OnNewClearchatMessage(func(message ClearChatMessage) {})
 client.OnNewRoomstateMessage(func(message RoomStateMessage) {})
-client.OnNewUsernoticeMessage(func(user User, message UserNoticeMessage) {})
-client.OnNewUserstateMessage(func(user User, message UserStateMessage) {})
+client.OnNewUsernoticeMessage(func(message UserNoticeMessage) {})
+client.OnNewUserstateMessage(func(message UserStateMessage) {})
 client.OnNewNoticeMessage(func(message NoticeMessage) {})
-client.OnUserJoin(func(channel, user string) {})
-client.OnUserPart(func(channel, user string) {})
+client.OnUserJoin(func(message UserJoinMessage) {})
+client.OnUserPart(func(message UserPartMessage) {})
 ```
 
 ### Message Types
