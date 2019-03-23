@@ -33,9 +33,9 @@ func main() {
 	m := sync.Mutex{}
 	pingsReceived := 0
 
-	client.OnNewMessage(func(user twitch.User, message twitch.PrivateMessage) {
+	client.OnNewMessage(func(message twitch.PrivateMessage) {
 		if strings.Contains(strings.ToLower(message.Message), "ping") {
-			log.Println(user.Name, "PONG", message.Message)
+			log.Println(message.User.Name, "PONG", message.Message)
 			m.Lock()
 			pingsReceived++
 			m.Unlock()

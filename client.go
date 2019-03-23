@@ -75,6 +75,8 @@ func (msg *RawMessage) GetType() MessageType {
 
 // WhisperMessage data you receive from WHISPER message type
 type WhisperMessage struct {
+	User User
+
 	Raw       string
 	Type      MessageType
 	RawType   string
@@ -93,6 +95,8 @@ func (msg *WhisperMessage) GetType() MessageType {
 
 // PrivateMessage data you receive from PRIVMSG message type
 type PrivateMessage struct {
+	User User
+
 	Raw     string
 	Type    MessageType
 	RawType string
@@ -148,6 +152,8 @@ func (msg *RoomStateMessage) GetType() MessageType {
 
 // UserNoticeMessage  data you receive from USERNOTICE message type
 type UserNoticeMessage struct {
+	User User
+
 	Raw       string
 	Type      MessageType
 	RawType   string
@@ -169,6 +175,8 @@ func (msg *UserNoticeMessage) GetType() MessageType {
 
 // UserStateMessage data you receive from the USERSTATE message type
 type UserStateMessage struct {
+	User User
+
 	Raw       string
 	Type      MessageType
 	RawType   string
@@ -197,6 +205,30 @@ func (msg *NoticeMessage) GetType() MessageType {
 	return msg.Type
 }
 
+type UserJoinMessage struct {
+	// Channel name
+	Channel string
+
+	// User name
+	User string
+}
+
+func (msg *UserJoinMessage) GetType() MessageType {
+	return JOIN
+}
+
+type UserPartMessage struct {
+	// Channel name
+	Channel string
+
+	// User name
+	User string
+}
+
+func (msg *UserPartMessage) GetType() MessageType {
+	return PART
+}
+
 // Client client to control your connection and attach callbacks
 type Client struct {
 	IrcAddress             string
@@ -209,15 +241,15 @@ type Client struct {
 	channelUserlist        map[string]map[string]bool
 	channelsMtx            *sync.RWMutex
 	onConnect              func()
-	onNewWhisper           func(user User, message WhisperMessage)
-	onNewMessage           func(user User, message PrivateMessage)
+	onNewWhisper           func(message WhisperMessage)
+	onNewMessage           func(message PrivateMessage)
 	onNewClearChatMessage  func(message ClearChatMessage)
 	onNewRoomStateMessage  func(message RoomStateMessage)
-	onNewUserNoticeMessage func(user User, message UserNoticeMessage)
-	onNewUserStateMessage  func(user User, message UserStateMessage)
+	onNewUserNoticeMessage func(message UserNoticeMessage)
+	onNewUserStateMessage  func(message UserStateMessage)
 	onNewNoticeMessage     func(message NoticeMessage)
-	onUserJoin             func(channel, user string)
-	onUserPart             func(channel, user string)
+	onUserJoin             func(message UserJoinMessage)
+	onUserPart             func(message UserPartMessage)
 	onNewUnsetMessage      func(message RawMessage)
 
 	onPingSent     func()
@@ -287,12 +319,12 @@ func (c *Client) OnConnect(callback func()) {
 }
 
 // OnNewWhisper attach callback to new whisper
-func (c *Client) OnNewWhisper(callback func(user User, message WhisperMessage)) {
+func (c *Client) OnNewWhisper(callback func(message WhisperMessage)) {
 	c.onNewWhisper = callback
 }
 
 // OnNewMessage attach callback to new standard chat messages
-func (c *Client) OnNewMessage(callback func(user User, message PrivateMessage)) {
+func (c *Client) OnNewMessage(callback func(message PrivateMessage)) {
 	c.onNewMessage = callback
 }
 
@@ -307,12 +339,12 @@ func (c *Client) OnNewRoomStateMessage(callback func(message RoomStateMessage)) 
 }
 
 // OnNewUserNoticeMessage attach callback to new usernotice message such as sub, resub, and raids
-func (c *Client) OnNewUserNoticeMessage(callback func(user User, message UserNoticeMessage)) {
+func (c *Client) OnNewUserNoticeMessage(callback func(message UserNoticeMessage)) {
 	c.onNewUserNoticeMessage = callback
 }
 
 // OnNewUserStateMessage attach callback to new userstate
-func (c *Client) OnNewUserStateMessage(callback func(user User, message UserStateMessage)) {
+func (c *Client) OnNewUserStateMessage(callback func(message UserStateMessage)) {
 	c.onNewUserStateMessage = callback
 }
 
@@ -322,12 +354,12 @@ func (c *Client) OnNewNoticeMessage(callback func(message NoticeMessage)) {
 }
 
 // OnUserJoin attaches callback to user joins
-func (c *Client) OnUserJoin(callback func(channel, user string)) {
+func (c *Client) OnUserJoin(callback func(message UserJoinMessage)) {
 	c.onUserJoin = callback
 }
 
 // OnUserPart attaches callback to user parts
-func (c *Client) OnUserPart(callback func(channel, user string)) {
+func (c *Client) OnUserPart(callback func(message UserPartMessage)) {
 	c.onUserPart = callback
 }
 
@@ -693,16 +725,16 @@ func (c *Client) handleLine(line string) error {
 	}
 
 	if strings.HasPrefix(line, "@") {
-		user, message := ParseMessage(line)
+		message := ParseMessage(line)
 
 		switch msg := message.(type) {
 		case *WhisperMessage:
 			if c.onNewWhisper != nil {
-				c.onNewWhisper(*user, *msg)
+				c.onNewWhisper(*msg)
 			}
 		case *PrivateMessage:
 			if c.onNewMessage != nil {
-				c.onNewMessage(*user, *msg)
+				c.onNewMessage(*msg)
 			}
 		case *ClearChatMessage:
 			if c.onNewClearChatMessage != nil {
@@ -714,11 +746,11 @@ func (c *Client) handleLine(line string) error {
 			}
 		case *UserNoticeMessage:
 			if c.onNewUserNoticeMessage != nil {
-				c.onNewUserNoticeMessage(*user, *msg)
+				c.onNewUserNoticeMessage(*msg)
 			}
 		case *UserStateMessage:
 			if c.onNewUserStateMessage != nil {
-				c.onNewUserStateMessage(*user, *msg)
+				c.onNewUserStateMessage(*msg)
 			}
 		case *NoticeMessage:
 			if c.onNewNoticeMessage != nil {
@@ -748,8 +780,13 @@ func (c *Client) handleLine(line string) error {
 			}
 			c.channelUserlistMutex.Unlock()
 
+			parsedMessage := UserJoinMessage{
+				Channel: channel,
+				User:    username,
+			}
+
 			if c.onUserJoin != nil {
-				c.onUserJoin(channel, username)
+				c.onUserJoin(parsedMessage)
 			}
 		}
 		if strings.Contains(line, "tmi.twitch.tv PART") {
@@ -759,8 +796,13 @@ func (c *Client) handleLine(line string) error {
 			delete(c.channelUserlist[channel], username)
 			c.channelUserlistMutex.Unlock()
 
+			parsedMessage := UserPartMessage{
+				Channel: channel,
+				User:    username,
+			}
+
 			if c.onUserPart != nil {
-				c.onUserPart(channel, username)
+				c.onUserPart(parsedMessage)
 			}
 		}
 		if strings.Contains(line, "tmi.twitch.tv RECONNECT") {

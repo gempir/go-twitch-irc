@@ -26,6 +26,10 @@ const (
 	USERSTATE MessageType = 5
 	// NOTICE messages like sub mode, host on
 	NOTICE MessageType = 6
+	// JOIN whenever a user joins a channel
+	JOIN MessageType = 7
+	// PART whenever a user parts from a channel
+	PART MessageType = 8
 )
 
 // Emote twitch emotes
@@ -36,29 +40,29 @@ type Emote struct {
 }
 
 // ParseMessage parse a raw Twitch IRC message
-func ParseMessage(line string) (*User, Message) {
+func ParseMessage(line string) Message {
 	ircMessage, err := parseIRCMessage(line)
 	if err != nil {
-		return nil, parseRawMessage(ircMessage)
+		return parseRawMessage(ircMessage)
 	}
 
 	switch ircMessage.Command {
 	case "WHISPER":
-		return parseUser(ircMessage), parseWhisperMessage(ircMessage)
+		return parseWhisperMessage(ircMessage)
 	case "PRIVMSG":
-		return parseUser(ircMessage), parsePrivateMessage(ircMessage)
+		return parsePrivateMessage(ircMessage)
 	case "CLEARCHAT":
-		return nil, parseClearChatMessage(ircMessage)
+		return parseClearChatMessage(ircMessage)
 	case "ROOMSTATE":
-		return nil, parseRoomStateMessage(ircMessage)
+		return parseRoomStateMessage(ircMessage)
 	case "USERNOTICE":
-		return parseUser(ircMessage), parseUserNoticeMessage(ircMessage)
+		return parseUserNoticeMessage(ircMessage)
 	case "USERSTATE":
-		return parseUser(ircMessage), parseUserStateMessage(ircMessage)
+		return parseUserStateMessage(ircMessage)
 	case "NOTICE":
-		return nil, parseNoticeMessage(ircMessage)
+		return parseNoticeMessage(ircMessage)
 	default:
-		return nil, parseRawMessage(ircMessage)
+		return parseRawMessage(ircMessage)
 	}
 }
 
@@ -83,7 +87,7 @@ func parseMessageType(messageType string) MessageType {
 	}
 }
 
-func parseUser(message *ircMessage) *User {
+func parseUser(message *ircMessage) User {
 	user := User{
 		ID:          message.Tags["user-id"],
 		Name:        message.Source.Username,
@@ -102,7 +106,7 @@ func parseUser(message *ircMessage) *User {
 		user.Name = strings.Replace(user.Name, " ", "", 1)
 	}
 
-	return &user
+	return user
 }
 
 func parseBadges(rawBadges string) map[string]int {
@@ -136,6 +140,8 @@ func parseRawMessage(message *ircMessage) *RawMessage {
 
 func parseWhisperMessage(message *ircMessage) *WhisperMessage {
 	whisperMessage := WhisperMessage{
+		User: parseUser(message),
+
 		Raw:       message.Raw,
 		Type:      parseMessageType(message.Command),
 		RawType:   message.Command,
@@ -161,6 +167,8 @@ func parseWhisperMessage(message *ircMessage) *WhisperMessage {
 
 func parsePrivateMessage(message *ircMessage) *PrivateMessage {
 	privateMessage := PrivateMessage{
+		User: parseUser(message),
+
 		Raw:     message.Raw,
 		Type:    parseMessageType(message.Command),
 		RawType: message.Command,
@@ -246,6 +254,8 @@ func parseRoomStateMessage(message *ircMessage) *RoomStateMessage {
 
 func parseUserNoticeMessage(message *ircMessage) *UserNoticeMessage {
 	userNoticeMessage := UserNoticeMessage{
+		User: parseUser(message),
+
 		Raw:       message.Raw,
 		Type:      parseMessageType(message.Command),
 		RawType:   message.Command,
@@ -276,6 +286,8 @@ func parseUserNoticeMessage(message *ircMessage) *UserNoticeMessage {
 
 func parseUserStateMessage(message *ircMessage) *UserStateMessage {
 	userStateMessage := UserStateMessage{
+		User: parseUser(message),
+
 		Raw:     message.Raw,
 		Type:    parseMessageType(message.Command),
 		RawType: message.Command,
