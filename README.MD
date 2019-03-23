@@ -189,10 +189,12 @@ client.OnUserPart(func(message UserPartMessage) {})
 If you ever need more than basic PRIVMSG, this might be for you.
 These are the 7 major message types currently supported:
 
-	WHISPER
-	PRIVMSG
-	CLEARCHAT
-	ROOMSTATE
-	USERNOTICE
-	USERSTATE
+    WHISPER
+    PRIVMSG
+    CLEARCHAT
+    ROOMSTATE
+    USERNOTICE
+    USERSTATE
     NOTICE
+    JOIN
+    PART
