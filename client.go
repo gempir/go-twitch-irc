@@ -229,7 +229,7 @@ func (c *Client) Say(channel, text string) {
 // so your message might get blocked because of this
 // verify your bot to prevent this
 func (c *Client) Whisper(username, text string) {
-	c.send(fmt.Sprintf("PRIVMSG #jtv :/w %s %s", username, text))
+	c.send(fmt.Sprintf("PRIVMSG #%s :/w %s %s", c.ircUser, username, text))
 }
 
 // Join enter a twitch channel to read more messages
