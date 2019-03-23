@@ -362,7 +362,7 @@ func TestCanReceivePRIVMSGMessage(t *testing.T) {
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnNewMessage(func(message PrivateMessage) {
+	client.OnPrivateMessage(func(message PrivateMessage) {
 		received = message.Message
 		assertMessageTypesEqual(t, PRIVMSG, message.GetType())
 		close(wait)
@@ -390,7 +390,7 @@ func TestCanReceiveWHISPERMessage(t *testing.T) {
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnNewWhisper(func(message WhisperMessage) {
+	client.OnWhisperMessage(func(message WhisperMessage) {
 		received = message.Message
 		assertMessageTypesEqual(t, WHISPER, message.GetType())
 		close(wait)
@@ -418,7 +418,7 @@ func TestCanReceiveCLEARCHATMessage(t *testing.T) {
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnNewClearChatMessage(func(message ClearChatMessage) {
+	client.OnClearChatMessage(func(message ClearChatMessage) {
 		received = message.BanDuration
 		assertMessageTypesEqual(t, CLEARCHAT, message.GetType())
 		close(wait)
@@ -446,7 +446,7 @@ func TestCanReceiveROOMSTATEMessage(t *testing.T) {
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnNewRoomStateMessage(func(message RoomStateMessage) {
+	client.OnRoomStateMessage(func(message RoomStateMessage) {
 		received = message.Tags["slow"]
 		assertMessageTypesEqual(t, ROOMSTATE, message.GetType())
 		close(wait)
@@ -474,7 +474,7 @@ func TestCanReceiveUSERNOTICEMessage(t *testing.T) {
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnNewUserNoticeMessage(func(message UserNoticeMessage) {
+	client.OnUserNoticeMessage(func(message UserNoticeMessage) {
 		received = message.Tags["msg-param-months"]
 		assertMessageTypesEqual(t, USERNOTICE, message.GetType())
 		close(wait)
@@ -501,7 +501,7 @@ func TestCanReceiveUSERNOTICEMessageResub(t *testing.T) {
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnNewUserNoticeMessage(func(message UserNoticeMessage) {
+	client.OnUserNoticeMessage(func(message UserNoticeMessage) {
 		received = message.Tags["msg-param-months"]
 		close(wait)
 	})
@@ -524,7 +524,7 @@ func checkNoticeMessage(t *testing.T, testMessage string, requirements map[strin
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnNewNoticeMessage(func(message NoticeMessage) {
+	client.OnNoticeMessage(func(message NoticeMessage) {
 		received["msg-id"] = message.Tags["msg-id"]
 		received["channel"] = message.Channel
 		received["text"] = message.Message
@@ -577,7 +577,7 @@ func TestCanReceiveUSERStateMessage(t *testing.T) {
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnNewUserStateMessage(func(message UserStateMessage) {
+	client.OnUserStateMessage(func(message UserStateMessage) {
 		received = message.Tags["mod"]
 		assertMessageTypesEqual(t, USERSTATE, message.GetType())
 		close(wait)
@@ -604,7 +604,7 @@ func TestCanReceiveJOINMessage(t *testing.T) {
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnUserJoin(func(message UserJoinMessage) {
+	client.OnUserJoinMessage(func(message UserJoinMessage) {
 		received = message
 		close(wait)
 	})
@@ -633,7 +633,7 @@ func TestCanReceivePARTMessage(t *testing.T) {
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnUserPart(func(message UserPartMessage) {
+	client.OnUserPartMessage(func(message UserPartMessage) {
 		received = message
 		close(wait)
 	})
@@ -662,7 +662,7 @@ func TestCanReceiveUNSETMessage(t *testing.T) {
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnNewUnsetMessage(func(rawMessage RawMessage) {
+	client.OnUnsetMessage(func(rawMessage RawMessage) {
 		received = rawMessage.Raw
 		assertMessageTypesEqual(t, UNSET, rawMessage.GetType())
 		close(wait)
@@ -882,7 +882,7 @@ func TestCanGetUserlist(t *testing.T) {
 
 	client.Join("channel123")
 
-	client.OnNewMessage(func(message PrivateMessage) {
+	client.OnPrivateMessage(func(message PrivateMessage) {
 		if message.Message == "ok go now" {
 			// test a valid channel
 			got, err := client.Userlist("channel123")
