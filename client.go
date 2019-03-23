@@ -460,11 +460,11 @@ func (c *Client) setupConnection(conn net.Conn) {
 	if c.SetupCmd != "" {
 		conn.Write([]byte(c.SetupCmd + "\r\n"))
 	}
-	conn.Write([]byte("PASS " + c.ircToken + "\r\n"))
-	conn.Write([]byte("NICK " + c.ircUser + "\r\n"))
 	conn.Write([]byte("CAP REQ :twitch.tv/tags\r\n"))
 	conn.Write([]byte("CAP REQ :twitch.tv/commands\r\n"))
 	conn.Write([]byte("CAP REQ :twitch.tv/membership\r\n"))
+	conn.Write([]byte("PASS " + c.ircToken + "\r\n"))
+	conn.Write([]byte("NICK " + c.ircUser + "\r\n"))
 }
 
 func (c *Client) startWriter(writer io.WriteCloser, wg *sync.WaitGroup) {
