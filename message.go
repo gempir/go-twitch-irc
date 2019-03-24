@@ -6,6 +6,11 @@ import (
 	"time"
 )
 
+// ADDING A NEW MESSAGE TYPE:
+// 1. Add the message type at the bottom of the MessageType "const enum", with a unique index
+// 2. Add a function at the bottom of file in the "parseXXXMessage" format, that parses your message type and returns a Message
+// 3. Register the message into the map in the init function, specifying the message type value and the parser you just made
+
 // MessageType different message types possible to receive via IRC
 type MessageType int
 
@@ -34,7 +39,36 @@ const (
 	RECONNECT MessageType = 9
 	// NAMES (or 353 https://www.alien.net.au/irc/irc2numerics.html#353) is the response sent from the server when the client requests a list of names for a channel
 	NAMES MessageType = 10
+	// PING is a message that can be sent from the IRC server. go-twitch-irc responds to PINGs automatically
+	PING MessageType = 11
+	// PONG is a message that should be sent from the IRC server as a response to us sending a PING message.
+	PONG MessageType = 12
 )
+
+type messageTypeDescription struct {
+	Type   MessageType
+	Parser func(*ircMessage) Message
+}
+
+var messageTypeMap map[string]messageTypeDescription
+
+func init() {
+	messageTypeMap = map[string]messageTypeDescription{
+		"WHISPER":    messageTypeDescription{WHISPER, parseWhisperMessage},
+		"PRIVMSG":    messageTypeDescription{PRIVMSG, parsePrivateMessage},
+		"CLEARCHAT":  messageTypeDescription{CLEARCHAT, parseClearChatMessage},
+		"ROOMSTATE":  messageTypeDescription{ROOMSTATE, parseRoomStateMessage},
+		"USERNOTICE": messageTypeDescription{USERNOTICE, parseUserNoticeMessage},
+		"USERSTATE":  messageTypeDescription{USERSTATE, parseUserStateMessage},
+		"NOTICE":     messageTypeDescription{NOTICE, parseNoticeMessage},
+		"JOIN":       messageTypeDescription{JOIN, parseUserJoinMessage},
+		"PART":       messageTypeDescription{PART, parseUserPartMessage},
+		"RECONNECT":  messageTypeDescription{RECONNECT, parseReconnectMessage},
+		"353":        messageTypeDescription{NAMES, parseNamesMessage},
+		"PING":       messageTypeDescription{PING, parsePingMessage},
+		"PONG":       messageTypeDescription{PONG, parsePongMessage},
+	}
+}
 
 // Emote twitch emotes
 type Emote struct {
@@ -50,62 +84,19 @@ func ParseMessage(line string) Message {
 		return parseRawMessage(ircMessage)
 	}
 
-	switch parseMessageType(ircMessage.Command) {
-	case WHISPER:
-		return parseWhisperMessage(ircMessage)
-	case PRIVMSG:
-		return parsePrivateMessage(ircMessage)
-	case CLEARCHAT:
-		return parseClearChatMessage(ircMessage)
-	case ROOMSTATE:
-		return parseRoomStateMessage(ircMessage)
-	case USERNOTICE:
-		return parseUserNoticeMessage(ircMessage)
-	case USERSTATE:
-		return parseUserStateMessage(ircMessage)
-	case NOTICE:
-		return parseNoticeMessage(ircMessage)
-	case JOIN:
-		return parseUserJoinMessage(ircMessage)
-	case PART:
-		return parseUserPartMessage(ircMessage)
-	case RECONNECT:
-		return parseReconnectMessage(ircMessage)
-	case NAMES:
-		return parseNamesMessage(ircMessage)
-	default:
-		return parseRawMessage(ircMessage)
+	if mt, ok := messageTypeMap[ircMessage.Command]; ok {
+		return mt.Parser(ircMessage)
 	}
+
+	return parseRawMessage(ircMessage)
 }
 
 func parseMessageType(messageType string) MessageType {
-	switch messageType {
-	case "WHISPER":
-		return WHISPER
-	case "PRIVMSG":
-		return PRIVMSG
-	case "CLEARCHAT":
-		return CLEARCHAT
-	case "ROOMSTATE":
-		return ROOMSTATE
-	case "USERNOTICE":
-		return USERNOTICE
-	case "USERSTATE":
-		return USERSTATE
-	case "NOTICE":
-		return NOTICE
-	case "JOIN":
-		return JOIN
-	case "PART":
-		return PART
-	case "RECONNECT":
-		return RECONNECT
-	case "353":
-		// see https://www.alien.net.au/irc/irc2numerics.html#353
-		return NAMES
-	default:
-		return UNSET
+	if mt, ok := messageTypeMap[messageType]; ok {
+		return mt.Type
 	}
+
+	return UNSET
 }
 
 func parseUser(message *ircMessage) User {
@@ -159,7 +150,7 @@ func parseRawMessage(message *ircMessage) *RawMessage {
 	return &rawMessage
 }
 
-func parseWhisperMessage(message *ircMessage) *WhisperMessage {
+func parseWhisperMessage(message *ircMessage) Message {
 	whisperMessage := WhisperMessage{
 		User: parseUser(message),
 
@@ -186,7 +177,7 @@ func parseWhisperMessage(message *ircMessage) *WhisperMessage {
 	return &whisperMessage
 }
 
-func parsePrivateMessage(message *ircMessage) *PrivateMessage {
+func parsePrivateMessage(message *ircMessage) Message {
 	privateMessage := PrivateMessage{
 		User: parseUser(message),
 
@@ -221,7 +212,7 @@ func parsePrivateMessage(message *ircMessage) *PrivateMessage {
 	return &privateMessage
 }
 
-func parseClearChatMessage(message *ircMessage) *ClearChatMessage {
+func parseClearChatMessage(message *ircMessage) Message {
 	clearChatMessage := ClearChatMessage{
 		Raw:          message.Raw,
 		Type:         parseMessageType(message.Command),
@@ -247,7 +238,7 @@ func parseClearChatMessage(message *ircMessage) *ClearChatMessage {
 	return &clearChatMessage
 }
 
-func parseRoomStateMessage(message *ircMessage) *RoomStateMessage {
+func parseRoomStateMessage(message *ircMessage) Message {
 	roomStateMessage := RoomStateMessage{
 		Raw:     message.Raw,
 		Type:    parseMessageType(message.Command),
@@ -273,7 +264,7 @@ func parseRoomStateMessage(message *ircMessage) *RoomStateMessage {
 	return &roomStateMessage
 }
 
-func parseUserNoticeMessage(message *ircMessage) *UserNoticeMessage {
+func parseUserNoticeMessage(message *ircMessage) Message {
 	userNoticeMessage := UserNoticeMessage{
 		User: parseUser(message),
 
@@ -305,7 +296,7 @@ func parseUserNoticeMessage(message *ircMessage) *UserNoticeMessage {
 	return &userNoticeMessage
 }
 
-func parseUserStateMessage(message *ircMessage) *UserStateMessage {
+func parseUserStateMessage(message *ircMessage) Message {
 	userStateMessage := UserStateMessage{
 		User: parseUser(message),
 
@@ -325,7 +316,7 @@ func parseUserStateMessage(message *ircMessage) *UserStateMessage {
 	return &userStateMessage
 }
 
-func parseNoticeMessage(message *ircMessage) *NoticeMessage {
+func parseNoticeMessage(message *ircMessage) Message {
 	noticeMessage := NoticeMessage{
 		Raw:     message.Raw,
 		Type:    parseMessageType(message.Command),
@@ -343,7 +334,7 @@ func parseNoticeMessage(message *ircMessage) *NoticeMessage {
 	return &noticeMessage
 }
 
-func parseUserJoinMessage(message *ircMessage) *UserJoinMessage {
+func parseUserJoinMessage(message *ircMessage) Message {
 	parsedMessage := UserJoinMessage{
 		Raw:     message.Raw,
 		Type:    parseMessageType(message.Command),
@@ -359,7 +350,7 @@ func parseUserJoinMessage(message *ircMessage) *UserJoinMessage {
 	return &parsedMessage
 }
 
-func parseUserPartMessage(message *ircMessage) *UserPartMessage {
+func parseUserPartMessage(message *ircMessage) Message {
 	parsedMessage := UserPartMessage{
 		Raw:     message.Raw,
 		Type:    parseMessageType(message.Command),
@@ -375,7 +366,7 @@ func parseUserPartMessage(message *ircMessage) *UserPartMessage {
 	return &parsedMessage
 }
 
-func parseReconnectMessage(message *ircMessage) *ReconnectMessage {
+func parseReconnectMessage(message *ircMessage) Message {
 	return &ReconnectMessage{
 		Raw:     message.Raw,
 		Type:    parseMessageType(message.Command),
@@ -383,7 +374,7 @@ func parseReconnectMessage(message *ircMessage) *ReconnectMessage {
 	}
 }
 
-func parseNamesMessage(message *ircMessage) *NamesMessage {
+func parseNamesMessage(message *ircMessage) Message {
 	parsedMessage := NamesMessage{
 		Raw:     message.Raw,
 		Type:    parseMessageType(message.Command),
@@ -393,6 +384,34 @@ func parseNamesMessage(message *ircMessage) *NamesMessage {
 	if len(message.Params) == 4 {
 		parsedMessage.Channel = strings.TrimPrefix(message.Params[2], "#")
 		parsedMessage.Users = strings.Split(message.Params[3], " ")
+	}
+
+	return &parsedMessage
+}
+
+func parsePingMessage(message *ircMessage) Message {
+	parsedMessage := PingMessage{
+		Raw:     message.Raw,
+		Type:    parseMessageType(message.Command),
+		RawType: message.Command,
+	}
+
+	if len(message.Params) == 1 {
+		parsedMessage.Message = strings.Split(message.Params[0], " ")[0]
+	}
+
+	return &parsedMessage
+}
+
+func parsePongMessage(message *ircMessage) Message {
+	parsedMessage := PongMessage{
+		Raw:     message.Raw,
+		Type:    parseMessageType(message.Command),
+		RawType: message.Command,
+	}
+
+	if len(message.Params) == 2 {
+		parsedMessage.Message = strings.Split(message.Params[1], " ")[0]
 	}
 
 	return &parsedMessage

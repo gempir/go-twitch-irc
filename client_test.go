@@ -1047,6 +1047,79 @@ func TestDepartNegatesJoinIfNotConnected(t *testing.T) {
 	}
 }
 
+func TestCanRespondToPING1(t *testing.T) {
+	t.Parallel()
+	testMessage := `PING`
+	expectedMessage := `PONG`
+	waitEnd := make(chan struct{})
+
+	host := startServer(t, postMessageOnConnect(testMessage), func(message string) {
+		// On message received
+		if message == expectedMessage {
+			close(waitEnd)
+		}
+	})
+
+	client := newTestClient(host)
+
+	go client.Connect()
+
+	// wait for server to receive message
+	select {
+	case <-waitEnd:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no pong message received")
+	}
+}
+
+func TestCanRespondToPING2(t *testing.T) {
+	t.Parallel()
+	testMessage := `:tmi.twitch.tv PING`
+	expectedMessage := `PONG`
+	waitEnd := make(chan struct{})
+
+	host := startServer(t, postMessageOnConnect(testMessage), func(message string) {
+		// On message received
+		if message == expectedMessage {
+			close(waitEnd)
+		}
+	})
+
+	client := newTestClient(host)
+
+	go client.Connect()
+
+	// wait for server to receive message
+	select {
+	case <-waitEnd:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no pong message received")
+	}
+}
+
+func TestCanAttachToPingMessageCallback(t *testing.T) {
+	t.Parallel()
+	testMessage := `:tmi.twitch.tv PING`
+	wait := make(chan struct{})
+
+	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
+
+	client := newTestClient(host)
+
+	client.OnPingMessage(func(msg PingMessage) {
+		close(wait)
+	})
+
+	go client.Connect()
+
+	// wait for server to receive message
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no ping message received")
+	}
+}
+
 func TestCanPong(t *testing.T) {
 	t.Parallel()
 	testMessage := `PING :hello`
@@ -1436,7 +1509,7 @@ func TestPinger(t *testing.T) {
 		pingpongMutex.Unlock()
 	})
 
-	client.OnPongReceived(func() {
+	client.OnPongMessage(func(msg PongMessage) {
 		pingpongMutex.Lock()
 		pongsReceived++
 		pingpongMutex.Unlock()
@@ -1474,4 +1547,35 @@ func TestPinger(t *testing.T) {
 	}
 
 	client.Disconnect()
+}
+
+func TestCanAttachToPongMessageCallback(t *testing.T) {
+	t.Parallel()
+
+	pongMessage := `:tmi.twitch.tv PONG tmi.twitch.tv :go-twitch-irc`
+
+	wait := make(chan struct{})
+
+	host := startServer(t, postMessageOnConnect(pongMessage), nothingOnMessage)
+
+	client := newTestClient(host)
+
+	var received string
+
+	client.OnPongMessage(func(msg PongMessage) {
+		received = msg.Message
+		close(wait)
+	})
+
+	go client.Connect()
+
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("Did not establish a connection")
+	}
+
+	client.Disconnect()
+
+	assertStringsEqual(t, "go-twitch-irc", received)
 }

@@ -263,6 +263,30 @@ func (msg *NamesMessage) GetType() MessageType {
 	return msg.Type
 }
 
+type PingMessage struct {
+	Raw     string
+	Type    MessageType
+	RawType string
+
+	Message string
+}
+
+func (msg *PingMessage) GetType() MessageType {
+	return msg.Type
+}
+
+type PongMessage struct {
+	Raw     string
+	Type    MessageType
+	RawType string
+
+	Message string
+}
+
+func (msg *PongMessage) GetType() MessageType {
+	return msg.Type
+}
+
 // Client client to control your connection and attach callbacks
 type Client struct {
 	IrcAddress           string
@@ -286,10 +310,11 @@ type Client struct {
 	onUserPartMessage    func(message UserPartMessage)
 	onReconnectMessage   func(message ReconnectMessage)
 	onNamesMessage       func(message NamesMessage)
+	onPingMessage        func(message PingMessage)
+	onPongMessage        func(message PongMessage)
 	onUnsetMessage       func(message RawMessage)
 
-	onPingSent     func()
-	onPongReceived func()
+	onPingSent func()
 
 	// read is the incoming messages channel, normally buffered with ReadBufferSize
 	read chan (string)
@@ -409,6 +434,16 @@ func (c *Client) OnNamesMessage(callback func(message NamesMessage)) {
 	c.onNamesMessage = callback
 }
 
+// OnPingMessage attaches callback to PING message
+func (c *Client) OnPingMessage(callback func(message PingMessage)) {
+	c.onPingMessage = callback
+}
+
+// OnPongMessage attaches callback to PONG message
+func (c *Client) OnPongMessage(callback func(message PongMessage)) {
+	c.onPongMessage = callback
+}
+
 // OnUnsetMessage attaches callback to message types we currently don't support
 func (c *Client) OnUnsetMessage(callback func(message RawMessage)) {
 	c.onUnsetMessage = callback
@@ -417,11 +452,6 @@ func (c *Client) OnUnsetMessage(callback func(message RawMessage)) {
 // OnPingSent attaches callback that's called whenever the client sends out a ping message
 func (c *Client) OnPingSent(callback func()) {
 	c.onPingSent = callback
-}
-
-// OnPongReceived attaches callback that's called whenever the client receives a pong to one of its previously sent out ping messages
-func (c *Client) OnPongReceived(callback func()) {
-	c.onPongReceived = callback
 }
 
 // Say write something in a chat
@@ -648,9 +678,6 @@ func (c *Client) startPinger(closer io.Closer, wg *sync.WaitGroup) {
 				select {
 				case <-c.pongReceived:
 					// Received pong message within the time limit, we're good
-					if c.onPongReceived != nil {
-						c.onPongReceived()
-					}
 					continue
 
 				case <-time.After(c.PongTimeout):
@@ -752,24 +779,6 @@ func (c *Client) handleLine(line string) error {
 		}
 	}()
 
-	// Handle PING
-	if strings.HasPrefix(line, "PING") {
-		c.send(strings.Replace(line, "PING", "PONG", 1))
-
-		return nil
-	}
-
-	// Handle PONG
-	if line == expectedPongMessage {
-		// Received a pong that was sent by us
-		select {
-		case c.pongReceived <- true:
-		default:
-		}
-
-		return nil
-	}
-
 	message := ParseMessage(line)
 
 	switch msg := message.(type) {
@@ -845,6 +854,20 @@ func (c *Client) handleLine(line string) error {
 		c.handleNamesMessage(*msg)
 		return nil
 
+	case *PingMessage:
+		if c.onPingMessage != nil {
+			c.onPingMessage(*msg)
+		}
+		c.handlePingMessage(*msg)
+		return nil
+
+	case *PongMessage:
+		if c.onPongMessage != nil {
+			c.onPongMessage(*msg)
+		}
+		c.handlePongMessage(*msg)
+		return nil
+
 	case *RawMessage:
 		if c.onUnsetMessage != nil {
 			c.onUnsetMessage(*msg)
@@ -904,6 +927,24 @@ func (c *Client) handleNamesMessage(msg NamesMessage) {
 
 	for _, user := range msg.Users {
 		c.channelUserlist[msg.Channel][user] = true
+	}
+}
+
+func (c *Client) handlePingMessage(msg PingMessage) {
+	if msg.Message == "" {
+		c.send("PONG")
+	} else {
+		c.send("PONG :" + msg.Message)
+	}
+}
+
+func (c *Client) handlePongMessage(msg PongMessage) {
+	if msg.Message == pingSignature {
+		// Received a pong that was sent by us
+		select {
+		case c.pongReceived <- true:
+		default:
+		}
 	}
 }
 

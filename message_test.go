@@ -91,6 +91,20 @@ func TestCanParseWHISPERMessage(t *testing.T) {
 	assertFalse(t, whisperMessage.Action, "parsing Action failed")
 }
 
+func BenchmarkParseWHISPERMessage(b *testing.B) {
+	testMessage := "@badges=;color=#00FF7F;display-name=Danielps1;emotes=;message-id=20;thread-id=32591953_77829817;turbo=0;user-id=32591953;user-type= :danielps1!danielps1@danielps1.tmi.twitch.tv WHISPER gempir :i like memes"
+	for n := 0; n < b.N; n++ {
+		ParseMessage(testMessage)
+	}
+}
+
+func BenchmarkParseMessageType(b *testing.B) {
+	testCommand := "RECONNECT"
+	for n := 0; n < b.N; n++ {
+		parseMessageType(testCommand)
+	}
+}
+
 func TestCanParseWHISPERActionMessage(t *testing.T) {
 	testMessage := "@badges=;color=#1E90FF;display-name=FletcherCodes;emotes=;message-id=50;thread-id=269899575_408892348;turbo=0;user-id=269899575;user-type= :fletchercodes!fletchercodes@fletchercodes.tmi.twitch.tv WHISPER clippyassistant :/me tests whisper action"
 
@@ -432,4 +446,80 @@ func TestCanParseNames(t *testing.T) {
 
 	assertStringsEqual(t, channel, "mychannel")
 	assertStringSlicesEqual(t, expectedUsers, users)
+}
+
+func TestCanParsePING1(t *testing.T) {
+	testMessage := `PING :tmi.twitch.tv`
+	rawMessage := ParseMessage(testMessage)
+	message := rawMessage.(*PingMessage)
+
+	assertStringsEqual(t, message.Message, "tmi.twitch.tv")
+	assertMessageTypesEqual(t, PING, message.GetType())
+}
+
+func TestCanParsePING2(t *testing.T) {
+	testMessage := `:tmi.twitch.tv PING :message`
+	rawMessage := ParseMessage(testMessage)
+	message := rawMessage.(*PingMessage)
+
+	assertStringsEqual(t, message.Message, "message")
+	assertMessageTypesEqual(t, PING, message.GetType())
+}
+
+func TestCanParsePING3(t *testing.T) {
+	testMessage := `PING`
+	rawMessage := ParseMessage(testMessage)
+	message := rawMessage.(*PingMessage)
+
+	assertStringsEqual(t, message.Message, "")
+	assertMessageTypesEqual(t, PING, message.GetType())
+}
+
+func TestCanParsePING4(t *testing.T) {
+	testMessage := `PING :message`
+	rawMessage := ParseMessage(testMessage)
+	message := rawMessage.(*PingMessage)
+
+	assertStringsEqual(t, message.Message, "message")
+	assertMessageTypesEqual(t, PING, message.GetType())
+}
+
+func TestCanParsePING5(t *testing.T) {
+	testMessage := `PING :message anything after the first space should be ignored`
+	rawMessage := ParseMessage(testMessage)
+	message := rawMessage.(*PingMessage)
+
+	assertStringsEqual(t, message.Message, "message")
+	assertMessageTypesEqual(t, PING, message.GetType())
+}
+
+// potential other ping messages they could send according to the irc standard
+// testMessage3 := `:tmi.twitch.tv PING :a b c` // reply a
+// testMessage4 := `:tmi.twitch.tv PING` // reply PONG
+
+func TestCanParsePONG1(t *testing.T) {
+	testMessage := `:tmi.twitch.tv PONG tmi.twitch.tv :go-twitch-irc`
+	rawMessage := ParseMessage(testMessage)
+	message := rawMessage.(*PongMessage)
+
+	assertStringsEqual(t, message.Message, "go-twitch-irc")
+	assertMessageTypesEqual(t, PONG, message.GetType())
+}
+
+func TestCanParsePONG2(t *testing.T) {
+	testMessage := `:tmi.twitch.tv PONG tmi.twitch.tv :go-twitch-irc lol`
+	rawMessage := ParseMessage(testMessage)
+	message := rawMessage.(*PongMessage)
+
+	assertStringsEqual(t, message.Message, "go-twitch-irc")
+	assertMessageTypesEqual(t, PONG, message.GetType())
+}
+
+func TestCanParsePONG3(t *testing.T) {
+	testMessage := `PONG :tmi.twitch.tv`
+	rawMessage := ParseMessage(testMessage)
+	message := rawMessage.(*PongMessage)
+
+	assertStringsEqual(t, message.Message, "")
+	assertMessageTypesEqual(t, PONG, message.GetType())
 }
