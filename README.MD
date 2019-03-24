@@ -42,6 +42,8 @@ type User struct {
 }
 
 type WhisperMessage struct {
+	User User
+
 	Raw       string
 	Type      MessageType
 	RawType   string
@@ -55,6 +57,8 @@ type WhisperMessage struct {
 }
 
 type PrivateMessage struct {
+	User User
+
 	Raw     string
 	Type    MessageType
 	RawType string
@@ -95,6 +99,8 @@ type RoomStateMessage struct {
 }
 
 type UserNoticeMessage struct {
+	User User
+
 	Raw       string
 	Type      MessageType
 	RawType   string
@@ -111,6 +117,8 @@ type UserNoticeMessage struct {
 }
 
 type UserStateMessage struct {
+	User User
+
 	Raw       string
 	Type      MessageType
 	RawType   string
@@ -128,6 +136,22 @@ type NoticeMessage struct {
 	Message string
 	Channel string
 	MsgID   string
+}
+
+type UserJoinMessage struct {
+	// Channel name
+	Channel string
+
+	// User name
+	User string
+}
+
+type UserPartMessage struct {
+	// Channel name
+	Channel string
+
+	// User name
+	User string
 }
 ```
 
