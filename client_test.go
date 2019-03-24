@@ -40,6 +40,14 @@ func postMessageOnConnect(message string) func(conn net.Conn) {
 	}
 }
 
+func postMessagesOnConnect(messages []string) func(conn net.Conn) {
+	return func(conn net.Conn) {
+		for _, message := range messages {
+			fmt.Fprintf(conn, "%s\r\n", message)
+		}
+	}
+}
+
 func newTestClient(host string) *Client {
 	client := NewClient("justinfan123123", "oauth:123123132")
 	client.IrcAddress = host
@@ -623,6 +631,38 @@ func TestCanReceiveJOINMessage(t *testing.T) {
 	assertMessageTypesEqual(t, JOIN, received.GetType())
 }
 
+func TestDoesNotReceiveJOINMessageFromSelf(t *testing.T) {
+	t.Parallel()
+	testMessages := []string{
+		`:justinfan123123!justinfan123123@justinfan123123.tmi.twitch.tv JOIN #mychannel`,
+		`:username123!username123@username123.tmi.twitch.tv JOIN #mychannel`,
+	}
+
+	wait := make(chan struct{})
+	var received UserJoinMessage
+
+	host := startServer(t, postMessagesOnConnect(testMessages), nothingOnMessage)
+	client := newTestClient(host)
+
+	client.OnUserJoinMessage(func(message UserJoinMessage) {
+		received = message
+		close(wait)
+	})
+
+	go client.Connect()
+
+	// wait for server to start
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no message sent")
+	}
+
+	assertStringsEqual(t, "username123", received.User)
+	assertStringsEqual(t, "mychannel", received.Channel)
+	assertMessageTypesEqual(t, JOIN, received.GetType())
+}
+
 func TestCanReceivePARTMessage(t *testing.T) {
 	t.Parallel()
 	testMessage := `:username123!username123@username123.tmi.twitch.tv PART #mychannel`
@@ -652,20 +692,53 @@ func TestCanReceivePARTMessage(t *testing.T) {
 	assertMessageTypesEqual(t, PART, received.GetType())
 }
 
+func TestDoesNotReceivePARTMessageFromSelf(t *testing.T) {
+	t.Parallel()
+	testMessages := []string{
+		`:justinfan123123!justinfan123123@justinfan123123.tmi.twitch.tv PART #mychannel`,
+		`:username123!username123@username123.tmi.twitch.tv PART #mychannel`,
+	}
+
+	wait := make(chan struct{})
+	var received UserPartMessage
+
+	host := startServer(t, postMessagesOnConnect(testMessages), nothingOnMessage)
+	client := newTestClient(host)
+
+	client.OnUserPartMessage(func(message UserPartMessage) {
+		received = message
+		close(wait)
+	})
+
+	go client.Connect()
+
+	// wait for server to start
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no message sent")
+	}
+
+	assertStringsEqual(t, "username123", received.User)
+	assertStringsEqual(t, "mychannel", received.Channel)
+	assertMessageTypesEqual(t, PART, received.GetType())
+}
+
 func TestCanReceiveUNSETMessage(t *testing.T) {
 	t.Parallel()
 	testMessage := `@badges=moderator/1,subscriber/24;color=#1FD2FF;display-name=Karl_Kons;emotes=28087:0-6;flags=;id=7c95beea-a7ac-4c10-9e0a-d7dbf163c038;login=karl_kons;mod=1;msg-id=resub;msg-param-months=34;msg-param-sub-plan-name=look\sat\sthose\sshitty\semotes,\srip\s$5\sLUL;msg-param-sub-plan=1000;room-id=11148817;subscriber=1;system-msg=Karl_Kons\sjust\ssubscribed\swith\sa\sTier\s1\ssub.\sKarl_Kons\ssubscribed\sfor\s34\smonths\sin\sa\srow!;tmi-sent-ts=1540140252828;turbo=0;user-id=68706331;user-type=mod :tmi.twitch.tv MALFORMEDMESSAGETYPETHISWILLBEUNSET #pajlada :WutFace`
 
 	wait := make(chan struct{})
-	var received string
+	var received RawMessage
 
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
 	client.OnUnsetMessage(func(rawMessage RawMessage) {
-		received = rawMessage.Raw
-		assertMessageTypesEqual(t, UNSET, rawMessage.GetType())
-		close(wait)
+		if rawMessage.RawType == "MALFORMEDMESSAGETYPETHISWILLBEUNSET" {
+			received = rawMessage
+			close(wait)
+		}
 	})
 
 	go client.Connect()
@@ -676,7 +749,8 @@ func TestCanReceiveUNSETMessage(t *testing.T) {
 		t.Fatal("no message sent")
 	}
 
-	assertStringsEqual(t, testMessage, received)
+	assertStringsEqual(t, testMessage, received.Raw)
+	assertMessageTypesEqual(t, UNSET, received.GetType())
 }
 
 func TestCanHandleRECONNECTMessage(t *testing.T) {
@@ -684,6 +758,8 @@ func TestCanHandleRECONNECTMessage(t *testing.T) {
 	const testMessage = ":tmi.twitch.tv RECONNECT"
 
 	wait := make(chan bool)
+
+	var received ReconnectMessage
 
 	var connCount int32
 
@@ -695,6 +771,9 @@ func TestCanHandleRECONNECTMessage(t *testing.T) {
 		})
 	}, nothingOnMessage)
 	client := newTestClient(host)
+	client.OnReconnectMessage(func(msg ReconnectMessage) {
+		received = msg
+	})
 
 	go client.Connect()
 
@@ -714,6 +793,8 @@ func TestCanHandleRECONNECTMessage(t *testing.T) {
 	}
 
 	assertInt32sEqual(t, 2, atomic.LoadInt32(&connCount))
+
+	assertMessageTypesEqual(t, RECONNECT, received.GetType())
 }
 
 func TestCanSayMessage(t *testing.T) {
@@ -869,6 +950,7 @@ func TestCanDepartChannel(t *testing.T) {
 
 func TestCanGetUserlist(t *testing.T) {
 	t.Parallel()
+	expectedNames := []string{"username1", "username2"}
 	testString := `:justinfan123123.tmi.twitch.tv 353 justinfan123123 = #channel123 :username1 username2`
 	testMessage := "@badges=subscriber/6,premium/1;color=#FF0000;display-name=Redflamingo13;emotes=;id=2a31a9df-d6ff-4840-b211-a2547c7e656e;mod=0;room-id=11148817;subscriber=1;tmi-sent-ts=1490382457309;turbo=0;user-id=78424343;user-type= :redflamingo13!redflamingo13@redflamingo13.tmi.twitch.tv PRIVMSG #anythingbutchannel123 :ok go now"
 	waitEnd := make(chan struct{})
@@ -880,6 +962,12 @@ func TestCanGetUserlist(t *testing.T) {
 
 	client := newTestClient(host)
 
+	var received NamesMessage
+
+	client.OnNamesMessage(func(message NamesMessage) {
+		received = message
+	})
+
 	client.Join("channel123")
 
 	client.OnPrivateMessage(func(message PrivateMessage) {
@@ -889,11 +977,10 @@ func TestCanGetUserlist(t *testing.T) {
 			if err != nil {
 				t.Fatal("error not nil for client.Userlist")
 			}
-			expected := []string{"username1", "username2"}
 
 			sort.Strings(got)
 
-			assertStringSlicesEqual(t, expected, got)
+			assertStringSlicesEqual(t, expectedNames, got)
 
 			// test an unknown channel
 			got, err = client.Userlist("random_channel123")
@@ -918,6 +1005,10 @@ func TestCanGetUserlist(t *testing.T) {
 	case <-time.After(time.Second * 3):
 		t.Fatal("no userlist received")
 	}
+
+	assertStringsEqual(t, "channel123", received.Channel)
+	assertStringSlicesEqual(t, expectedNames, received.Users)
+	assertMessageTypesEqual(t, NAMES, received.GetType())
 }
 
 func TestDepartNegatesJoinIfNotConnected(t *testing.T) {

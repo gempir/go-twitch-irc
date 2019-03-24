@@ -206,6 +206,10 @@ func (msg *NoticeMessage) GetType() MessageType {
 }
 
 type UserJoinMessage struct {
+	Raw     string
+	Type    MessageType
+	RawType string
+
 	// Channel name
 	Channel string
 
@@ -214,10 +218,14 @@ type UserJoinMessage struct {
 }
 
 func (msg *UserJoinMessage) GetType() MessageType {
-	return JOIN
+	return msg.Type
 }
 
 type UserPartMessage struct {
+	Raw     string
+	Type    MessageType
+	RawType string
+
 	// Channel name
 	Channel string
 
@@ -226,7 +234,33 @@ type UserPartMessage struct {
 }
 
 func (msg *UserPartMessage) GetType() MessageType {
-	return PART
+	return msg.Type
+}
+
+type ReconnectMessage struct {
+	Raw     string
+	Type    MessageType
+	RawType string
+}
+
+func (msg *ReconnectMessage) GetType() MessageType {
+	return msg.Type
+}
+
+type NamesMessage struct {
+	Raw     string
+	Type    MessageType
+	RawType string
+
+	// Channel name
+	Channel string
+
+	// List of user names
+	Users []string
+}
+
+func (msg *NamesMessage) GetType() MessageType {
+	return msg.Type
 }
 
 // Client client to control your connection and attach callbacks
@@ -250,6 +284,8 @@ type Client struct {
 	onNoticeMessage      func(message NoticeMessage)
 	onUserJoinMessage    func(message UserJoinMessage)
 	onUserPartMessage    func(message UserPartMessage)
+	onReconnectMessage   func(message ReconnectMessage)
+	onNamesMessage       func(message NamesMessage)
 	onUnsetMessage       func(message RawMessage)
 
 	onPingSent     func()
@@ -361,6 +397,16 @@ func (c *Client) OnUserJoinMessage(callback func(message UserJoinMessage)) {
 // OnUserPartMessage attaches callback to user parts
 func (c *Client) OnUserPartMessage(callback func(message UserPartMessage)) {
 	c.onUserPartMessage = callback
+}
+
+// OnReconnectMessage attaches callback that is triggered whenever the twitch servers tell us to reconnect
+func (c *Client) OnReconnectMessage(callback func(message ReconnectMessage)) {
+	c.onReconnectMessage = callback
+}
+
+// OnNamesMessage attaches callback to /names response
+func (c *Client) OnNamesMessage(callback func(message NamesMessage)) {
+	c.onNamesMessage = callback
 }
 
 // OnUnsetMessage attaches callback to message types we currently don't support
@@ -724,108 +770,141 @@ func (c *Client) handleLine(line string) error {
 		return nil
 	}
 
-	if strings.HasPrefix(line, "@") {
-		message := ParseMessage(line)
+	message := ParseMessage(line)
 
-		switch msg := message.(type) {
-		case *WhisperMessage:
-			if c.onWhisperMessage != nil {
-				c.onWhisperMessage(*msg)
-			}
-		case *PrivateMessage:
-			if c.onPrivateMessage != nil {
-				c.onPrivateMessage(*msg)
-			}
-		case *ClearChatMessage:
-			if c.onClearChatMessage != nil {
-				c.onClearChatMessage(*msg)
-			}
-		case *RoomStateMessage:
-			if c.onRoomStateMessage != nil {
-				c.onRoomStateMessage(*msg)
-			}
-		case *UserNoticeMessage:
-			if c.onUserNoticeMessage != nil {
-				c.onUserNoticeMessage(*msg)
-			}
-		case *UserStateMessage:
-			if c.onUserStateMessage != nil {
-				c.onUserStateMessage(*msg)
-			}
-		case *NoticeMessage:
-			if c.onNoticeMessage != nil {
-				c.onNoticeMessage(*msg)
-			}
-		case *RawMessage:
-			if c.onUnsetMessage != nil {
-				c.onUnsetMessage(*msg)
+	switch msg := message.(type) {
+	case *WhisperMessage:
+		if c.onWhisperMessage != nil {
+			c.onWhisperMessage(*msg)
+		}
+		return nil
+
+	case *PrivateMessage:
+		if c.onPrivateMessage != nil {
+			c.onPrivateMessage(*msg)
+		}
+		return nil
+
+	case *ClearChatMessage:
+		if c.onClearChatMessage != nil {
+			c.onClearChatMessage(*msg)
+		}
+		return nil
+
+	case *RoomStateMessage:
+		if c.onRoomStateMessage != nil {
+			c.onRoomStateMessage(*msg)
+		}
+		return nil
+
+	case *UserNoticeMessage:
+		if c.onUserNoticeMessage != nil {
+			c.onUserNoticeMessage(*msg)
+		}
+		return nil
+
+	case *UserStateMessage:
+		if c.onUserStateMessage != nil {
+			c.onUserStateMessage(*msg)
+		}
+		return nil
+
+	case *NoticeMessage:
+		if c.onNoticeMessage != nil {
+			c.onNoticeMessage(*msg)
+		}
+		return c.handleNoticeMessage(*msg)
+
+	case *UserJoinMessage:
+		if c.handleUserJoinMessage(*msg) {
+			if c.onUserJoinMessage != nil {
+				c.onUserJoinMessage(*msg)
 			}
 		}
-
 		return nil
+
+	case *UserPartMessage:
+		if c.handleUserPartMessage(*msg) {
+			if c.onUserPartMessage != nil {
+				c.onUserPartMessage(*msg)
+			}
+		}
+		return nil
+
+	case *ReconnectMessage:
+		// https://dev.twitch.tv/docs/irc/commands/#reconnect-twitch-commands
+		if c.onReconnectMessage != nil {
+			c.onReconnectMessage(*msg)
+		}
+		return errReconnect
+
+	case *NamesMessage:
+		if c.onNamesMessage != nil {
+			c.onNamesMessage(*msg)
+		}
+		c.handleNamesMessage(*msg)
+		return nil
+
+	case *RawMessage:
+		if c.onUnsetMessage != nil {
+			c.onUnsetMessage(*msg)
+		}
 	}
 
-	if strings.HasPrefix(line, ":") {
-		if strings.Contains(line, "tmi.twitch.tv JOIN") {
-			channel, username := parseJoinPart(line)
+	return nil
+}
 
-			c.channelUserlistMutex.Lock()
-			if c.channelUserlist[channel] == nil {
-				c.channelUserlist[channel] = map[string]bool{}
-			}
-
-			_, ok := c.channelUserlist[channel][username]
-			if !ok && username != c.ircUser {
-				c.channelUserlist[channel][username] = true
-			}
-			c.channelUserlistMutex.Unlock()
-
-			parsedMessage := UserJoinMessage{
-				Channel: channel,
-				User:    username,
-			}
-
-			if c.onUserJoinMessage != nil {
-				c.onUserJoinMessage(parsedMessage)
-			}
-		}
-		if strings.Contains(line, "tmi.twitch.tv PART") {
-			channel, username := parseJoinPart(line)
-
-			c.channelUserlistMutex.Lock()
-			delete(c.channelUserlist[channel], username)
-			c.channelUserlistMutex.Unlock()
-
-			parsedMessage := UserPartMessage{
-				Channel: channel,
-				User:    username,
-			}
-
-			if c.onUserPartMessage != nil {
-				c.onUserPartMessage(parsedMessage)
-			}
-		}
-		if strings.Contains(line, "tmi.twitch.tv RECONNECT") {
-			// https://dev.twitch.tv/docs/irc/commands/#reconnect-twitch-commands
-			return errReconnect
-		}
-		if strings.Contains(line, "353 "+c.ircUser) {
-			channel, users := parseNames(line)
-
-			c.channelUserlistMutex.Lock()
-			for _, user := range users {
-				c.channelUserlist[channel][user] = true
-			}
-			c.channelUserlistMutex.Unlock()
-		}
-		if strings.Contains(line, "tmi.twitch.tv NOTICE * :Login authentication failed") ||
-			strings.Contains(line, "tmi.twitch.tv NOTICE * :Improperly formatted auth") ||
-			line == ":tmi.twitch.tv NOTICE * :Invalid NICK" {
+func (c *Client) handleNoticeMessage(msg NoticeMessage) error {
+	if msg.Channel == "*" {
+		if msg.Message == "Login authentication failed" || msg.Message == "Improperly formatted auth" || msg.Message == "Invalid NICK" {
 			return ErrLoginAuthenticationFailed
 		}
 	}
 
 	return nil
+}
+
+func (c *Client) handleUserJoinMessage(msg UserJoinMessage) bool {
+	// Ignore own joins
+	if msg.User == c.ircUser {
+		return false
+	}
+
+	c.channelUserlistMutex.Lock()
+	defer c.channelUserlistMutex.Unlock()
+
+	if c.channelUserlist[msg.Channel] == nil {
+		c.channelUserlist[msg.Channel] = map[string]bool{}
+	}
+
+	if _, ok := c.channelUserlist[msg.Channel][msg.User]; !ok {
+		c.channelUserlist[msg.Channel][msg.User] = true
+	}
+
+	return true
+}
+
+func (c *Client) handleUserPartMessage(msg UserPartMessage) bool {
+	// Ignore own parts
+	if msg.User == c.ircUser {
+		return false
+	}
+
+	c.channelUserlistMutex.Lock()
+	defer c.channelUserlistMutex.Unlock()
+
+	delete(c.channelUserlist[msg.Channel], msg.User)
+
+	return true
+}
+
+func (c *Client) handleNamesMessage(msg NamesMessage) {
+	c.channelUserlistMutex.Lock()
+	defer c.channelUserlistMutex.Unlock()
+
+	for _, user := range msg.Users {
+		c.channelUserlist[msg.Channel][user] = true
+	}
 }
 
 // tAtomBool atomic bool for writing/reading across threads
