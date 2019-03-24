@@ -30,6 +30,10 @@ const (
 	JOIN MessageType = 7
 	// PART whenever a user parts from a channel
 	PART MessageType = 8
+	// RECONNECT is sent from Twitch when they request the client to reconnect (i.e. for an irc server restart) https://dev.twitch.tv/docs/irc/commands/#reconnect-twitch-commands
+	RECONNECT MessageType = 9
+	// NAMES (or 353 https://www.alien.net.au/irc/irc2numerics.html#353) is the response sent from the server when the client requests a list of names for a channel
+	NAMES MessageType = 10
 )
 
 // Emote twitch emotes
@@ -46,21 +50,29 @@ func ParseMessage(line string) Message {
 		return parseRawMessage(ircMessage)
 	}
 
-	switch ircMessage.Command {
-	case "WHISPER":
+	switch parseMessageType(ircMessage.Command) {
+	case WHISPER:
 		return parseWhisperMessage(ircMessage)
-	case "PRIVMSG":
+	case PRIVMSG:
 		return parsePrivateMessage(ircMessage)
-	case "CLEARCHAT":
+	case CLEARCHAT:
 		return parseClearChatMessage(ircMessage)
-	case "ROOMSTATE":
+	case ROOMSTATE:
 		return parseRoomStateMessage(ircMessage)
-	case "USERNOTICE":
+	case USERNOTICE:
 		return parseUserNoticeMessage(ircMessage)
-	case "USERSTATE":
+	case USERSTATE:
 		return parseUserStateMessage(ircMessage)
-	case "NOTICE":
+	case NOTICE:
 		return parseNoticeMessage(ircMessage)
+	case JOIN:
+		return parseUserJoinMessage(ircMessage)
+	case PART:
+		return parseUserPartMessage(ircMessage)
+	case RECONNECT:
+		return parseReconnectMessage(ircMessage)
+	case NAMES:
+		return parseNamesMessage(ircMessage)
 	default:
 		return parseRawMessage(ircMessage)
 	}
@@ -82,6 +94,15 @@ func parseMessageType(messageType string) MessageType {
 		return USERSTATE
 	case "NOTICE":
 		return NOTICE
+	case "JOIN":
+		return JOIN
+	case "PART":
+		return PART
+	case "RECONNECT":
+		return RECONNECT
+	case "353":
+		// see https://www.alien.net.au/irc/irc2numerics.html#353
+		return NAMES
 	default:
 		return UNSET
 	}
@@ -320,6 +341,61 @@ func parseNoticeMessage(message *ircMessage) *NoticeMessage {
 	noticeMessage.Channel = strings.TrimPrefix(message.Params[0], "#")
 
 	return &noticeMessage
+}
+
+func parseUserJoinMessage(message *ircMessage) *UserJoinMessage {
+	parsedMessage := UserJoinMessage{
+		Raw:     message.Raw,
+		Type:    parseMessageType(message.Command),
+		RawType: message.Command,
+
+		User: message.Source.Username,
+	}
+
+	if len(message.Params) == 1 {
+		parsedMessage.Channel = strings.TrimPrefix(message.Params[0], "#")
+	}
+
+	return &parsedMessage
+}
+
+func parseUserPartMessage(message *ircMessage) *UserPartMessage {
+	parsedMessage := UserPartMessage{
+		Raw:     message.Raw,
+		Type:    parseMessageType(message.Command),
+		RawType: message.Command,
+
+		User: message.Source.Username,
+	}
+
+	if len(message.Params) == 1 {
+		parsedMessage.Channel = strings.TrimPrefix(message.Params[0], "#")
+	}
+
+	return &parsedMessage
+}
+
+func parseReconnectMessage(message *ircMessage) *ReconnectMessage {
+	return &ReconnectMessage{
+		Raw:     message.Raw,
+		Type:    parseMessageType(message.Command),
+		RawType: message.Command,
+	}
+}
+
+func parseNamesMessage(message *ircMessage) *NamesMessage {
+	parsedMessage := NamesMessage{
+		Raw:     message.Raw,
+		Type:    parseMessageType(message.Command),
+		RawType: message.Command,
+	}
+
+	if len(message.Params) == 4 {
+		parsedMessage.Channel = strings.TrimPrefix(message.Params[2], "#")
+		parsedMessage.Users = strings.Split(message.Params[3], " ")
+	}
+
+	return &parsedMessage
 }
 
 func parseTime(rawTime string) time.Time {
