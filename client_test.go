@@ -951,14 +951,13 @@ func TestCanDepartChannel(t *testing.T) {
 func TestCanGetUserlist(t *testing.T) {
 	t.Parallel()
 	expectedNames := []string{"username1", "username2"}
-	testString := `:justinfan123123.tmi.twitch.tv 353 justinfan123123 = #channel123 :username1 username2`
-	testMessage := "@badges=subscriber/6,premium/1;color=#FF0000;display-name=Redflamingo13;emotes=;id=2a31a9df-d6ff-4840-b211-a2547c7e656e;mod=0;room-id=11148817;subscriber=1;tmi-sent-ts=1490382457309;turbo=0;user-id=78424343;user-type= :redflamingo13!redflamingo13@redflamingo13.tmi.twitch.tv PRIVMSG #anythingbutchannel123 :ok go now"
+	testMessages := []string{
+		`:justinfan123123.tmi.twitch.tv 353 justinfan123123 = #channel123 :username1 username2`,
+		`@badges=subscriber/6,premium/1;color=#FF0000;display-name=Redflamingo13;emotes=;id=2a31a9df-d6ff-4840-b211-a2547c7e656e;mod=0;room-id=11148817;subscriber=1;tmi-sent-ts=1490382457309;turbo=0;user-id=78424343;user-type= :redflamingo13!redflamingo13@redflamingo13.tmi.twitch.tv PRIVMSG #anythingbutchannel123 :ok go now`,
+	}
 	waitEnd := make(chan struct{})
 
-	host := startServer(t, func(conn net.Conn) {
-		fmt.Fprintf(conn, "%s\r\n", testString)
-		fmt.Fprintf(conn, "%s\r\n", testMessage)
-	}, nothingOnMessage)
+	host := startServer(t, postMessagesOnConnect(testMessages), nothingOnMessage)
 
 	client := newTestClient(host)
 
