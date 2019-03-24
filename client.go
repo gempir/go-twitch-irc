@@ -62,258 +62,10 @@ type Message interface {
 	GetType() MessageType
 }
 
-// RawMessage data you receive from TMI
-type RawMessage struct {
-	Raw     string
-	Type    MessageType
-	RawType string
-	Tags    map[string]string
-	Message string
-}
-
-// GetType implements the Message interface, and returns this message's type
-func (msg *RawMessage) GetType() MessageType {
-	return msg.Type
-}
-
-// WhisperMessage data you receive from WHISPER message type
-type WhisperMessage struct {
-	User User
-
-	Raw       string
-	Type      MessageType
-	RawType   string
-	Tags      map[string]string
-	Message   string
-	Target    string
-	MessageID string
-	ThreadID  string
-	Emotes    []*Emote
-	Action    bool
-}
-
-// GetType implements the Message interface, and returns this message's type
-func (msg *WhisperMessage) GetType() MessageType {
-	return msg.Type
-}
-
-// PrivateMessage data you receive from PRIVMSG message type
-type PrivateMessage struct {
-	User User
-
-	Raw     string
-	Type    MessageType
-	RawType string
-	Tags    map[string]string
-	Message string
-	Channel string
-	RoomID  string
-	ID      string
-	Time    time.Time
-	Emotes  []*Emote
-	Bits    int
-	Action  bool
-}
-
-// GetType implements the Message interface, and returns this message's type
-func (msg *PrivateMessage) GetType() MessageType {
-	return msg.Type
-}
-
-// ClearChatMessage data you receive from CLEARCHAT message type
-type ClearChatMessage struct {
-	Raw            string
-	Type           MessageType
-	RawType        string
-	Tags           map[string]string
-	Message        string
-	Channel        string
-	RoomID         string
-	Time           time.Time
-	BanDuration    int
-	TargetUserID   string
-	TargetUsername string
-}
-
-// GetType implements the Message interface, and returns this message's type
-func (msg *ClearChatMessage) GetType() MessageType {
-	return msg.Type
-}
-
-// RoomStateMessage data you receive from ROOMSTATE message type
-type RoomStateMessage struct {
-	Raw     string
-	Type    MessageType
-	RawType string
-	Tags    map[string]string
-	Message string
-	Channel string
-	RoomID  string
-	State   map[string]int
-}
-
-// GetType implements the Message interface, and returns this message's type
-func (msg *RoomStateMessage) GetType() MessageType {
-	return msg.Type
-}
-
-// UserNoticeMessage  data you receive from USERNOTICE message type
-type UserNoticeMessage struct {
-	User User
-
-	Raw       string
-	Type      MessageType
-	RawType   string
-	Tags      map[string]string
-	Message   string
-	Channel   string
-	RoomID    string
-	ID        string
-	Time      time.Time
-	Emotes    []*Emote
-	MsgID     string
-	MsgParams map[string]string
-	SystemMsg string
-}
-
-// GetType implements the Message interface, and returns this message's type
-func (msg *UserNoticeMessage) GetType() MessageType {
-	return msg.Type
-}
-
-// UserStateMessage data you receive from the USERSTATE message type
-type UserStateMessage struct {
-	User User
-
-	Raw       string
-	Type      MessageType
-	RawType   string
-	Tags      map[string]string
-	Message   string
-	Channel   string
-	EmoteSets []string
-}
-
-// GetType implements the Message interface, and returns this message's type
-func (msg *UserStateMessage) GetType() MessageType {
-	return msg.Type
-}
-
-// NoticeMessage data you receive from the NOTICE message type
-type NoticeMessage struct {
-	Raw     string
-	Type    MessageType
-	RawType string
-	Tags    map[string]string
-	Message string
-	Channel string
-	MsgID   string
-}
-
-// GetType implements the Message interface, and returns this message's type
-func (msg *NoticeMessage) GetType() MessageType {
-	return msg.Type
-}
-
-// UserJoinMessage desJoines the message that is sent whenever a user joins a channel we're connected to
-// See https://dev.twitch.tv/docs/irc/membership/#join-twitch-membership
-type UserJoinMessage struct {
-	Raw     string
-	Type    MessageType
-	RawType string
-
-	// Channel name
-	Channel string
-
-	// User name
-	User string
-}
-
-// GetType implements the Message interface, and returns this message's type
-func (msg *UserJoinMessage) GetType() MessageType {
-	return msg.Type
-}
-
-// UserPartMessage describes the message that is sent whenever a user leaves a channel we're connected to
-// See https://dev.twitch.tv/docs/irc/membership/#part-twitch-membership
-type UserPartMessage struct {
-	Raw     string
-	Type    MessageType
-	RawType string
-
-	// Channel name
-	Channel string
-
-	// User name
-	User string
-}
-
-// GetType implements the Message interface, and returns this message's type
-func (msg *UserPartMessage) GetType() MessageType {
-	return msg.Type
-}
-
-// ReconnectMessage describes the
-type ReconnectMessage struct {
-	Raw     string
-	Type    MessageType
-	RawType string
-}
-
-// GetType implements the Message interface, and returns this message's type
-func (msg *ReconnectMessage) GetType() MessageType {
-	return msg.Type
-}
-
-// NamesMessage describes the data posted in response to a /names command
-// See https://www.alien.net.au/irc/irc2numerics.html#353
-type NamesMessage struct {
-	Raw     string
-	Type    MessageType
-	RawType string
-
-	// Channel name
-	Channel string
-
-	// List of user names
-	Users []string
-}
-
-// GetType implements the Message interface, and returns this message's type
-func (msg *NamesMessage) GetType() MessageType {
-	return msg.Type
-}
-
-// PingMessage describes an IRC PING message
-type PingMessage struct {
-	Raw     string
-	Type    MessageType
-	RawType string
-
-	Message string
-}
-
-// GetType implements the Message interface, and returns this message's type
-func (msg *PingMessage) GetType() MessageType {
-	return msg.Type
-}
-
-// PongMessage describes an IRC PONG message
-type PongMessage struct {
-	Raw     string
-	Type    MessageType
-	RawType string
-
-	Message string
-}
-
-// GetType implements the Message interface, and returns this message's type
-func (msg *PongMessage) GetType() MessageType {
-	return msg.Type
-}
-
 // Client client to control your connection and attach callbacks
 type Client struct {
+	EventHandler
+
 	IrcAddress           string
 	ircUser              string
 	ircToken             string
@@ -323,22 +75,8 @@ type Client struct {
 	channelUserlistMutex *sync.RWMutex
 	channelUserlist      map[string]map[string]bool
 	channelsMtx          *sync.RWMutex
-	onConnect            func()
-	onWhisperMessage     func(message WhisperMessage)
-	onPrivateMessage     func(message PrivateMessage)
-	onClearChatMessage   func(message ClearChatMessage)
-	onRoomStateMessage   func(message RoomStateMessage)
-	onUserNoticeMessage  func(message UserNoticeMessage)
-	onUserStateMessage   func(message UserStateMessage)
-	onNoticeMessage      func(message NoticeMessage)
-	onUserJoinMessage    func(message UserJoinMessage)
-	onUserPartMessage    func(message UserPartMessage)
-	onReconnectMessage   func(message ReconnectMessage)
-	onNamesMessage       func(message NamesMessage)
-	onPingMessage        func(message PingMessage)
-	onPongMessage        func(message PongMessage)
-	onUnsetMessage       func(message RawMessage)
 
+	onConnect  func()
 	onPingSent func()
 
 	// read is the incoming messages channel, normally buffered with ReadBufferSize
@@ -402,76 +140,6 @@ func NewClient(username, oauth string) *Client {
 // OnConnect attach callback to when a connection has been established
 func (c *Client) OnConnect(callback func()) {
 	c.onConnect = callback
-}
-
-// OnWhisperMessage attach callback to new whisper
-func (c *Client) OnWhisperMessage(callback func(message WhisperMessage)) {
-	c.onWhisperMessage = callback
-}
-
-// OnPrivateMessage attach callback to new standard chat messages
-func (c *Client) OnPrivateMessage(callback func(message PrivateMessage)) {
-	c.onPrivateMessage = callback
-}
-
-// OnClearChatMessage attach callback to new messages such as timeouts
-func (c *Client) OnClearChatMessage(callback func(message ClearChatMessage)) {
-	c.onClearChatMessage = callback
-}
-
-// OnRoomStateMessage attach callback to new messages such as submode enabled
-func (c *Client) OnRoomStateMessage(callback func(message RoomStateMessage)) {
-	c.onRoomStateMessage = callback
-}
-
-// OnUserNoticeMessage attach callback to new usernotice message such as sub, resub, and raids
-func (c *Client) OnUserNoticeMessage(callback func(message UserNoticeMessage)) {
-	c.onUserNoticeMessage = callback
-}
-
-// OnUserStateMessage attach callback to new userstate
-func (c *Client) OnUserStateMessage(callback func(message UserStateMessage)) {
-	c.onUserStateMessage = callback
-}
-
-// OnNoticeMessage attach callback to new notice message such as hosts
-func (c *Client) OnNoticeMessage(callback func(message NoticeMessage)) {
-	c.onNoticeMessage = callback
-}
-
-// OnUserJoinMessage attaches callback to user joins
-func (c *Client) OnUserJoinMessage(callback func(message UserJoinMessage)) {
-	c.onUserJoinMessage = callback
-}
-
-// OnUserPartMessage attaches callback to user parts
-func (c *Client) OnUserPartMessage(callback func(message UserPartMessage)) {
-	c.onUserPartMessage = callback
-}
-
-// OnReconnectMessage attaches callback that is triggered whenever the twitch servers tell us to reconnect
-func (c *Client) OnReconnectMessage(callback func(message ReconnectMessage)) {
-	c.onReconnectMessage = callback
-}
-
-// OnNamesMessage attaches callback to /names response
-func (c *Client) OnNamesMessage(callback func(message NamesMessage)) {
-	c.onNamesMessage = callback
-}
-
-// OnPingMessage attaches callback to PING message
-func (c *Client) OnPingMessage(callback func(message PingMessage)) {
-	c.onPingMessage = callback
-}
-
-// OnPongMessage attaches callback to PONG message
-func (c *Client) OnPongMessage(callback func(message PongMessage)) {
-	c.onPongMessage = callback
-}
-
-// OnUnsetMessage attaches callback to message types we currently don't support
-func (c *Client) OnUnsetMessage(callback func(message RawMessage)) {
-	c.onUnsetMessage = callback
 }
 
 // OnPingSent attaches callback that's called whenever the client sends out a ping message
@@ -806,100 +474,7 @@ func (c *Client) handleLine(line string) error {
 
 	message := ParseMessage(line)
 
-	switch msg := message.(type) {
-	case *WhisperMessage:
-		if c.onWhisperMessage != nil {
-			c.onWhisperMessage(*msg)
-		}
-		return nil
-
-	case *PrivateMessage:
-		if c.onPrivateMessage != nil {
-			c.onPrivateMessage(*msg)
-		}
-		return nil
-
-	case *ClearChatMessage:
-		if c.onClearChatMessage != nil {
-			c.onClearChatMessage(*msg)
-		}
-		return nil
-
-	case *RoomStateMessage:
-		if c.onRoomStateMessage != nil {
-			c.onRoomStateMessage(*msg)
-		}
-		return nil
-
-	case *UserNoticeMessage:
-		if c.onUserNoticeMessage != nil {
-			c.onUserNoticeMessage(*msg)
-		}
-		return nil
-
-	case *UserStateMessage:
-		if c.onUserStateMessage != nil {
-			c.onUserStateMessage(*msg)
-		}
-		return nil
-
-	case *NoticeMessage:
-		if c.onNoticeMessage != nil {
-			c.onNoticeMessage(*msg)
-		}
-		return c.handleNoticeMessage(*msg)
-
-	case *UserJoinMessage:
-		if c.handleUserJoinMessage(*msg) {
-			if c.onUserJoinMessage != nil {
-				c.onUserJoinMessage(*msg)
-			}
-		}
-		return nil
-
-	case *UserPartMessage:
-		if c.handleUserPartMessage(*msg) {
-			if c.onUserPartMessage != nil {
-				c.onUserPartMessage(*msg)
-			}
-		}
-		return nil
-
-	case *ReconnectMessage:
-		// https://dev.twitch.tv/docs/irc/commands/#reconnect-twitch-commands
-		if c.onReconnectMessage != nil {
-			c.onReconnectMessage(*msg)
-		}
-		return errReconnect
-
-	case *NamesMessage:
-		if c.onNamesMessage != nil {
-			c.onNamesMessage(*msg)
-		}
-		c.handleNamesMessage(*msg)
-		return nil
-
-	case *PingMessage:
-		if c.onPingMessage != nil {
-			c.onPingMessage(*msg)
-		}
-		c.handlePingMessage(*msg)
-		return nil
-
-	case *PongMessage:
-		if c.onPongMessage != nil {
-			c.onPongMessage(*msg)
-		}
-		c.handlePongMessage(*msg)
-		return nil
-
-	case *RawMessage:
-		if c.onUnsetMessage != nil {
-			c.onUnsetMessage(*msg)
-		}
-	}
-
-	return nil
+	return c.handleMessage(message)
 }
 
 func (c *Client) handleNoticeMessage(msg NoticeMessage) error {
@@ -946,24 +521,32 @@ func (c *Client) handleUserPartMessage(msg UserPartMessage) bool {
 	return true
 }
 
-func (c *Client) handleNamesMessage(msg NamesMessage) {
+func (c *Client) handleNamesMessage(msg NamesMessage) error {
 	c.channelUserlistMutex.Lock()
 	defer c.channelUserlistMutex.Unlock()
 
 	for _, user := range msg.Users {
 		c.channelUserlist[msg.Channel][user] = true
 	}
+
+	return nil
 }
 
-func (c *Client) handlePingMessage(msg PingMessage) {
+func (c *Client) handleReconnectMessage(msg ReconnectMessage) error {
+	return errReconnect
+}
+
+func (c *Client) handlePingMessage(msg PingMessage) error {
 	if msg.Message == "" {
 		c.send("PONG")
 	} else {
 		c.send("PONG :" + msg.Message)
 	}
+
+	return nil
 }
 
-func (c *Client) handlePongMessage(msg PongMessage) {
+func (c *Client) handlePongMessage(msg PongMessage) error {
 	if msg.Message == pingSignature {
 		// Received a pong that was sent by us
 		select {
@@ -971,6 +554,8 @@ func (c *Client) handlePongMessage(msg PongMessage) {
 		default:
 		}
 	}
+
+	return nil
 }
 
 // tAtomBool atomic bool for writing/reading across threads

@@ -734,7 +734,7 @@ func TestCanReceiveUNSETMessage(t *testing.T) {
 	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
 	client := newTestClient(host)
 
-	client.OnUnsetMessage(func(rawMessage RawMessage) {
+	client.OnRawMessage(func(rawMessage RawMessage) {
 		if rawMessage.RawType == "MALFORMEDMESSAGETYPETHISWILLBEUNSET" {
 			received = rawMessage
 			close(wait)
