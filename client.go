@@ -231,26 +231,26 @@ func (msg *UserPartMessage) GetType() MessageType {
 
 // Client client to control your connection and attach callbacks
 type Client struct {
-	IrcAddress             string
-	ircUser                string
-	ircToken               string
-	TLS                    bool
-	connActive             tAtomBool
-	channels               map[string]bool
-	channelUserlistMutex   *sync.RWMutex
-	channelUserlist        map[string]map[string]bool
-	channelsMtx            *sync.RWMutex
-	onConnect              func()
-	onNewWhisper           func(message WhisperMessage)
-	onNewMessage           func(message PrivateMessage)
-	onNewClearChatMessage  func(message ClearChatMessage)
-	onNewRoomStateMessage  func(message RoomStateMessage)
-	onNewUserNoticeMessage func(message UserNoticeMessage)
-	onNewUserStateMessage  func(message UserStateMessage)
-	onNewNoticeMessage     func(message NoticeMessage)
-	onUserJoin             func(message UserJoinMessage)
-	onUserPart             func(message UserPartMessage)
-	onNewUnsetMessage      func(message RawMessage)
+	IrcAddress           string
+	ircUser              string
+	ircToken             string
+	TLS                  bool
+	connActive           tAtomBool
+	channels             map[string]bool
+	channelUserlistMutex *sync.RWMutex
+	channelUserlist      map[string]map[string]bool
+	channelsMtx          *sync.RWMutex
+	onConnect            func()
+	onWhisperMessage     func(message WhisperMessage)
+	onPrivateMessage     func(message PrivateMessage)
+	onClearChatMessage   func(message ClearChatMessage)
+	onRoomStateMessage   func(message RoomStateMessage)
+	onUserNoticeMessage  func(message UserNoticeMessage)
+	onUserStateMessage   func(message UserStateMessage)
+	onNoticeMessage      func(message NoticeMessage)
+	onUserJoinMessage    func(message UserJoinMessage)
+	onUserPartMessage    func(message UserPartMessage)
+	onUnsetMessage       func(message RawMessage)
 
 	onPingSent     func()
 	onPongReceived func()
@@ -318,54 +318,54 @@ func (c *Client) OnConnect(callback func()) {
 	c.onConnect = callback
 }
 
-// OnNewWhisper attach callback to new whisper
-func (c *Client) OnNewWhisper(callback func(message WhisperMessage)) {
-	c.onNewWhisper = callback
+// OnWhisperMessage attach callback to new whisper
+func (c *Client) OnWhisperMessage(callback func(message WhisperMessage)) {
+	c.onWhisperMessage = callback
 }
 
-// OnNewMessage attach callback to new standard chat messages
-func (c *Client) OnNewMessage(callback func(message PrivateMessage)) {
-	c.onNewMessage = callback
+// OnPrivateMessage attach callback to new standard chat messages
+func (c *Client) OnPrivateMessage(callback func(message PrivateMessage)) {
+	c.onPrivateMessage = callback
 }
 
-// OnNewClearChatMessage attach callback to new messages such as timeouts
-func (c *Client) OnNewClearChatMessage(callback func(message ClearChatMessage)) {
-	c.onNewClearChatMessage = callback
+// OnClearChatMessage attach callback to new messages such as timeouts
+func (c *Client) OnClearChatMessage(callback func(message ClearChatMessage)) {
+	c.onClearChatMessage = callback
 }
 
-// OnNewRoomStateMessage attach callback to new messages such as submode enabled
-func (c *Client) OnNewRoomStateMessage(callback func(message RoomStateMessage)) {
-	c.onNewRoomStateMessage = callback
+// OnRoomStateMessage attach callback to new messages such as submode enabled
+func (c *Client) OnRoomStateMessage(callback func(message RoomStateMessage)) {
+	c.onRoomStateMessage = callback
 }
 
-// OnNewUserNoticeMessage attach callback to new usernotice message such as sub, resub, and raids
-func (c *Client) OnNewUserNoticeMessage(callback func(message UserNoticeMessage)) {
-	c.onNewUserNoticeMessage = callback
+// OnUserNoticeMessage attach callback to new usernotice message such as sub, resub, and raids
+func (c *Client) OnUserNoticeMessage(callback func(message UserNoticeMessage)) {
+	c.onUserNoticeMessage = callback
 }
 
-// OnNewUserStateMessage attach callback to new userstate
-func (c *Client) OnNewUserStateMessage(callback func(message UserStateMessage)) {
-	c.onNewUserStateMessage = callback
+// OnUserStateMessage attach callback to new userstate
+func (c *Client) OnUserStateMessage(callback func(message UserStateMessage)) {
+	c.onUserStateMessage = callback
 }
 
-// OnNewNoticeMessage attach callback to new notice message such as hosts
-func (c *Client) OnNewNoticeMessage(callback func(message NoticeMessage)) {
-	c.onNewNoticeMessage = callback
+// OnNoticeMessage attach callback to new notice message such as hosts
+func (c *Client) OnNoticeMessage(callback func(message NoticeMessage)) {
+	c.onNoticeMessage = callback
 }
 
-// OnUserJoin attaches callback to user joins
-func (c *Client) OnUserJoin(callback func(message UserJoinMessage)) {
-	c.onUserJoin = callback
+// OnUserJoinMessage attaches callback to user joins
+func (c *Client) OnUserJoinMessage(callback func(message UserJoinMessage)) {
+	c.onUserJoinMessage = callback
 }
 
-// OnUserPart attaches callback to user parts
-func (c *Client) OnUserPart(callback func(message UserPartMessage)) {
-	c.onUserPart = callback
+// OnUserPartMessage attaches callback to user parts
+func (c *Client) OnUserPartMessage(callback func(message UserPartMessage)) {
+	c.onUserPartMessage = callback
 }
 
-// OnNewUnsetMessage attaches callback to message types we currently don't support
-func (c *Client) OnNewUnsetMessage(callback func(message RawMessage)) {
-	c.onNewUnsetMessage = callback
+// OnUnsetMessage attaches callback to message types we currently don't support
+func (c *Client) OnUnsetMessage(callback func(message RawMessage)) {
+	c.onUnsetMessage = callback
 }
 
 // OnPingSent attaches callback that's called whenever the client sends out a ping message
@@ -729,36 +729,36 @@ func (c *Client) handleLine(line string) error {
 
 		switch msg := message.(type) {
 		case *WhisperMessage:
-			if c.onNewWhisper != nil {
-				c.onNewWhisper(*msg)
+			if c.onWhisperMessage != nil {
+				c.onWhisperMessage(*msg)
 			}
 		case *PrivateMessage:
-			if c.onNewMessage != nil {
-				c.onNewMessage(*msg)
+			if c.onPrivateMessage != nil {
+				c.onPrivateMessage(*msg)
 			}
 		case *ClearChatMessage:
-			if c.onNewClearChatMessage != nil {
-				c.onNewClearChatMessage(*msg)
+			if c.onClearChatMessage != nil {
+				c.onClearChatMessage(*msg)
 			}
 		case *RoomStateMessage:
-			if c.onNewRoomStateMessage != nil {
-				c.onNewRoomStateMessage(*msg)
+			if c.onRoomStateMessage != nil {
+				c.onRoomStateMessage(*msg)
 			}
 		case *UserNoticeMessage:
-			if c.onNewUserNoticeMessage != nil {
-				c.onNewUserNoticeMessage(*msg)
+			if c.onUserNoticeMessage != nil {
+				c.onUserNoticeMessage(*msg)
 			}
 		case *UserStateMessage:
-			if c.onNewUserStateMessage != nil {
-				c.onNewUserStateMessage(*msg)
+			if c.onUserStateMessage != nil {
+				c.onUserStateMessage(*msg)
 			}
 		case *NoticeMessage:
-			if c.onNewNoticeMessage != nil {
-				c.onNewNoticeMessage(*msg)
+			if c.onNoticeMessage != nil {
+				c.onNoticeMessage(*msg)
 			}
 		case *RawMessage:
-			if c.onNewUnsetMessage != nil {
-				c.onNewUnsetMessage(*msg)
+			if c.onUnsetMessage != nil {
+				c.onUnsetMessage(*msg)
 			}
 		}
 
@@ -785,8 +785,8 @@ func (c *Client) handleLine(line string) error {
 				User:    username,
 			}
 
-			if c.onUserJoin != nil {
-				c.onUserJoin(parsedMessage)
+			if c.onUserJoinMessage != nil {
+				c.onUserJoinMessage(parsedMessage)
 			}
 		}
 		if strings.Contains(line, "tmi.twitch.tv PART") {
@@ -801,8 +801,8 @@ func (c *Client) handleLine(line string) error {
 				User:    username,
 			}
 
-			if c.onUserPart != nil {
-				c.onUserPart(parsedMessage)
+			if c.onUserPartMessage != nil {
+				c.onUserPartMessage(parsedMessage)
 			}
 		}
 		if strings.Contains(line, "tmi.twitch.tv RECONNECT") {
