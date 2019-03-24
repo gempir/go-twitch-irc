@@ -429,25 +429,6 @@ func TestCanParseNOTICEMessage(t *testing.T) {
 	assertStringsEqual(t, "subs_on", noticeMessage.MsgID)
 }
 
-func TestCanParseJoinPart(t *testing.T) {
-	testMessage := `:username123!username123@username123.tmi.twitch.tv JOIN #mychannel`
-
-	channel, username := parseJoinPart(testMessage)
-
-	assertStringsEqual(t, channel, "mychannel")
-	assertStringsEqual(t, username, "username123")
-}
-
-func TestCanParseNames(t *testing.T) {
-	testMessage := `:myusername123.tmi.twitch.tv 353 myusername123 = #mychannel :username1 username2 username3 username4`
-	expectedUsers := []string{"username1", "username2", "username3", "username4"}
-
-	channel, users := parseNames(testMessage)
-
-	assertStringsEqual(t, channel, "mychannel")
-	assertStringSlicesEqual(t, expectedUsers, users)
-}
-
 func TestCanParsePING1(t *testing.T) {
 	testMessage := `PING :tmi.twitch.tv`
 	rawMessage := ParseMessage(testMessage)

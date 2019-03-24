@@ -454,18 +454,3 @@ func parseEmotes(rawEmotes, message string) []*Emote {
 
 	return emotes
 }
-
-func parseJoinPart(text string) (string, string) {
-	username := strings.Split(text, "!")
-	channel := strings.Split(username[1], "#")
-	return strings.Trim(channel[1], " "), strings.Trim(username[0], " :")
-}
-
-func parseNames(text string) (string, []string) {
-	lines := strings.Split(text, ":")
-	channelDirty := strings.Split(lines[1], "#")
-	channel := strings.Trim(channelDirty[1], " ")
-	users := strings.Split(lines[2], " ")
-
-	return channel, users
-}
