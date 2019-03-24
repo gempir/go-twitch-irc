@@ -34,10 +34,12 @@ var (
 	// ErrConnectionIsNotOpen is returned by Disconnect in case you call it without being connected
 	ErrConnectionIsNotOpen = errors.New("connection is not open")
 
-	// WriteBufferSize can be modified to change the write channel buffer size. Must be configured before NewClient is called to take effect
+	// WriteBufferSize can be modified to change the write channel buffer size.
+	// Must be configured before NewClient is called to take effect
 	WriteBufferSize = 512
 
-	// ReadBufferSize can be modified to change the read channel buffer size. Must be configured before NewClient is called to take effect
+	// ReadBufferSize can be modified to change the read channel buffer size.
+	// Must be configured before NewClient is called to take effect
 	ReadBufferSize = 64
 )
 
@@ -69,6 +71,7 @@ type RawMessage struct {
 	Message string
 }
 
+// GetType implements the Message interface, and returns this message's type
 func (msg *RawMessage) GetType() MessageType {
 	return msg.Type
 }
@@ -89,6 +92,7 @@ type WhisperMessage struct {
 	Action    bool
 }
 
+// GetType implements the Message interface, and returns this message's type
 func (msg *WhisperMessage) GetType() MessageType {
 	return msg.Type
 }
@@ -111,6 +115,7 @@ type PrivateMessage struct {
 	Action  bool
 }
 
+// GetType implements the Message interface, and returns this message's type
 func (msg *PrivateMessage) GetType() MessageType {
 	return msg.Type
 }
@@ -130,6 +135,7 @@ type ClearChatMessage struct {
 	TargetUsername string
 }
 
+// GetType implements the Message interface, and returns this message's type
 func (msg *ClearChatMessage) GetType() MessageType {
 	return msg.Type
 }
@@ -146,6 +152,7 @@ type RoomStateMessage struct {
 	State   map[string]int
 }
 
+// GetType implements the Message interface, and returns this message's type
 func (msg *RoomStateMessage) GetType() MessageType {
 	return msg.Type
 }
@@ -169,6 +176,7 @@ type UserNoticeMessage struct {
 	SystemMsg string
 }
 
+// GetType implements the Message interface, and returns this message's type
 func (msg *UserNoticeMessage) GetType() MessageType {
 	return msg.Type
 }
@@ -186,6 +194,7 @@ type UserStateMessage struct {
 	EmoteSets []string
 }
 
+// GetType implements the Message interface, and returns this message's type
 func (msg *UserStateMessage) GetType() MessageType {
 	return msg.Type
 }
@@ -201,10 +210,13 @@ type NoticeMessage struct {
 	MsgID   string
 }
 
+// GetType implements the Message interface, and returns this message's type
 func (msg *NoticeMessage) GetType() MessageType {
 	return msg.Type
 }
 
+// UserJoinMessage desJoines the message that is sent whenever a user joins a channel we're connected to
+// See https://dev.twitch.tv/docs/irc/membership/#join-twitch-membership
 type UserJoinMessage struct {
 	Raw     string
 	Type    MessageType
@@ -217,10 +229,13 @@ type UserJoinMessage struct {
 	User string
 }
 
+// GetType implements the Message interface, and returns this message's type
 func (msg *UserJoinMessage) GetType() MessageType {
 	return msg.Type
 }
 
+// UserPartMessage describes the message that is sent whenever a user leaves a channel we're connected to
+// See https://dev.twitch.tv/docs/irc/membership/#part-twitch-membership
 type UserPartMessage struct {
 	Raw     string
 	Type    MessageType
@@ -233,20 +248,25 @@ type UserPartMessage struct {
 	User string
 }
 
+// GetType implements the Message interface, and returns this message's type
 func (msg *UserPartMessage) GetType() MessageType {
 	return msg.Type
 }
 
+// ReconnectMessage describes the
 type ReconnectMessage struct {
 	Raw     string
 	Type    MessageType
 	RawType string
 }
 
+// GetType implements the Message interface, and returns this message's type
 func (msg *ReconnectMessage) GetType() MessageType {
 	return msg.Type
 }
 
+// NamesMessage describes the data posted in response to a /names command
+// See https://www.alien.net.au/irc/irc2numerics.html#353
 type NamesMessage struct {
 	Raw     string
 	Type    MessageType
@@ -259,10 +279,12 @@ type NamesMessage struct {
 	Users []string
 }
 
+// GetType implements the Message interface, and returns this message's type
 func (msg *NamesMessage) GetType() MessageType {
 	return msg.Type
 }
 
+// PingMessage describes an IRC PING message
 type PingMessage struct {
 	Raw     string
 	Type    MessageType
@@ -271,10 +293,12 @@ type PingMessage struct {
 	Message string
 }
 
+// GetType implements the Message interface, and returns this message's type
 func (msg *PingMessage) GetType() MessageType {
 	return msg.Type
 }
 
+// PongMessage describes an IRC PONG message
 type PongMessage struct {
 	Raw     string
 	Type    MessageType
@@ -283,6 +307,7 @@ type PongMessage struct {
 	Message string
 }
 
+// GetType implements the Message interface, and returns this message's type
 func (msg *PongMessage) GetType() MessageType {
 	return msg.Type
 }

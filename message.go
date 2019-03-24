@@ -91,6 +91,7 @@ func ParseMessage(line string) Message {
 	return parseRawMessage(ircMessage)
 }
 
+// parseMessageType parses a message type from an irc COMMAND string
 func parseMessageType(messageType string) MessageType {
 	if mt, ok := messageTypeMap[messageType]; ok {
 		return mt.Type
