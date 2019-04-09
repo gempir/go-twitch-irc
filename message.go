@@ -261,10 +261,10 @@ func parseJoinPart(text string) (string, string) {
 }
 
 func parseNames(text string) (string, []string) {
-	lines := strings.Split(text, ":")
-	channelDirty := strings.Split(lines[1], "#")
+	lines := strings.Split(text, " :")
+	channelDirty := strings.Split(lines[0], "#")
 	channel := strings.Trim(channelDirty[1], " ")
-	users := strings.Split(lines[2], " ")
+	users := strings.Split(lines[1], " ")
 
 	return channel, users
 }
