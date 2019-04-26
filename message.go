@@ -1,6 +1,8 @@
 package twitch
 
 import (
+	"log"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"time"
@@ -79,6 +81,8 @@ type Emote struct {
 
 // ParseMessage parse a raw Twitch IRC message
 func ParseMessage(line string) Message {
+	defer recoverMessage(line)
+
 	ircMessage, err := parseIRCMessage(line)
 	if err != nil {
 		return parseRawMessage(ircMessage)
@@ -89,6 +93,14 @@ func ParseMessage(line string) Message {
 	}
 
 	return parseRawMessage(ircMessage)
+}
+
+func recoverMessage(line string) {
+	if err := recover(); err != nil {
+		log.Println(line)
+		log.Println(err)
+		log.Println(string(debug.Stack()))
+	}
 }
 
 // parseMessageType parses a message type from an irc COMMAND string
