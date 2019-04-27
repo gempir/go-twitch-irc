@@ -36,6 +36,10 @@ func assertFalse(t *testing.T, actual bool, errorMessage string) {
 
 func assertStringSlicesEqual(t *testing.T, expected, actual []string) {
 	if actual == nil {
+		if expected == nil {
+			return
+		}
+
 		t.Errorf("actual slice was nil")
 	}
 
@@ -50,9 +54,65 @@ func assertStringSlicesEqual(t *testing.T, expected, actual []string) {
 	}
 }
 
+func assertStringMapsEqual(t *testing.T, expected, actual map[string]string) {
+	if actual == nil {
+		if expected == nil {
+			return
+		}
+
+		t.Errorf("actual map was nil")
+	}
+
+	if len(expected) != len(actual) {
+		t.Errorf("actual map was not the same length as the expected map")
+	}
+
+	for key, want := range expected {
+		got, ok := actual[key]
+		if !ok {
+			t.Errorf("actual map doesn't contain key \"%s\"", key)
+			continue
+		}
+
+		if want != got {
+			t.Errorf("actual map value \"%s\" was not equal to expected value \"%s\" in key \"%s\"", got, want, key)
+			continue
+		}
+	}
+}
+
+func assertStringIntMapsEqual(t *testing.T, expected, actual map[string]int) {
+	if actual == nil {
+		t.Errorf("actual map was nil")
+	}
+
+	if len(expected) != len(actual) {
+		t.Errorf("actual map was not the same length as the expected map")
+	}
+
+	for k, v := range expected {
+		got, ok := actual[k]
+		if !ok {
+			t.Errorf("actual map doesn't contain key \"%s\"", k)
+			continue
+		}
+
+		if v != got {
+			t.Errorf("actual map value \"%d\" was not equal to expected value \"%d\" in key \"%s\"", got, v, k)
+			continue
+		}
+	}
+}
+
 func assertErrorsEqual(t *testing.T, expected, actual error) {
 	if expected != actual {
 		t.Errorf("failed asserting that error \"%s\" is expected \"%s\"", actual, expected)
+	}
+}
+
+func assertMessageTypesEqual(t *testing.T, expected, actual MessageType) {
+	if expected != actual {
+		t.Errorf("failed asserting that MessageType \"%d\" is expected \"%d\"", actual, expected)
 	}
 }
 
