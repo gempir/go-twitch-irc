@@ -1,1 +1,1 @@
-module github.com/gempir/go-twitch-irc
+module github.com/gempir/go-twitch-irc/v2
