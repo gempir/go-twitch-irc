@@ -855,7 +855,7 @@ func TestCanWhisperMessage(t *testing.T) {
 		t.Fatal("no privmsg received")
 	}
 
-	assertStringsEqual(t, "PRIVMSG #jtv :/w gempir "+testMessage, receivedMsg)
+	assertStringsEqual(t, "PRIVMSG #justinfan123123 :/w gempir "+testMessage, receivedMsg)
 }
 
 func TestCanJoinChannel(t *testing.T) {
