@@ -54,19 +54,19 @@ var messageTypeMap map[string]messageTypeDescription
 
 func init() {
 	messageTypeMap = map[string]messageTypeDescription{
-		"WHISPER":    messageTypeDescription{WHISPER, parseWhisperMessage},
-		"PRIVMSG":    messageTypeDescription{PRIVMSG, parsePrivateMessage},
-		"CLEARCHAT":  messageTypeDescription{CLEARCHAT, parseClearChatMessage},
-		"ROOMSTATE":  messageTypeDescription{ROOMSTATE, parseRoomStateMessage},
-		"USERNOTICE": messageTypeDescription{USERNOTICE, parseUserNoticeMessage},
-		"USERSTATE":  messageTypeDescription{USERSTATE, parseUserStateMessage},
-		"NOTICE":     messageTypeDescription{NOTICE, parseNoticeMessage},
-		"JOIN":       messageTypeDescription{JOIN, parseUserJoinMessage},
-		"PART":       messageTypeDescription{PART, parseUserPartMessage},
-		"RECONNECT":  messageTypeDescription{RECONNECT, parseReconnectMessage},
-		"353":        messageTypeDescription{NAMES, parseNamesMessage},
-		"PING":       messageTypeDescription{PING, parsePingMessage},
-		"PONG":       messageTypeDescription{PONG, parsePongMessage},
+		"WHISPER":    {WHISPER, parseWhisperMessage},
+		"PRIVMSG":    {PRIVMSG, parsePrivateMessage},
+		"CLEARCHAT":  {CLEARCHAT, parseClearChatMessage},
+		"ROOMSTATE":  {ROOMSTATE, parseRoomStateMessage},
+		"USERNOTICE": {USERNOTICE, parseUserNoticeMessage},
+		"USERSTATE":  {USERSTATE, parseUserStateMessage},
+		"NOTICE":     {NOTICE, parseNoticeMessage},
+		"JOIN":       {JOIN, parseUserJoinMessage},
+		"PART":       {PART, parseUserPartMessage},
+		"RECONNECT":  {RECONNECT, parseReconnectMessage},
+		"353":        {NAMES, parseNamesMessage},
+		"PING":       {PING, parsePingMessage},
+		"PONG":       {PONG, parsePongMessage},
 	}
 }
 
