@@ -294,7 +294,7 @@ func TestCanCreateClient(t *testing.T) {
 	t.Parallel()
 	client := NewClient("justinfan123123", "oauth:1123123")
 
-	if reflect.TypeOf(*client) != reflect.TypeOf(Client{}) {
+	if reflect.TypeOf(client) != reflect.TypeOf(&Client{}) {
 		t.Error("client is not of type Client")
 	}
 }
