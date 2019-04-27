@@ -79,6 +79,9 @@ type Emote struct {
 
 // ParseMessage parse a raw Twitch IRC message
 func ParseMessage(line string) Message {
+	// Uncomment this and recoverMessage if debugging a message that crashes the parser
+	//defer recoverMessage(line)
+
 	ircMessage, err := parseIRCMessage(line)
 	if err != nil {
 		return parseRawMessage(ircMessage)
@@ -90,6 +93,14 @@ func ParseMessage(line string) Message {
 
 	return parseRawMessage(ircMessage)
 }
+
+// func recoverMessage(line string) {
+// 	if err := recover(); err != nil {
+// 		log.Println(line)
+// 		log.Println(err)
+// 		log.Println(string(debug.Stack()))
+// 	}
+// }
 
 // parseMessageType parses a message type from an irc COMMAND string
 func parseMessageType(messageType string) MessageType {
@@ -443,6 +454,10 @@ func parseEmotes(rawEmotes, message string) []*Emote {
 
 		firstIndex, _ := strconv.Atoi(pair[0])
 		lastIndex, _ := strconv.Atoi(pair[1])
+
+		if lastIndex+1 > len(runes) {
+			lastIndex--
+		}
 
 		emote := &Emote{
 			Name:  string(runes[firstIndex : lastIndex+1]),

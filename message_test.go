@@ -67,6 +67,20 @@ func TestCantParsePartialMessage(t *testing.T) {
 	assertStringsEqual(t, "", rawMessage.Message)
 }
 
+func TestCanParseSliceOutOfBoundsMessage(t *testing.T) {
+	testMessage := "@badge-info=;badges=;color=#D2691E;display-name=xSpeedHack;emotes=245:38-52;flags=28-35:A.6/I.6;id=ebf30552-c327-4602-a346-582ecc880ab5;mod=0;room-id=23304775;subscriber=0;tmi-sent-ts=1556302007395;turbo=0;user-id=189609555;user-type= :xspeedhack!xspeedhack@xspeedhack.tmi.twitch.tv PRIVMSG #turntheslayer :Чет скушные катки Жек когда Хачаги?! ResidentSleeper"
+
+	message := ParseMessage(testMessage)
+	privateMessage := message.(*PrivateMessage)
+
+	if privateMessage.Type != PRIVMSG {
+		t.Error("parsing MessageType failed")
+	}
+	assertStringsEqual(t, "PRIVMSG", privateMessage.RawType)
+	assertStringsEqual(t, "Чет скушные катки Жек когда Хачаги?! ResidentSleeper", privateMessage.Message)
+	assertIntsEqual(t, 1, len(privateMessage.Emotes))
+}
+
 func TestCanParseWHISPERMessage(t *testing.T) {
 	testMessage := "@badges=;color=#00FF7F;display-name=Danielps1;emotes=;message-id=20;thread-id=32591953_77829817;turbo=0;user-id=32591953;user-type= :danielps1!danielps1@danielps1.tmi.twitch.tv WHISPER gempir :i like memes"
 
