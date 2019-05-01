@@ -10,14 +10,15 @@ godoc: https://godoc.org/github.com/gempir/go-twitch-irc
 package main
 
 import (
-	"github.com/gempir/go-twitch-irc"
 	"fmt"
+
+	"github.com/gempir/go-twitch-irc"
 )
 
 func main() {
 	client := twitch.NewClient("justinfan123123", "oauth:123123123")
 
-	client.OnNewMessage(func(user twitch.User, message twitch.PrivateMessage) {
+	client.OnPrivateMessage(func(message twitch.PrivateMessage) {
 		fmt.Println(message.Message)
 	})
 
