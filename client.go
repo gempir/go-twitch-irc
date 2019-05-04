@@ -140,6 +140,23 @@ func (msg *ClearChatMessage) GetType() MessageType {
 	return msg.Type
 }
 
+// ClearMessage data you receive from CLEARMSG message type
+type ClearMessage struct {
+	Raw         string
+	Type        MessageType
+	RawType     string
+	Tags        map[string]string
+	Message     string
+	Channel     string
+	Login       string
+	TargetMsgID string
+}
+
+// GetType implements the Message interface, and returns this message's type
+func (msg *ClearMessage) GetType() MessageType {
+	return msg.Type
+}
+
 // RoomStateMessage data you receive from ROOMSTATE message type
 type RoomStateMessage struct {
 	Raw     string
@@ -328,6 +345,7 @@ type Client struct {
 	onPrivateMessage     func(message PrivateMessage)
 	onClearChatMessage   func(message ClearChatMessage)
 	onRoomStateMessage   func(message RoomStateMessage)
+	onClearMessage       func(message ClearMessage)
 	onUserNoticeMessage  func(message UserNoticeMessage)
 	onUserStateMessage   func(message UserStateMessage)
 	onNoticeMessage      func(message NoticeMessage)
@@ -417,6 +435,11 @@ func (c *Client) OnPrivateMessage(callback func(message PrivateMessage)) {
 // OnClearChatMessage attach callback to new messages such as timeouts
 func (c *Client) OnClearChatMessage(callback func(message ClearChatMessage)) {
 	c.onClearChatMessage = callback
+}
+
+// OnClearMessage attach callback when a single message is deleted
+func (c *Client) OnClearMessage(callback func(message ClearMessage)) {
+	c.onClearMessage = callback
 }
 
 // OnRoomStateMessage attach callback to new messages such as submode enabled
@@ -822,6 +845,12 @@ func (c *Client) handleLine(line string) error {
 	case *ClearChatMessage:
 		if c.onClearChatMessage != nil {
 			c.onClearChatMessage(*msg)
+		}
+		return nil
+
+	case *ClearMessage:
+		if c.onClearMessage != nil {
+			c.onClearMessage(*msg)
 		}
 		return nil
 

@@ -230,6 +230,22 @@ func TestCanParseTimeoutMessage(t *testing.T) {
 	assertIntsEqual(t, 5, clearchatMessage.BanDuration)
 }
 
+func TestCanParseCLEARMSGMessage(t *testing.T) {
+	testMessage := "@login=ronni;target-msg-id=abc-123-def :tmi.twitch.tv CLEARMSG #dallas :HeyGuys"
+
+	message := ParseMessage(testMessage)
+	clearMessage := message.(*ClearMessage)
+
+	if clearMessage.Type != CLEARMSG {
+		t.Error("parsing MessageType failed")
+	}
+	assertStringsEqual(t, "CLEARMSG", clearMessage.RawType)
+	assertStringsEqual(t, "HeyGuys", clearMessage.Message)
+	assertStringsEqual(t, "dallas", clearMessage.Channel)
+	assertStringsEqual(t, "ronni", clearMessage.Login)
+	assertStringsEqual(t, "abc-123-def", clearMessage.TargetMsgID)
+}
+
 func TestCanParseROOMSTATEMessage(t *testing.T) {
 	testMessage := "@broadcaster-lang=en;emote-only=0;followers-only=-1;r9k=1;rituals=0;room-id=408892348;slow=0;subs-only=0 :tmi.twitch.tv ROOMSTATE #clippyassistant"
 
