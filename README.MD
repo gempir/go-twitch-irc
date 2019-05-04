@@ -228,7 +228,7 @@ These are the 7 major message types currently supported:
     WHISPER
     PRIVMSG
     CLEARCHAT
-	CLEARMSG
+    CLEARMSG
     ROOMSTATE
     USERNOTICE
     USERSTATE
