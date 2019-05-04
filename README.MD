@@ -87,6 +87,17 @@ type ClearChatMessage struct {
 	TargetUsername string
 }
 
+type ClearMessage struct {
+	Raw         string
+	Type        MessageType
+	RawType     string
+	Tags        map[string]string
+	Message     string
+	Channel     string
+	Login       string
+	TargetMsgID string
+}
+
 type RoomStateMessage struct {
 	Raw     string
 	Type    MessageType
@@ -200,6 +211,7 @@ client.OnConnect(func() {})
 client.OnPrivateMessage(func(message PrivateMessage) {})
 client.OnWhisperMessage(func(message WhisperMessage) {})
 client.OnClearChatMessage(func(message ClearChatMessage) {})
+client.OnClearMessage(func message ClearMessage) {})
 client.OnRoomStateMessage(func(message RoomStateMessage) {})
 client.OnUsernoticeMessage(func(message UserNoticeMessage) {})
 client.OnUserstateMessage(func(message UserStateMessage) {})
@@ -216,6 +228,7 @@ These are the 7 major message types currently supported:
     WHISPER
     PRIVMSG
     CLEARCHAT
+	CLEARMSG
     ROOMSTATE
     USERNOTICE
     USERSTATE
