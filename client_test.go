@@ -444,6 +444,34 @@ func TestCanReceiveCLEARCHATMessage(t *testing.T) {
 	assertIntsEqual(t, 1, received)
 }
 
+func TestCanReceiveCLEARMSGMessage(t *testing.T) {
+	t.Parallel()
+	testMessage := `@login=ronni;target-msg-id=abc-123-def :tmi.twitch.tv CLEARMSG #dallas :HeyGuys`
+
+	wait := make(chan struct{})
+	var received string
+
+	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
+	client := newTestClient(host)
+
+	client.OnClearMessage(func(message ClearMessage) {
+		received = message.Login
+		assertMessageTypesEqual(t, CLEARMSG, message.GetType())
+		close(wait)
+	})
+
+	go client.Connect()
+
+	// wait for server to start
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no message sent")
+	}
+
+	assertStringsEqual(t, "ronni", received)
+}
+
 func TestCanReceiveROOMSTATEMessage(t *testing.T) {
 	t.Parallel()
 	testMessage := `@slow=10 :tmi.twitch.tv ROOMSTATE #gempir`

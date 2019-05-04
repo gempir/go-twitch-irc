@@ -43,6 +43,8 @@ const (
 	PING MessageType = 11
 	// PONG is a message that should be sent from the IRC server as a response to us sending a PING message.
 	PONG MessageType = 12
+	// CLEARMSG whenever a single message is deleted
+	CLEARMSG MessageType = 13
 )
 
 type messageTypeDescription struct {
@@ -67,6 +69,7 @@ func init() {
 		"353":        {NAMES, parseNamesMessage},
 		"PING":       {PING, parsePingMessage},
 		"PONG":       {PONG, parsePongMessage},
+		"CLEARMSG":   {CLEARMSG, parseClearMessage},
 	}
 }
 
@@ -248,6 +251,25 @@ func parseClearChatMessage(message *ircMessage) Message {
 	}
 
 	return &clearChatMessage
+}
+
+func parseClearMessage(message *ircMessage) Message {
+	clearMessage := ClearMessage{
+		Raw:         message.Raw,
+		Type:        parseMessageType(message.Command),
+		RawType:     message.Command,
+		Tags:        message.Tags,
+		Login:       message.Tags["login"],
+		TargetMsgID: message.Tags["target-msg-id"],
+	}
+
+	if len(message.Params) == 2 {
+		clearMessage.Message = message.Params[1]
+	}
+
+	clearMessage.Channel = strings.TrimPrefix(message.Params[0], "#")
+
+	return &clearMessage
 }
 
 func parseRoomStateMessage(message *ircMessage) Message {
