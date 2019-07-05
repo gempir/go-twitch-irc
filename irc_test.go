@@ -144,8 +144,7 @@ func TestCreateJoinMessageBelowLimit(t *testing.T) {
 	}
 
 	for _, test := range cases {
-		actual, _, err := createJoinMessage(test.channels...)
-		assertErrorsEqual(t, nil, err)
+		actual, _ := createJoinMessage(test.channels...)
 		assertStringsEqual(t, test.expected, actual)
 	}
 }
@@ -181,8 +180,7 @@ func TestCreateJoinMessageAboveLimit(t *testing.T) {
 	}
 
 	for _, test := range cases {
-		actualMessage, actualChannels, err := createJoinMessage(test.channels...)
-		assertErrorsEqual(t, nil, err)
+		actualMessage, actualChannels := createJoinMessage(test.channels...)
 		assertStringsEqual(t, test.expected.message, actualMessage)
 		assertStringSlicesEqual(t, test.expected.channels, actualChannels)
 	}
