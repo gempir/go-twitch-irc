@@ -132,31 +132,3 @@ func parseIRCMessageSource(rawSource string) *ircMessageSource {
 
 	return &source
 }
-
-var maxMessageLength = 510
-
-// Creates an irc join message with a limit of 510 characters.
-// The remaining channels not included in the join are returned as a slice.
-func createJoinMessage(channels ...string) (string, []string) {
-	baseMessage := "JOIN"
-
-	if channels == nil {
-		return baseMessage, nil
-	}
-
-	sb := strings.Builder{}
-	sb.WriteString(baseMessage)
-
-	for i, channel := range channels {
-		if sb.Len()+len(channel)+2 > maxMessageLength {
-			return sb.String(), channels[i:]
-		}
-		if sb.Len() == len(baseMessage) {
-			sb.WriteString(" #" + channel)
-		} else {
-			sb.WriteString(",#" + channel)
-		}
-	}
-
-	return sb.String(), nil
-}

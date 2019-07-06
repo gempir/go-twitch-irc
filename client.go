@@ -517,22 +517,63 @@ func (c *Client) Whisper(username, text string) {
 	c.send(fmt.Sprintf("PRIVMSG #%s :/w %s %s", c.ircUser, username, text))
 }
 
-// Join enter a twitch channel to read more messages
-func (c *Client) Join(channel string) {
-	channel = strings.ToLower(channel)
+// Join enter a twitch channel to read more messages.
+// Any channels which could not be joined are returned in a slice.
+func (c *Client) Join(channels ...string) []string {
+	message, joined, remainder := c.createJoinMessage(channels...)
 
-	// If we don't have the channel in our map AND we have an
-	// active connection, explicitly join before we add it to our map
+	// If we have an active connection, explicitly join
+	// before we add the joined channels to our map
 	c.channelsMtx.Lock()
-	if !c.channels[channel] && c.connActive.get() {
-		go c.send(fmt.Sprintf("JOIN #%s", channel))
+	if c.connActive.get() {
+		go c.send(message)
 	}
 
-	c.channels[channel] = true
-	c.channelUserlistMutex.Lock()
-	c.channelUserlist[channel] = map[string]bool{}
-	c.channelUserlistMutex.Unlock()
-	c.channelsMtx.Unlock()
+	for _, channel := range joined {
+		c.channels[channel] = true
+		c.channelUserlistMutex.Lock()
+		c.channelUserlist[channel] = map[string]bool{}
+		c.channelUserlistMutex.Unlock()
+		c.channelsMtx.Unlock()
+	}
+
+	return remainder
+}
+
+var maxMessageLength = 510
+
+// Creates an irc join message with a limit of 510 characters.
+// Any channels included in the join message are returned in a slice.
+// The remaining channels not included in the join are returned as a slice.
+func (c *Client) createJoinMessage(channels ...string) (string, []string, []string) {
+	baseMessage := "JOIN"
+	joined := []string{}
+
+	if channels == nil || len(channels) < 1 {
+		return "", joined, channels
+	}
+
+	sb := strings.Builder{}
+	sb.WriteString(baseMessage)
+
+	for i, channel := range channels {
+		channel := strings.ToLower(channel)
+		// If the channel already exists in the map we don't need to re-join it
+		if c.channels[channel] {
+			continue
+		}
+		if sb.Len()+len(channel)+2 > maxMessageLength {
+			return sb.String(), joined, channels[i:]
+		}
+		if sb.Len() == len(baseMessage) {
+			sb.WriteString(" #" + channel)
+		} else {
+			sb.WriteString(",#" + channel)
+		}
+		joined = append(joined, channel)
+	}
+
+	return sb.String(), joined, []string{}
 }
 
 // Depart leave a twitch channel
