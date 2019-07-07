@@ -518,9 +518,10 @@ func (c *Client) Whisper(username, text string) {
 }
 
 // Join enter a twitch channel to read more messages.
-// Any channels which could not be joined are returned in a slice.
+// Any channels which could not be joined due to the maximum
+// message length being reached are returned in a slice.
 func (c *Client) Join(channels ...string) []string {
-	message, joined, remainder := c.createJoinMessage(channels...)
+	message, joined, remainder := createJoinMessage(c.channels, channels...)
 
 	// If we have an active connection, explicitly join
 	// before we add the joined channels to our map
@@ -542,10 +543,12 @@ func (c *Client) Join(channels ...string) []string {
 
 var maxMessageLength = 510
 
-// Creates an irc join message with a limit of 510 characters.
-// Any channels included in the join message are returned in a slice.
-// The remaining channels not included in the join are returned as a slice.
-func (c *Client) createJoinMessage(channels ...string) (string, []string, []string) {
+// Creates an irc join message to join the given channels.
+//
+// Returns the join message, any channels included in the join message,
+// and any remaining channels. Channels which have already been joined
+// are not included in the remaining channels that are returned.
+func createJoinMessage(joinedChannels map[string]bool, channels ...string) (string, []string, []string) {
 	baseMessage := "JOIN"
 	joined := []string{}
 
@@ -559,7 +562,7 @@ func (c *Client) createJoinMessage(channels ...string) (string, []string, []stri
 	for i, channel := range channels {
 		channel := strings.ToLower(channel)
 		// If the channel already exists in the map we don't need to re-join it
-		if c.channels[channel] {
+		if joinedChannels[channel] {
 			continue
 		}
 		if sb.Len()+len(channel)+2 > maxMessageLength {
