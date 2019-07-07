@@ -1761,12 +1761,12 @@ func TestCreateJoinMessageAboveLimit(t *testing.T) {
 }
 
 func TestCreateJoinMessageSkipsJoinedChannels(t *testing.T) {
-	channels := []string{"pajlada", "forsen"}
+	channels := []string{"pajlada", "forsen", "nymn"}
 	joined := map[string]bool{
 		"pajlada": true,
 		"forsen":  false,
 	}
-	expected := []string{"forsen"}
+	expected := []string{"forsen", "nymn"}
 
 	_, actual, _ := createJoinMessage(joined, channels...)
 	assertStringSlicesEqual(t, expected, actual)
