@@ -535,8 +535,8 @@ func (c *Client) Join(channels ...string) []string {
 		c.channelUserlistMutex.Lock()
 		c.channelUserlist[channel] = map[string]bool{}
 		c.channelUserlistMutex.Unlock()
-		c.channelsMtx.Unlock()
 	}
+	c.channelsMtx.Unlock()
 
 	return remainder
 }
