@@ -1608,13 +1608,11 @@ func TestCanAttachToPongMessageCallback(t *testing.T) {
 }
 
 type createJoinMessageResult struct {
-	message   string
-	joined    []string
-	remainder []string
+	messages []string
+	joined   []string
 }
 
-func TestCreateJoinMessageBelowLimit(t *testing.T) {
-	// Test cases for join messages which are below the max message limit.
+func TestCreateJoinMessagesCreatesMessages(t *testing.T) {
 	cases := []struct {
 		channels []string
 		expected createJoinMessageResult
@@ -1622,22 +1620,22 @@ func TestCreateJoinMessageBelowLimit(t *testing.T) {
 		{
 			channels: nil,
 			expected: createJoinMessageResult{
-				message: "",
-				joined:  []string{},
+				messages: []string{},
+				joined:   []string{},
 			},
 		},
 		{
 			channels: []string{},
 			expected: createJoinMessageResult{
-				message: "",
-				joined:  []string{},
+				messages: []string{},
+				joined:   []string{},
 			},
 		},
 		{
 			channels: []string{"pajlada", "forsen"},
 			expected: createJoinMessageResult{
-				message: "JOIN #pajlada,#forsen",
-				joined:  []string{"pajlada", "forsen"},
+				messages: []string{"JOIN #pajlada,#forsen"},
+				joined:   []string{"pajlada", "forsen"},
 			},
 		},
 		{
@@ -1654,7 +1652,7 @@ func TestCreateJoinMessageBelowLimit(t *testing.T) {
 				"aaaaaaaaa",
 			},
 			expected: createJoinMessageResult{
-				message: "JOIN #aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaa",
+				messages: []string{"JOIN #aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaa"},
 				joined: []string{
 					"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 					"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -1669,58 +1667,6 @@ func TestCreateJoinMessageBelowLimit(t *testing.T) {
 				},
 			},
 		},
-	}
-
-	for _, test := range cases {
-		message, joined, _ := createJoinMessage(make(map[string]bool), test.channels...)
-		assertStringsEqual(t, test.expected.message, message)
-		assertStringSlicesEqual(t, test.expected.joined, joined)
-	}
-}
-
-func TestCreateJoinMessageReturnsRemainder(t *testing.T) {
-	// Test cases for the return value of the remainder channels.
-	cases := []struct {
-		channels []string
-		expected []string
-	}{
-		{
-			channels: nil,
-			expected: nil,
-		},
-		{
-			channels: []string{},
-			expected: []string{},
-		},
-		{
-			channels: []string{"pajlada", "forsen"},
-			expected: []string{},
-		},
-	}
-
-	for _, test := range cases {
-		_, _, actual := createJoinMessage(make(map[string]bool), test.channels...)
-		assertStringSlicesEqual(t, test.expected, actual)
-	}
-}
-
-func TestCreateJoinMessageReturnsLowercase(t *testing.T) {
-	channels := []string{"PAJLADA", "FORSEN"}
-	joined := make(map[string]bool)
-	expected := "JOIN #pajlada,#forsen"
-	expectedJoined := []string{"pajlada", "forsen"}
-
-	actual, actualJoined, _ := createJoinMessage(joined, channels...)
-	assertStringsEqual(t, expected, actual)
-	assertStringSlicesEqual(t, expectedJoined, actualJoined)
-}
-
-func TestCreateJoinMessageAboveLimit(t *testing.T) {
-	// Test cases for join messages which are above the max message length.
-	cases := []struct {
-		channels []string
-		expected createJoinMessageResult
-	}{
 		{
 			channels: []string{
 				"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -1735,7 +1681,10 @@ func TestCreateJoinMessageAboveLimit(t *testing.T) {
 				"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
 			},
 			expected: createJoinMessageResult{
-				message: "JOIN #aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+				messages: []string{
+					"JOIN #aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+					"JOIN #bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+				},
 				joined: []string{
 					"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 					"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -1746,18 +1695,28 @@ func TestCreateJoinMessageAboveLimit(t *testing.T) {
 					"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 					"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 					"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+					"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
 				},
-				remainder: []string{"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
 			},
 		},
 	}
 
 	for _, test := range cases {
-		actualMessage, actualJoined, actualRemainder := createJoinMessage(make(map[string]bool), test.channels...)
-		assertStringsEqual(t, test.expected.message, actualMessage)
-		assertStringSlicesEqual(t, test.expected.joined, actualJoined)
-		assertStringSlicesEqual(t, test.expected.remainder, actualRemainder)
+		messages, joined := createJoinMessages(make(map[string]bool), test.channels...)
+		assertStringSlicesEqual(t, test.expected.messages, messages)
+		assertStringSlicesEqual(t, test.expected.joined, joined)
 	}
+}
+
+func TestCreateJoinMessageReturnsLowercase(t *testing.T) {
+	channels := []string{"PAJLADA", "FORSEN"}
+	joined := make(map[string]bool)
+	expected := []string{"JOIN #pajlada,#forsen"}
+	expectedJoined := []string{"pajlada", "forsen"}
+
+	actual, actualJoined := createJoinMessages(joined, channels...)
+	assertStringSlicesEqual(t, expected, actual)
+	assertStringSlicesEqual(t, expectedJoined, actualJoined)
 }
 
 func TestCreateJoinMessageSkipsJoinedChannels(t *testing.T) {
@@ -1768,6 +1727,6 @@ func TestCreateJoinMessageSkipsJoinedChannels(t *testing.T) {
 	}
 	expected := []string{"forsen", "nymn"}
 
-	_, actual, _ := createJoinMessage(joined, channels...)
+	_, actual := createJoinMessages(joined, channels...)
 	assertStringSlicesEqual(t, expected, actual)
 }

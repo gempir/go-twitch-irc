@@ -520,14 +520,16 @@ func (c *Client) Whisper(username, text string) {
 // Join enter a twitch channel to read more messages.
 // Any channels which could not be joined due to the maximum
 // message length being reached are returned in a slice.
-func (c *Client) Join(channels ...string) []string {
-	message, joined, remainder := createJoinMessage(c.channels, channels...)
+func (c *Client) Join(channels ...string) {
+	messages, joined := createJoinMessages(c.channels, channels...)
 
 	// If we have an active connection, explicitly join
 	// before we add the joined channels to our map
 	c.channelsMtx.Lock()
-	if c.connActive.get() {
-		go c.send(message)
+	for _, message := range messages {
+		if c.connActive.get() {
+			go c.send(message)
+		}
 	}
 
 	for _, channel := range joined {
@@ -537,36 +539,35 @@ func (c *Client) Join(channels ...string) []string {
 		c.channelUserlistMutex.Unlock()
 	}
 	c.channelsMtx.Unlock()
-
-	return remainder
 }
-
-var maxMessageLength = 510
 
 // Creates an irc join message to join the given channels.
 //
 // Returns the join message, any channels included in the join message,
 // and any remaining channels. Channels which have already been joined
 // are not included in the remaining channels that are returned.
-func createJoinMessage(joinedChannels map[string]bool, channels ...string) (string, []string, []string) {
+func createJoinMessages(joinedChannels map[string]bool, channels ...string) ([]string, []string) {
 	baseMessage := "JOIN"
+	joinMessages := []string{}
 	joined := []string{}
 
 	if channels == nil || len(channels) < 1 {
-		return "", joined, channels
+		return joinMessages, joined
 	}
 
 	sb := strings.Builder{}
 	sb.WriteString(baseMessage)
 
-	for i, channel := range channels {
+	for _, channel := range channels {
 		channel := strings.ToLower(channel)
 		// If the channel already exists in the map we don't need to re-join it
 		if joinedChannels[channel] {
 			continue
 		}
 		if sb.Len()+len(channel)+2 > maxMessageLength {
-			return sb.String(), joined, channels[i:]
+			joinMessages = append(joinMessages, sb.String())
+			sb.Reset()
+			sb.WriteString(baseMessage)
 		}
 		if sb.Len() == len(baseMessage) {
 			sb.WriteString(" #" + channel)
@@ -576,7 +577,9 @@ func createJoinMessage(joinedChannels map[string]bool, channels ...string) (stri
 		joined = append(joined, channel)
 	}
 
-	return sb.String(), joined, []string{}
+	joinMessages = append(joinMessages, sb.String())
+
+	return joinMessages, joined
 }
 
 // Depart leave a twitch channel
