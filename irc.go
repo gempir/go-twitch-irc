@@ -6,6 +6,9 @@ import (
 	"strings"
 )
 
+// Maximum supported length of an irc message
+const maxMessageLength = 510
+
 type ircMessage struct {
 	Raw     string
 	Tags    map[string]string

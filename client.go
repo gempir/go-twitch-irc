@@ -517,22 +517,69 @@ func (c *Client) Whisper(username, text string) {
 	c.send(fmt.Sprintf("PRIVMSG #%s :/w %s %s", c.ircUser, username, text))
 }
 
-// Join enter a twitch channel to read more messages
-func (c *Client) Join(channel string) {
-	channel = strings.ToLower(channel)
+// Join enter a twitch channel to read more messages.
+// Any channels which could not be joined due to the maximum
+// message length being reached are returned in a slice.
+func (c *Client) Join(channels ...string) {
+	messages, joined := createJoinMessages(c.channels, channels...)
 
-	// If we don't have the channel in our map AND we have an
-	// active connection, explicitly join before we add it to our map
+	// If we have an active connection, explicitly join
+	// before we add the joined channels to our map
 	c.channelsMtx.Lock()
-	if !c.channels[channel] && c.connActive.get() {
-		go c.send(fmt.Sprintf("JOIN #%s", channel))
+	for _, message := range messages {
+		if c.connActive.get() {
+			go c.send(message)
+		}
 	}
 
-	c.channels[channel] = true
-	c.channelUserlistMutex.Lock()
-	c.channelUserlist[channel] = map[string]bool{}
-	c.channelUserlistMutex.Unlock()
+	for _, channel := range joined {
+		c.channels[channel] = true
+		c.channelUserlistMutex.Lock()
+		c.channelUserlist[channel] = map[string]bool{}
+		c.channelUserlistMutex.Unlock()
+	}
 	c.channelsMtx.Unlock()
+}
+
+// Creates an irc join message to join the given channels.
+//
+// Returns the join message, any channels included in the join message,
+// and any remaining channels. Channels which have already been joined
+// are not included in the remaining channels that are returned.
+func createJoinMessages(joinedChannels map[string]bool, channels ...string) ([]string, []string) {
+	baseMessage := "JOIN"
+	joinMessages := []string{}
+	joined := []string{}
+
+	if channels == nil || len(channels) < 1 {
+		return joinMessages, joined
+	}
+
+	sb := strings.Builder{}
+	sb.WriteString(baseMessage)
+
+	for _, channel := range channels {
+		channel := strings.ToLower(channel)
+		// If the channel already exists in the map we don't need to re-join it
+		if joinedChannels[channel] {
+			continue
+		}
+		if sb.Len()+len(channel)+2 > maxMessageLength {
+			joinMessages = append(joinMessages, sb.String())
+			sb.Reset()
+			sb.WriteString(baseMessage)
+		}
+		if sb.Len() == len(baseMessage) {
+			sb.WriteString(" #" + channel)
+		} else {
+			sb.WriteString(",#" + channel)
+		}
+		joined = append(joined, channel)
+	}
+
+	joinMessages = append(joinMessages, sb.String())
+
+	return joinMessages, joined
 }
 
 // Depart leave a twitch channel
