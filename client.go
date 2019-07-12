@@ -518,8 +518,6 @@ func (c *Client) Whisper(username, text string) {
 }
 
 // Join enter a twitch channel to read more messages.
-// Any channels which could not be joined due to the maximum
-// message length being reached are returned in a slice.
 func (c *Client) Join(channels ...string) {
 	messages, joined := createJoinMessages(c.channels, channels...)
 
