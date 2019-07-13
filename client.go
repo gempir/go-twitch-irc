@@ -837,12 +837,11 @@ func (c *Client) startParser() error {
 }
 
 func (c *Client) initialJoins() {
-	// join or rejoin channels on connection
-	c.channelsMtx.RLock()
+	channels := []string{}
 	for channel := range c.channels {
-		c.send(fmt.Sprintf("JOIN #%s", channel))
+		channels = append(channels, channel)
 	}
-	c.channelsMtx.RUnlock()
+	c.Join(channels...)
 }
 
 func (c *Client) send(line string) bool {
