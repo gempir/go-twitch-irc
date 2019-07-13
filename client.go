@@ -837,6 +837,7 @@ func (c *Client) startParser() error {
 }
 
 func (c *Client) initialJoins() {
+	// join or rejoin channels on connection
 	channels := []string{}
 	for channel := range c.channels {
 		channels = append(channels, channel)
