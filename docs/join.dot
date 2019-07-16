@@ -1,0 +1,84 @@
+digraph {
+    rankdir=LR;
+
+    node[group=main];
+    mSTART [shape=box label="set connActive to false"]
+    m2 [shape=box label="Connection established"];
+    m3 [shape=box label="Reset clientReconnect"];
+    m4 [shape=box label="Reset userDisconnect"];
+    m5 [shape=box label="Start reader"];
+    m6 [shape=box label="Start pinger"];
+    m7 [shape=box label="Setup connection"];
+    m8 [shape=box label="Start writer"];
+    m9 [shape=box label="Start parser"];
+    m10 [shape=oval label="Wait for parser to die"];
+    m11 [shape=box label="Close connection"];
+    m12 [shape=box label="Close clientReconnect"];
+    mEND [shape=oval label="Wait for reader and writer to die"];
+
+    subgraph clusterMain {
+        newrank=true;
+        label="Main thread";
+        node[group=main];
+        mSTART -> m2 -> m3 -> m4 -> m5 -> m6 -> m7 -> m8 -> m9;
+        m9 -> paSTART;
+        paEND -> m10;
+        m10 -> m11 -> m12 -> mEND;
+        mEND -> mSTART;
+
+        subgraph clusterParser {
+            label="Parser";
+
+            paSTART [shape=box label="PARSER START"];
+            pa1 [shape=box label="TODO: Fill this in"];
+            paEND [shape=box label="PARSER END"];
+
+            paSTART -> pa1;
+            pa1 -> paEND;
+        }
+    }
+
+    subgraph clusterReader {
+        newrank=true;
+        label="Reader thread";
+        node[group=branches];
+
+        r12 [shape=oval label="Read line from connection"];
+        r13 [shape=oval label="Process line"];
+        r14 [shape=diamond label="Does line contain 'starter'?"];
+        r21 [shape=box label="Set connActive to true"];
+        r22 [shape=box label="Call initialJoins"];
+        r31 [shape=diamond label="Did we encounter an error?"];
+        r41 [shape=box label="Forward to message parser channel"];
+        r51 [shape=box label="Exit out"];
+
+        m5 -> r12 -> r13 -> r14;
+        r14 -> r21 [label="Yes"];
+        r21 -> r22;
+
+        r14 -> r31 [label="No"];
+        r31 -> r41 [label="No"];
+        r31 -> r51 [label="Yes"];
+        r51 -> mEND;
+        r41 -> r13;
+        r22 -> r13;
+    }
+
+    subgraph clusterWriter {
+        label="Writer thread";
+        node[group=branches];
+
+        w1 [shape=box label="TODO: Fill this in"];
+
+        m8 -> w1;
+    }
+
+    subgraph clusterPinger {
+        label="Pinger thread";
+        node[group=branches];
+
+        p1 [shape=box label="TODO: Fill this in"];
+
+        m6 -> p1;
+    }
+}
