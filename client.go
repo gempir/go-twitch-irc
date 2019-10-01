@@ -523,17 +523,15 @@ func (c *Client) Join(channels ...string) {
 
 	// If we have an active connection, explicitly join
 	// before we add the joined channels to our map
-	connActive := c.connActive.get()
-
 	c.channelsMtx.Lock()
 	for _, message := range messages {
-		if connActive {
+		if c.connActive.get() {
 			go c.send(message)
 		}
 	}
 
 	for _, channel := range joined {
-		c.channels[channel] = connActive
+		c.channels[channel] = c.connActive.get()
 		c.channelUserlistMutex.Lock()
 		c.channelUserlist[channel] = map[string]bool{}
 		c.channelUserlistMutex.Unlock()
