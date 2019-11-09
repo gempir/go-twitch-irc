@@ -8,8 +8,8 @@ import (
 )
 
 type ircTest struct {
-	input    string
-	expected ircMessage
+	Input    string
+	Expected ircMessage
 }
 
 func ircTests() ([]*ircTest, error) {
@@ -37,18 +37,18 @@ func TestCanParseIRCMessage(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		actual, err := parseIRCMessage(test.input)
+		actual, err := parseIRCMessage(test.Input)
 		if err != nil {
 			t.Error(err)
 			continue
 		}
 
-		assertStringMapsEqual(t, test.expected.Tags, actual.Tags)
-		assertStringsEqual(t, test.expected.Source.Nickname, actual.Source.Nickname)
-		assertStringsEqual(t, test.expected.Source.Username, actual.Source.Username)
-		assertStringsEqual(t, test.expected.Source.Host, actual.Source.Host)
-		assertStringsEqual(t, test.expected.Command, actual.Command)
-		assertStringSlicesEqual(t, test.expected.Params, actual.Params)
+		assertStringMapsEqual(t, test.Expected.Tags, actual.Tags)
+		assertStringsEqual(t, test.Expected.Source.Nickname, actual.Source.Nickname)
+		assertStringsEqual(t, test.Expected.Source.Username, actual.Source.Username)
+		assertStringsEqual(t, test.Expected.Source.Host, actual.Source.Host)
+		assertStringsEqual(t, test.Expected.Command, actual.Command)
+		assertStringSlicesEqual(t, test.Expected.Params, actual.Params)
 	}
 }
 
