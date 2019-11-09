@@ -95,17 +95,20 @@ func parseIRCTags(rawTags string) map[string]string {
 	return tags
 }
 
-var escapeCharacters = map[string]string{
-	"\\s":  " ",
-	"\\n":  "",
-	"\\r":  "",
-	"\\:":  ";",
-	"\\\\": "\\",
+var tagEscapeCharacters = []struct {
+	from string
+	to   string
+}{
+	{`\s`, ` `},
+	{`\n`, ``},
+	{`\r`, ``},
+	{`\:`, `;`},
+	{`\\`, `\`},
 }
 
 func parseIRCTagValue(rawValue string) string {
-	for char, value := range escapeCharacters {
-		rawValue = strings.Replace(rawValue, char, value, -1)
+	for _, escape := range tagEscapeCharacters {
+		rawValue = strings.Replace(rawValue, escape.from, escape.to, -1)
 	}
 
 	rawValue = strings.TrimSuffix(rawValue, "\\")
