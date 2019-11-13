@@ -44,7 +44,7 @@ func assertStringSlicesEqual(t *testing.T, expected, actual []string) {
 	}
 
 	if len(actual) != len(expected) {
-		t.Errorf("actual slice was not the same length as expected slice")
+		t.Errorf("actual slice(%#v)(%d) was not the same length as expected slice(%#v)(%d)", actual, len(actual), expected, len(expected))
 	}
 
 	for i, v := range actual {

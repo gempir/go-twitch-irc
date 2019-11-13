@@ -1,8 +1,8 @@
 {
   "tests": [
     {
-      "input": "foo bar baz asdf",
-      "expected": {
+      "Input": "foo bar baz asdf",
+      "Expected": {
         "command": "foo",
         "params": [
           "bar",
@@ -12,8 +12,8 @@
       }
     },
     {
-      "input": ":coolguy foo bar baz asdf",
-      "expected": {
+      "Input": ":coolguy foo bar baz asdf",
+      "Expected": {
         "source": {
           "host": "coolguy"
         },
@@ -26,8 +26,8 @@
       }
     },
     {
-      "input": "foo bar baz :asdf quux",
-      "expected": {
+      "Input": "foo bar baz :asdf quux",
+      "Expected": {
         "command": "foo",
         "params": [
           "bar",
@@ -37,8 +37,8 @@
       }
     },
     {
-      "input": "foo bar baz :",
-      "expected": {
+      "Input": "foo bar baz :",
+      "Expected": {
         "command": "foo",
         "params": [
           "bar",
@@ -48,8 +48,8 @@
       }
     },
     {
-      "input": "foo bar baz ::asdf",
-      "expected": {
+      "Input": "foo bar baz ::asdf",
+      "Expected": {
         "command": "foo",
         "params": [
           "bar",
@@ -59,8 +59,8 @@
       }
     },
     {
-      "input": ":coolguy foo bar baz :asdf quux",
-      "expected": {
+      "Input": ":coolguy foo bar baz :asdf quux",
+      "Expected": {
         "source": {
           "host": "coolguy"
         },
@@ -73,8 +73,8 @@
       }
     },
     {
-      "input": ":coolguy foo bar baz :  asdf quux ",
-      "expected": {
+      "Input": ":coolguy foo bar baz :  asdf quux ",
+      "Expected": {
         "source": {
           "host": "coolguy"
         },
@@ -87,8 +87,8 @@
       }
     },
     {
-      "input": ":coolguy PRIVMSG bar :lol :) ",
-      "expected": {
+      "Input": ":coolguy PRIVMSG bar :lol :) ",
+      "Expected": {
         "source": {
           "host": "coolguy"
         },
@@ -100,8 +100,8 @@
       }
     },
     {
-      "input": ":coolguy foo bar baz :",
-      "expected": {
+      "Input": ":coolguy foo bar baz :",
+      "Expected": {
         "source": {
           "host": "coolguy"
         },
@@ -114,8 +114,8 @@
       }
     },
     {
-      "input": ":coolguy foo bar baz :  ",
-      "expected": {
+      "Input": ":coolguy foo bar baz :  ",
+      "Expected": {
         "source": {
           "host": "coolguy"
         },
@@ -128,8 +128,8 @@
       }
     },
     {
-      "input": "@a=b;c=32;k;rt=ql7 foo",
-      "expected": {
+      "Input": "@a=b;c=32;k;rt=ql7 foo",
+      "Expected": {
         "command": "foo",
         "tags": {
           "a": "b",
@@ -140,26 +140,27 @@
       }
     },
     {
-      "input": "@a=b\\\\and\\nk;c=72\\s45;d=gh\\:764 foo",
-      "expected": {
+      "Input": "@a=b\\\\and\\nk;c=72\\s45;d=gh\\:764 foo",
+      "Expected": {
         "command": "foo",
         "tags": {
-          "a": "b\\and\nk",
+          "a": "b\\andk",
           "c": "72 45",
           "d": "gh;764"
-        }
+        },
+        "params": []
       }
     },
     {
-      "input": "@c;h=;a=b :quux ab cd",
-      "expected": {
+      "Input": "@c;h=;a=b :quux ab cd",
+      "Expected": {
         "tags": {
           "c": null,
           "h": "",
           "a": "b"
         },
         "source": {
-          "host": "quuz"
+          "host": "quux"
         },
         "command": "ab",
         "params": [
@@ -168,8 +169,8 @@
       }
     },
     {
-      "input": ":src JOIN #chan",
-      "expected": {
+      "Input": ":src JOIN #chan",
+      "Expected": {
         "source": {
           "host": "src"
         },
@@ -180,8 +181,8 @@
       }
     },
     {
-      "input": ":src JOIN :#chan",
-      "expected": {
+      "Input": ":src JOIN :#chan",
+      "Expected": {
         "source": {
           "host": "src"
         },
@@ -192,8 +193,8 @@
       }
     },
     {
-      "input": ":src AWAY",
-      "expected": {
+      "Input": ":src AWAY",
+      "Expected": {
         "source": {
           "host": "src"
         },
@@ -201,17 +202,20 @@
       }
     },
     {
-      "input": ":src AWAY ",
-      "expected": {
+      "Input": ":src AWAY ",
+      "Expected": {
         "source": {
           "host": "src"
         },
-        "command": "AWAY"
+        "command": "AWAY",
+        "params": [
+            ""
+        ]
       }
     },
     {
-      "input": ":cool\tguy foo bar baz",
-      "expected": {
+      "Input": ":cool\tguy foo bar baz",
+      "Expected": {
         "source": {
           "host": "cool\tguy"
         },
@@ -223,8 +227,8 @@
       }
     },
     {
-      "input": ":coolguy!ag@net\u00035w\u0003ork.admin PRIVMSG foo :bar baz",
-      "expected": {
+      "Input": ":coolguy!ag@net\u00035w\u0003ork.admin PRIVMSG foo :bar baz",
+      "Expected": {
         "source": {
           "nickname": "coolguy",
           "username": "ag",
@@ -238,8 +242,8 @@
       }
     },
     {
-      "input": ":coolguy!~ag@n\u0002et\u000305w\u000fork.admin PRIVMSG foo :bar baz",
-      "expected": {
+      "Input": ":coolguy!~ag@n\u0002et\u000305w\u000fork.admin PRIVMSG foo :bar baz",
+      "Expected": {
         "source": {
           "nickname": "coolguy",
           "username": "~ag",
@@ -253,8 +257,8 @@
       }
     },
     {
-      "input": "@tag1=value1;tag2;vendor1/tag3=value2;vendor2/tag4 :irc.example.com COMMAND param1 param2 :param3 param3",
-      "expected": {
+      "Input": "@tag1=value1;tag2;vendor1/tag3=value2;vendor2/tag4 :irc.example.com COMMAND param1 param2 :param3 param3",
+      "Expected": {
         "tags": {
           "tag1": "value1",
           "tag2": null,
@@ -273,8 +277,8 @@
       }
     },
     {
-      "input": ":irc.example.com COMMAND param1 param2 :param3 param3",
-      "expected": {
+      "Input": ":irc.example.com COMMAND param1 param2 :param3 param3",
+      "Expected": {
         "source": {
           "host": "irc.example.com"
         },
@@ -287,8 +291,8 @@
       }
     },
     {
-      "input": "@tag1=value1;tag2;vendor1/tag3=value2;vendor2/tag4 COMMAND param1 param2 :param3 param3",
-      "expected": {
+      "Input": "@tag1=value1;tag2;vendor1/tag3=value2;vendor2/tag4 COMMAND param1 param2 :param3 param3",
+      "Expected": {
         "tags": {
           "tag1": "value1",
           "tag2": null,
@@ -304,49 +308,51 @@
       }
     },
     {
-      "input": "COMMAND",
-      "expected": {
+      "Input": "COMMAND",
+      "Expected": {
         "command": "COMMAND"
       }
     },
     {
-      "input": "@foo=\\\\\\\\\\:\\\\s\\s\\r\\n COMMAND",
-      "expected": {
+      "Input": "@foo=\\\\\\\\\\:\\\\s\\s\\r\\n COMMAND",
+      "Expected": {
         "tags": {
-          "foo": "\\\\;\\s \r\n"
+          "foo": "\\\\;\\"
         },
         "command": "COMMAND"
       }
     },
     {
-      "input": ":gravel.mozilla.org 432  #momo :Erroneous Nickname: Illegal characters",
-      "expected": {
+      "Input": ":gravel.mozilla.org 432  #momo :Erroneous Nickname: Illegal characters",
+      "Expected": {
         "source": {
           "host": "gravel.mozilla.org"
         },
         "command": "432",
         "params": [
+          "",
           "#momo",
           "Erroneous Nickname: Illegal characters"
         ]
       }
     },
     {
-      "input": ":gravel.mozilla.org MODE #tckk +n ",
-      "expected": {
+      "Input": ":gravel.mozilla.org MODE #tckk +n ",
+      "Expected": {
         "source": {
           "host": "gravel.mozilla.org"
         },
         "command": "MODE",
         "params": [
           "#tckk",
-          "+n"
+          "+n",
+          ""
         ]
       }
     },
     {
-      "input": ":services.esper.net MODE #foo-bar +o foobar  ",
-      "expected": {
+      "Input": ":services.esper.net MODE #foo-bar +o foobar  ",
+      "Expected": {
         "source": {
           "host": "services.esper.net"
         },
@@ -354,22 +360,33 @@
         "params": [
           "#foo-bar",
           "+o",
-          "foobar"
+          "foobar",
+          "",
+          ""
         ]
       }
     },
     {
-      "input": "@tag1=value\\\\ntest COMMAND",
-      "expected": {
+      "Input": "@tag1=value\\\\ntest COMMAND",
+      "Expected": {
         "tags": {
-          "tag1": "value\\ntest"
+          "tag1": "value\\test"
         },
         "command": "COMMAND"
       }
     },
     {
-      "input": "@tag1=value\\1 COMMAND",
-      "expected": {
+      "Input": "@tag1=value\\1 COMMAND",
+      "Expected": {
+        "tags": {
+          "tag1": "value\\1"
+        },
+        "command": "COMMAND"
+      }
+    },
+    {
+      "Input": "@tag1=value1\\ COMMAND",
+      "Expected": {
         "tags": {
           "tag1": "value1"
         },
@@ -377,12 +394,18 @@
       }
     },
     {
-      "input": "@tag1=value1\\ COMMAND",
-      "expected": {
-        "tags": {
-          "tag1": "value1"
+      "Input": ":leppunen@tmi.twitch.tv PRIVMSG #pajlada :LUL",
+      "Expected": {
+        "source": {
+          "nickname": "leppunen",
+          "username": "",
+          "host": "tmi.twitch.tv"
         },
-        "command": "COMMAND"
+        "command": "PRIVMSG",
+        "params": [
+          "#pajlada",
+          "LUL"
+        ]
       }
     }
   ]
