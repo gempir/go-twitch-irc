@@ -125,9 +125,19 @@ func parseIRCMessageSource(rawSource string) *ircMessageSource {
 	regex := regexp.MustCompile(`!|@`)
 	split := regex.Split(rawSource, -1)
 
-	if len(split) == 1 {
+	if len(split) == 0 {
+		return &source
+	}
+
+	switch len(split) {
+	case 1:
 		source.Host = split[0]
-	} else {
+	case 2:
+		// Getting 2 items extremely rare, but does happen sometimes.
+		// https://github.com/gempir/go-twitch-irc/issues/109
+		source.Nickname = split[0]
+		source.Host = split[1]
+	default:
 		source.Nickname = split[0]
 		source.Username = split[1]
 		source.Host = split[2]
