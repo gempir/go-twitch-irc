@@ -105,20 +105,6 @@ func TestCanParseWHISPERMessage(t *testing.T) {
 	assertFalse(t, whisperMessage.Action, "parsing Action failed")
 }
 
-func BenchmarkParseWHISPERMessage(b *testing.B) {
-	testMessage := "@badges=;color=#00FF7F;display-name=Danielps1;emotes=;message-id=20;thread-id=32591953_77829817;turbo=0;user-id=32591953;user-type= :danielps1!danielps1@danielps1.tmi.twitch.tv WHISPER gempir :i like memes"
-	for n := 0; n < b.N; n++ {
-		ParseMessage(testMessage)
-	}
-}
-
-func BenchmarkParseMessageType(b *testing.B) {
-	testCommand := "RECONNECT"
-	for n := 0; n < b.N; n++ {
-		parseMessageType(testCommand)
-	}
-}
-
 func TestCanParseWHISPERActionMessage(t *testing.T) {
 	testMessage := "@badges=;color=#1E90FF;display-name=FletcherCodes;emotes=;message-id=50;thread-id=269899575_408892348;turbo=0;user-id=269899575;user-type= :fletchercodes!fletchercodes@fletchercodes.tmi.twitch.tv WHISPER clippyassistant :/me tests whisper action"
 
