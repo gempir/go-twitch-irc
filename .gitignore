@@ -2,6 +2,8 @@ vendor/
 .idea/
 .vscode/
 
+.DS_STORE
+
 coverage.out
 coverage.html
 
