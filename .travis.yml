@@ -8,5 +8,5 @@ before_install:
   - go get github.com/prometheus/client_golang/prometheus
 script:
  - $HOME/gopath/bin/goveralls -service=travis-ci -ignore cmd/pingpong/pingpong.go
- - go test -bench=. -benchtime=5x -run=^a # only run benchmarks, no tests
+ - make bench
   
