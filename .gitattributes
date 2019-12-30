@@ -1,6 +1,0 @@
-*.go text eol=lf
-LICENSE text eol=lf
-Makefile text eol=lf
-*.MD text eol=lf
-*.travis.yml text eol=lf
-*.txt.gz filter=lfs diff=lfs merge=lfs -text
