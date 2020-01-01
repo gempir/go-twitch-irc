@@ -8,6 +8,5 @@ before_install:
   - go get github.com/prometheus/client_golang/prometheus
 script:
  - $HOME/gopath/bin/goveralls -service=travis-ci -ignore cmd/pingpong/pingpong.go
-
-
+ - make bench
   

@@ -1,5 +1,8 @@
 test:
 	@go test -v
+	
+bench:
+	@go test -bench=. -run=^a
 
 cover:
 	@go test -coverprofile=coverage.out -covermode=count
