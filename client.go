@@ -841,6 +841,7 @@ func (c *Client) initialJoins() {
 	channels := []string{}
 	for channel := range c.channels {
 		channels = append(channels, channel)
+		c.channels[channel] = false
 	}
 	c.Join(channels...)
 }
