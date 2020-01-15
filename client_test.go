@@ -1730,3 +1730,50 @@ func TestCreateJoinMessageSkipsJoinedChannels(t *testing.T) {
 	_, actual := createJoinMessages(joined, channels...)
 	assertStringSlicesEqual(t, expected, actual)
 }
+
+func TestRejoinOnReconnect(t *testing.T) {
+	t.Parallel()
+	waitEnd := make(chan struct{})
+	var receivedMsg string
+
+	host := startServerMultiConns(t, 2, nothingOnConnect, func(message string) {
+		if strings.HasPrefix(message, "JOIN") {
+			receivedMsg = message
+			close(waitEnd)
+		}
+	})
+
+	client := newTestClient(host)
+
+	client.Join("gempiR")
+
+	go client.Connect()
+
+	// wait for server to receive message
+	select {
+	case <-waitEnd:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no join message received")
+	}
+
+	// Server received first JOIN message
+	assertStringsEqual(t, "JOIN #gempir", receivedMsg)
+
+	receivedMsg = ""
+
+	// Manually disconnect
+	client.Disconnect()
+
+	// Manually reconnect
+	go client.Connect()
+
+	waitEnd = make(chan struct{})
+	select {
+	case <-waitEnd:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no join message received 2")
+	}
+
+	// Server received second JOIN message
+	assertStringsEqual(t, "JOIN #gempir", receivedMsg)
+}
