@@ -459,7 +459,7 @@ func parseTime(rawTime string) time.Time {
 	}
 
 	time64, _ := strconv.ParseInt(rawTime, 10, 64)
-	return time.Unix(0, int64(time64*1e6))
+	return time.Unix(0, time64*1e6)
 }
 
 func parseEmotes(rawEmotes, message string) []*Emote {

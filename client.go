@@ -358,10 +358,10 @@ type Client struct {
 	onPingSent func()
 
 	// read is the incoming messages channel, normally buffered with ReadBufferSize
-	read chan (string)
+	read chan string
 
 	// write is the outgoing messages channel, normally buffered with WriteBufferSize
-	write chan (string)
+	write chan string
 
 	// clientReconnect is closed whenever the client needs to reconnect for connection issue reasons
 	clientReconnect chanCloser
@@ -1050,14 +1050,14 @@ type chanCloser struct {
 	mutex sync.Mutex
 
 	o       *sync.Once
-	channel chan (struct{})
+	channel chan struct{}
 }
 
 func (c *chanCloser) Reset() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	c.o = &sync.Once{}
-	c.channel = make(chan (struct{}))
+	c.channel = make(chan struct{})
 }
 
 func (c *chanCloser) Close() {
