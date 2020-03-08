@@ -85,7 +85,7 @@ type Emote struct {
 // ParseMessage parse a raw Twitch IRC message
 func ParseMessage(line string) Message {
 	// Uncomment this and recoverMessage if debugging a message that crashes the parser
-	//defer recoverMessage(line)
+	// defer recoverMessage(line)
 
 	ircMessage, err := parseIRCMessage(line)
 	if err != nil {
