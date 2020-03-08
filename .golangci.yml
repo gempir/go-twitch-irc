@@ -19,6 +19,8 @@ linters-settings:
       - opinionated
       - performance
       - style
+    disabled-checks:
+      - unnamedResult
   funlen:
     lines: 100
     statements: 50
