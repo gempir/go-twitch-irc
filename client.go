@@ -555,7 +555,7 @@ func createJoinMessages(joinedChannels map[string]bool, channels ...string) (joi
 	sb.WriteString(baseMessage)
 
 	for _, channel := range channels {
-		channel := strings.ToLower(channel)
+		channel = strings.ToLower(channel)
 		// If the channel already exists in the map we don't need to re-join it
 		if joinedChannels[channel] {
 			continue
