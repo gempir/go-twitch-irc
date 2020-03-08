@@ -35,9 +35,11 @@ const (
 	JOIN MessageType = 7
 	// PART whenever a user parts from a channel
 	PART MessageType = 8
-	// RECONNECT is sent from Twitch when they request the client to reconnect (i.e. for an irc server restart) https://dev.twitch.tv/docs/irc/commands/#reconnect-twitch-commands
+	// RECONNECT is sent from Twitch when they request the client to reconnect (i.e. for an irc server restart)
+	// https://dev.twitch.tv/docs/irc/commands/#reconnect-twitch-commands
 	RECONNECT MessageType = 9
-	// NAMES (or 353 https://www.alien.net.au/irc/irc2numerics.html#353) is the response sent from the server when the client requests a list of names for a channel
+	// NAMES (or 353 https://www.alien.net.au/irc/irc2numerics.html#353) is the response sent from the server when
+	// the client requests a list of names for a channel
 	NAMES MessageType = 10
 	// PING is a message that can be sent from the IRC server. go-twitch-irc responds to PINGs automatically
 	PING MessageType = 11
