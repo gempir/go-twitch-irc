@@ -542,10 +542,10 @@ func (c *Client) Join(channels ...string) {
 // Returns the join message, any channels included in the join message,
 // and any remaining channels. Channels which have already been joined
 // are not included in the remaining channels that are returned.
-func createJoinMessages(joinedChannels map[string]bool, channels ...string) ([]string, []string) {
+func createJoinMessages(joinedChannels map[string]bool, channels ...string) (joinMessages, joined []string) {
 	baseMessage := "JOIN"
-	joinMessages := []string{}
-	joined := []string{}
+	joinMessages = []string{}
+	joined = []string{}
 
 	if channels == nil || len(channels) < 1 {
 		return joinMessages, joined
