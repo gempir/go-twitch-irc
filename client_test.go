@@ -65,7 +65,7 @@ func connectAndEnsureGoodDisconnect(t *testing.T, client *Client) {
 func handleTestConnection(t *testing.T, onConnect func(net.Conn), onMessage func(string), listener net.Listener, wg *sync.WaitGroup) {
 	conn, err := listener.Accept()
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 	defer func() {
 		time.Sleep(100 * time.Millisecond)
