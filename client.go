@@ -693,7 +693,7 @@ func (c *Client) Userlist(channel string) ([]string, error) {
 	defer c.channelUserlistMutex.RUnlock()
 	usermap, ok := c.channelUserlist[channel]
 	if !ok || usermap == nil {
-		return nil, fmt.Errorf("Could not find userlist for channel '%s' in client", channel)
+		return nil, fmt.Errorf("could not find userlist for channel '%s' in client", channel)
 	}
 	userlist := make([]string, len(usermap))
 
