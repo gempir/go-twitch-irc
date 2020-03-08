@@ -10,7 +10,6 @@ import (
 	"net/textproto"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -1044,24 +1043,6 @@ func (c *Client) handlePongMessage(msg PongMessage) {
 		default:
 		}
 	}
-}
-
-// tAtomBool atomic bool for writing/reading across threads
-type tAtomBool struct{ flag int32 }
-
-func (b *tAtomBool) set(value bool) {
-	var i int32
-	if value {
-		i = 1
-	}
-	atomic.StoreInt32(&(b.flag), int32(i))
-}
-
-func (b *tAtomBool) get() bool {
-	if atomic.LoadInt32(&(b.flag)) != 0 {
-		return true
-	}
-	return false
 }
 
 // chanCloser is a helper function for abusing channels for notifications
