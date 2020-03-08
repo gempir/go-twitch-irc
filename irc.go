@@ -108,7 +108,7 @@ var tagEscapeCharacters = []struct {
 
 func parseIRCTagValue(rawValue string) string {
 	for _, escape := range tagEscapeCharacters {
-		rawValue = strings.Replace(rawValue, escape.from, escape.to, -1)
+		rawValue = strings.ReplaceAll(rawValue, escape.from, escape.to)
 	}
 
 	rawValue = strings.TrimSuffix(rawValue, "\\")
