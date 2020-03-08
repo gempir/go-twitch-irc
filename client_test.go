@@ -827,7 +827,7 @@ func TestCanHandleRECONNECTMessage(t *testing.T) {
 
 func TestCanSayMessage(t *testing.T) {
 	t.Parallel()
-	testMessage := "Do not go gentle into that good night."
+	const testMessage = "Do not go gentle into that good night."
 
 	waitEnd := make(chan struct{})
 	var received string
