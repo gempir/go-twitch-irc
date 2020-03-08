@@ -18,9 +18,8 @@ const (
 	ircTwitchTLS = "irc.chat.twitch.tv:6697"
 	ircTwitch    = "irc.chat.twitch.tv:6667"
 
-	pingSignature       = "go-twitch-irc"
-	pingMessage         = "PING :" + pingSignature
-	expectedPongMessage = ":tmi.twitch.tv PONG tmi.twitch.tv :" + pingSignature
+	pingSignature = "go-twitch-irc"
+	pingMessage   = "PING :" + pingSignature
 )
 
 var (
