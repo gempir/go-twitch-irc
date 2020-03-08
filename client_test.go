@@ -65,7 +65,7 @@ func connectAndEnsureGoodDisconnect(t *testing.T, client *Client) {
 func handleTestConnection(t *testing.T, onConnect func(net.Conn), onMessage func(string), listener net.Listener, wg *sync.WaitGroup) {
 	conn, err := listener.Accept()
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 	defer func() {
 		time.Sleep(100 * time.Millisecond)
@@ -827,7 +827,7 @@ func TestCanHandleRECONNECTMessage(t *testing.T) {
 
 func TestCanSayMessage(t *testing.T) {
 	t.Parallel()
-	testMessage := "Do not go gentle into that good night."
+	const testMessage = "Do not go gentle into that good night."
 
 	waitEnd := make(chan struct{})
 	var received string

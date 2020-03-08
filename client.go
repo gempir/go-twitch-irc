@@ -18,9 +18,8 @@ const (
 	ircTwitchTLS = "irc.chat.twitch.tv:6697"
 	ircTwitch    = "irc.chat.twitch.tv:6667"
 
-	pingSignature       = "go-twitch-irc"
-	pingMessage         = "PING :" + pingSignature
-	expectedPongMessage = ":tmi.twitch.tv PONG tmi.twitch.tv :" + pingSignature
+	pingSignature = "go-twitch-irc"
+	pingMessage   = "PING :" + pingSignature
 )
 
 var (
@@ -359,10 +358,10 @@ type Client struct {
 	onPingSent func()
 
 	// read is the incoming messages channel, normally buffered with ReadBufferSize
-	read chan (string)
+	read chan string
 
 	// write is the outgoing messages channel, normally buffered with WriteBufferSize
-	write chan (string)
+	write chan string
 
 	// clientReconnect is closed whenever the client needs to reconnect for connection issue reasons
 	clientReconnect chanCloser
@@ -556,7 +555,7 @@ func createJoinMessages(joinedChannels map[string]bool, channels ...string) ([]s
 	sb.WriteString(baseMessage)
 
 	for _, channel := range channels {
-		channel := strings.ToLower(channel)
+		channel = strings.ToLower(channel)
 		// If the channel already exists in the map we don't need to re-join it
 		if joinedChannels[channel] {
 			continue
@@ -694,7 +693,7 @@ func (c *Client) Userlist(channel string) ([]string, error) {
 	defer c.channelUserlistMutex.RUnlock()
 	usermap, ok := c.channelUserlist[channel]
 	if !ok || usermap == nil {
-		return nil, fmt.Errorf("Could not find userlist for channel '%s' in client", channel)
+		return nil, fmt.Errorf("could not find userlist for channel '%s' in client", channel)
 	}
 	userlist := make([]string, len(usermap))
 
@@ -1051,14 +1050,14 @@ type chanCloser struct {
 	mutex sync.Mutex
 
 	o       *sync.Once
-	channel chan (struct{})
+	channel chan struct{}
 }
 
 func (c *chanCloser) Reset() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	c.o = &sync.Once{}
-	c.channel = make(chan (struct{}))
+	c.channel = make(chan struct{})
 }
 
 func (c *chanCloser) Close() {

@@ -35,9 +35,11 @@ const (
 	JOIN MessageType = 7
 	// PART whenever a user parts from a channel
 	PART MessageType = 8
-	// RECONNECT is sent from Twitch when they request the client to reconnect (i.e. for an irc server restart) https://dev.twitch.tv/docs/irc/commands/#reconnect-twitch-commands
+	// RECONNECT is sent from Twitch when they request the client to reconnect (i.e. for an irc server restart)
+	// https://dev.twitch.tv/docs/irc/commands/#reconnect-twitch-commands
 	RECONNECT MessageType = 9
-	// NAMES (or 353 https://www.alien.net.au/irc/irc2numerics.html#353) is the response sent from the server when the client requests a list of names for a channel
+	// NAMES (or 353 https://www.alien.net.au/irc/irc2numerics.html#353) is the response sent from the server when
+	// the client requests a list of names for a channel
 	NAMES MessageType = 10
 	// PING is a message that can be sent from the IRC server. go-twitch-irc responds to PINGs automatically
 	PING MessageType = 11
@@ -83,7 +85,7 @@ type Emote struct {
 // ParseMessage parse a raw Twitch IRC message
 func ParseMessage(line string) Message {
 	// Uncomment this and recoverMessage if debugging a message that crashes the parser
-	//defer recoverMessage(line)
+	// defer recoverMessage(line)
 
 	ircMessage, err := parseIRCMessage(line)
 	if err != nil {
@@ -457,7 +459,7 @@ func parseTime(rawTime string) time.Time {
 	}
 
 	time64, _ := strconv.ParseInt(rawTime, 10, 64)
-	return time.Unix(0, int64(time64*1e6))
+	return time.Unix(0, time64*1e6)
 }
 
 func parseEmotes(rawEmotes, message string) []*Emote {

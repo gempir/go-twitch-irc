@@ -79,7 +79,6 @@ func TestCantParsePartialIRCMessage(t *testing.T) {
 	assertStringSlicesEqual(t, nil, actual.Params)
 
 	assertStringsEqual(t, "parseIRCMessage: partial message", err.Error())
-
 }
 
 func TestCantParseNoCommandIRCMessage(t *testing.T) {
