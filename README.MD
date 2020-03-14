@@ -1,4 +1,4 @@
-# go-twitch-irc [![Build Status](https://travis-ci.org/gempir/go-twitch-irc.svg?branch=master)](https://travis-ci.org/gempir/go-twitch-irc) [![Coverage Status](https://coveralls.io/repos/github/gempir/go-twitch-irc/badge.svg?branch=master)](https://coveralls.io/github/gempir/go-twitch-irc?branch=master)
+# go-twitch-irc [![Coverage Status](https://coveralls.io/repos/github/gempir/go-twitch-irc/badge.svg?branch=master)](https://coveralls.io/github/gempir/go-twitch-irc?branch=master)
 
 This is an irc client for connecting to twitch. It handles the annoying stuff like irc tag parsing.
 I highly recommend reading the godoc below, but this readme gives a basic overview of the functionality.
