@@ -1,0 +1,14 @@
+name: Go (Lint)
+on: [push, pull_request]
+jobs:
+
+  golangci-lint:
+    name: runner / golangci-lint (pre-build docker image)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v1
+      - name: golangci-lint
+        uses: pajlada/golangci-lint-action@master
+        with:
+            extra_args: --new-from-rev=e0a5614e47d349897~0
