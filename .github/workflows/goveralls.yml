@@ -1,0 +1,24 @@
+name: Goveralls
+on: [push, pull_request]
+jobs:
+
+  goveralls:
+    name: Goveralls
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        go: [1.12, 1.13, 1.14]
+
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: ${{ matrix.go }}
+
+      - uses: actions/checkout@v2
+      - run: go test -coverprofile=coverage.out
+      - uses: shogo82148/actions-goveralls@v1
+        with:
+          github-token: ${{ secrets.github_token }}
+          path-to-profile: coverage.out
