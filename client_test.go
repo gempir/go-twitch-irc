@@ -28,10 +28,40 @@ func newPort() (r int) {
 	return
 }
 
+func closeOnConnect(c chan struct{}) func(conn net.Conn) {
+	return func(conn net.Conn) {
+		close(c)
+	}
+}
+
+func waitWithTimeout(c chan struct{}) bool {
+	select {
+	case <-c:
+		return true
+	case <-time.After(time.Second * 3):
+		return false
+	}
+}
+
+func closeOnPassReceived(pass *string, c chan struct{}) func(message string) {
+	return func(message string) {
+		if strings.HasPrefix(message, "PASS") {
+			*pass = message
+			close(c)
+		}
+	}
+}
+
 func nothingOnConnect(conn net.Conn) {
 }
 
 func nothingOnMessage(message string) {
+}
+
+func clientCloseOnConnect(c chan struct{}) func() {
+	return func() {
+		close(c)
+	}
 }
 
 func postMessageOnConnect(message string) func(conn net.Conn) {
@@ -55,11 +85,15 @@ func newTestClient(host string) *Client {
 	return client
 }
 
-func connectAndEnsureGoodDisconnect(t *testing.T, client *Client) {
+func connectAndEnsureGoodDisconnect(t *testing.T, client *Client) chan struct{} {
+	c := make(chan struct{})
 	go func() {
 		err := client.Connect()
 		assertErrorsEqual(t, ErrClientDisconnected, err)
+		close(c)
 	}()
+
+	return c
 }
 
 func handleTestConnection(t *testing.T, onConnect func(net.Conn), onMessage func(string), listener net.Listener, wg *sync.WaitGroup) {
@@ -104,8 +138,23 @@ func handleTestConnection(t *testing.T, onConnect func(net.Conn), onMessage func
 	}
 }
 
+type testServer struct {
+	host string
+
+	stopped chan struct{}
+}
+
 func startServer(t *testing.T, onConnect func(net.Conn), onMessage func(string)) string {
-	host := "127.0.0.1:" + strconv.Itoa(newPort())
+	s := startServer2(t, onConnect, onMessage)
+	return s.host
+}
+
+func startServer2(t *testing.T, onConnect func(net.Conn), onMessage func(string)) *testServer {
+	s := &testServer{
+		host: "127.0.0.1:" + strconv.Itoa(newPort()),
+
+		stopped: make(chan struct{}),
+	}
 
 	cert, err := tls.LoadX509KeyPair("test_resources/server.crt", "test_resources/server.key")
 	if err != nil {
@@ -114,7 +163,7 @@ func startServer(t *testing.T, onConnect func(net.Conn), onMessage func(string))
 	config := &tls.Config{
 		Certificates: []tls.Certificate{cert},
 	}
-	listener, err := tls.Listen("tcp", host, config)
+	listener, err := tls.Listen("tcp", s.host, config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -126,9 +175,11 @@ func startServer(t *testing.T, onConnect func(net.Conn), onMessage func(string))
 	go func() {
 		wg.Wait()
 		listener.Close()
+
+		close(s.stopped)
 	}()
 
-	return host
+	return s
 }
 
 func startServerMultiConns(t *testing.T, numConns int, onConnect func(net.Conn), onMessage func(string)) string {
@@ -324,6 +375,52 @@ func TestCanConnectAndAuthenticate(t *testing.T) {
 	}
 
 	assertStringsEqual(t, "PASS "+oauthCode, received)
+}
+
+// This test is meant to be a blueprint for a test that needs the flow completely from server start to server stop
+func TestFullConnectAndDisconnect(t *testing.T) {
+	t.Parallel()
+	const oauthCode = "oauth:123123132"
+	waitPass := make(chan struct{})
+	waitServerConnect := make(chan struct{})
+	waitClientConnect := make(chan struct{})
+
+	var received string
+
+	server := startServer2(t, closeOnConnect(waitServerConnect), closeOnPassReceived(&received, waitPass))
+
+	client := newTestClient(server.host)
+	client.OnConnect(clientCloseOnConnect(waitClientConnect))
+	clientDisconnected := connectAndEnsureGoodDisconnect(t, client)
+
+	// Wait for correct password to be read in server
+	if !waitWithTimeout(waitPass) {
+		t.Fatal("no oauth read")
+	}
+
+	assertStringsEqual(t, "PASS "+oauthCode, received)
+
+	// Wait for server to acknowledge connection
+	if !waitWithTimeout(waitServerConnect) {
+		t.Fatal("no successful connection")
+	}
+
+	// Wait for client to acknowledge connection
+	if !waitWithTimeout(waitClientConnect) {
+		t.Fatal("no successful connection")
+	}
+
+	// Disconnect client from server
+	err := client.Disconnect()
+	if err != nil {
+		t.Error("Error during disconnect:" + err.Error())
+	}
+
+	// Wait for client to be fully disconnected
+	<-clientDisconnected
+
+	// Wait for server to be fully disconnected
+	<-server.stopped
 }
 
 func TestCanDisconnect(t *testing.T) {
