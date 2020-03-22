@@ -16,7 +16,8 @@ import (
 )
 
 func main() {
-	client := twitch.NewClient("justinfan123123", "oauth:123123123")
+	// or client := twitch.NewAnonymousClient() for an anonymous user (no write capabilities)
+	client := twitch.NewClient("yourtwitchusername", "oauth:123123123")
 
 	client.OnPrivateMessage(func(message twitch.PrivateMessage) {
 		fmt.Println(message.Message)

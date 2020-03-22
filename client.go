@@ -415,6 +415,12 @@ func NewClient(username, oauth string) *Client {
 	}
 }
 
+// NewAnonymousClient to create a new client without login requirements (anonymous user)
+// Do note that the Say and Whisper functions will be ineffectual when using this constructor
+func NewAnonymousClient() *Client {
+	return NewClient("justinfan123123", "oauth:59301")
+}
+
 // OnConnect attach callback to when a connection has been established
 func (c *Client) OnConnect(callback func()) {
 	c.onConnect = callback
