@@ -435,31 +435,28 @@ func TestCanConnectAndAuthenticateAnonymous(t *testing.T) {
 	t.Parallel()
 	const oauthCode = "oauth:59301"
 	waitPass := make(chan struct{})
-	waitConnect := make(chan struct{})
+	waitServerConnect := make(chan struct{})
+	waitClientConnect := make(chan struct{})
 
 	var received string
 
-	host := startServer(t, func(conn net.Conn) {
-		close(waitConnect)
-	}, func(message string) {
-		if strings.HasPrefix(message, "PASS") {
-			received = message
-			close(waitPass)
-		}
-	})
+	server := startServer2(t, closeOnConnect(waitServerConnect), closeOnPassReceived(&received, waitPass))
 
-	client := newAnonymousTestClient(host)
-	connectAndEnsureGoodDisconnect(t, client)
-	defer client.Disconnect()
+	client := newAnonymousTestClient(server.host)
+	client.OnConnect(clientCloseOnConnect(waitClientConnect))
+	clientDisconnected := connectAndEnsureGoodDisconnect(t, client)
 
-	// Wait for connection
-	select {
-	case <-waitConnect:
-	case <-time.After(time.Second * 3):
+	// Wait for server to acknowledge connection
+	if !waitWithTimeout(waitServerConnect) {
 		t.Fatal("no successful connection")
 	}
 
-	// Wait for correct password
+	// Wait for client to acknowledge connection
+	if !waitWithTimeout(waitClientConnect) {
+		t.Fatal("no successful connection")
+	}
+
+	// Wait to receive password
 	select {
 	case <-waitPass:
 	case <-time.After(time.Second * 3):
@@ -467,6 +464,18 @@ func TestCanConnectAndAuthenticateAnonymous(t *testing.T) {
 	}
 
 	assertStringsEqual(t, "PASS "+oauthCode, received)
+
+	// Disconnect client from server
+	err := client.Disconnect()
+	if err != nil {
+		t.Error("Error during disconnect:" + err.Error())
+	}
+
+	// Wait for client to be fully disconnected
+	<-clientDisconnected
+
+	// Wait for server to be fully disconnected
+	<-server.stopped
 }
 
 func TestCanDisconnect(t *testing.T) {
