@@ -34,15 +34,6 @@ func closeOnConnect(c chan struct{}) func(conn net.Conn) {
 	}
 }
 
-func waitWithTimeout(c chan struct{}) bool {
-	select {
-	case <-c:
-		return true
-	case <-time.After(time.Second * 3):
-		return false
-	}
-}
-
 func closeOnPassReceived(pass *string, c chan struct{}) func(message string) {
 	return func(message string) {
 		if strings.HasPrefix(message, "PASS") {
@@ -158,6 +149,10 @@ func startServer(t *testing.T, onConnect func(net.Conn), onMessage func(string))
 }
 
 func startServer2(t *testing.T, onConnect func(net.Conn), onMessage func(string)) *testServer {
+	return startServerMultiConns(t, 1, onConnect, onMessage)
+}
+
+func startServerMultiConns(t *testing.T, numConns int, onConnect func(net.Conn), onMessage func(string)) *testServer {
 	s := &testServer{
 		host: "127.0.0.1:" + strconv.Itoa(newPort()),
 
@@ -177,35 +172,6 @@ func startServer2(t *testing.T, onConnect func(net.Conn), onMessage func(string)
 	}
 
 	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go handleTestConnection(t, onConnect, onMessage, listener, &wg)
-
-	go func() {
-		wg.Wait()
-		listener.Close()
-
-		close(s.stopped)
-	}()
-
-	return s
-}
-
-func startServerMultiConns(t *testing.T, numConns int, onConnect func(net.Conn), onMessage func(string)) string {
-	host := "127.0.0.1:" + strconv.Itoa(newPort())
-
-	cert, err := tls.LoadX509KeyPair("test_resources/server.crt", "test_resources/server.key")
-	if err != nil {
-		t.Fatal(err)
-	}
-	config := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-	}
-	listener, err := tls.Listen("tcp", host, config)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	wg := sync.WaitGroup{}
 	wg.Add(numConns)
 
 	for i := 0; i < numConns; i++ {
@@ -215,9 +181,11 @@ func startServerMultiConns(t *testing.T, numConns int, onConnect func(net.Conn),
 	go func() {
 		wg.Wait()
 		listener.Close()
+
+		close(s.stopped)
 	}()
 
-	return host
+	return s
 }
 
 func startServerMultiConnsNoTLS(t *testing.T, numConns int, onConnect func(net.Conn), onMessage func(string)) string {
@@ -281,9 +249,7 @@ func TestCanConnectAndAuthenticateWithoutTLS(t *testing.T) {
 	client.IrcAddress = host
 	go client.Connect()
 
-	select {
-	case <-wait:
-	case <-time.After(time.Second * 3):
+	if !waitWithTimeout(wait) {
 		t.Fatal("no oauth read")
 	}
 
@@ -293,14 +259,14 @@ func TestCanConnectAndAuthenticateWithoutTLS(t *testing.T) {
 func TestCanChangeOauthToken(t *testing.T) {
 	t.Parallel()
 	const oauthCode = "oauth:123123132"
-	wait := make(chan bool)
+	wait := make(chan struct{})
 
 	var received string
 
 	host := startNoTLSServer(t, nothingOnConnect, func(message string) {
 		if strings.HasPrefix(message, "PASS") {
 			received = message
-			wait <- true
+			close(wait)
 		}
 	})
 
@@ -310,9 +276,7 @@ func TestCanChangeOauthToken(t *testing.T) {
 	client.SetIRCToken(oauthCode)
 	go client.Connect()
 
-	select {
-	case <-wait:
-	case <-time.After(time.Second * 3):
+	if !waitWithTimeout(wait) {
 		t.Fatal("no oauth read")
 	}
 
@@ -323,14 +287,14 @@ func TestCanAddSetupCmd(t *testing.T) {
 	t.Parallel()
 	const oauthCode = "oauth:123123132"
 	const setupCmd = "LOGIN kkonabot"
-	wait := make(chan bool)
+	wait := make(chan struct{})
 
 	var received string
 
 	host := startNoTLSServer(t, nothingOnConnect, func(message string) {
 		if strings.HasPrefix(message, "LOGIN") {
 			received = message
-			wait <- true
+			close(wait)
 		}
 	})
 
@@ -340,9 +304,7 @@ func TestCanAddSetupCmd(t *testing.T) {
 	client.SetupCmd = setupCmd
 	go client.Connect()
 
-	select {
-	case <-wait:
-	case <-time.After(time.Second * 3):
+	if !waitWithTimeout(wait) {
 		t.Fatal("no oauth read")
 	}
 
@@ -358,124 +320,110 @@ func TestCanCreateClient(t *testing.T) {
 	}
 }
 
-func TestCanConnectAndAuthenticate(t *testing.T) {
-	t.Parallel()
-	const oauthCode = "oauth:123123132"
-	wait := make(chan struct{})
+type tc struct {
+	oauthCode string
 
-	var received string
+	waitPass          chan struct{}
+	waitServerConnect chan struct{}
+	waitClientConnect chan struct{}
 
-	host := startServer(t, nothingOnConnect, func(message string) {
-		if strings.HasPrefix(message, "PASS") {
-			received = message
-			close(wait)
-		}
-	})
+	received string
 
-	client := newTestClient(host)
-	connectAndEnsureGoodDisconnect(t, client)
-	defer client.Disconnect()
+	clientDisconnected chan struct{}
 
-	select {
-	case <-wait:
-	case <-time.After(time.Second * 3):
-		t.Fatal("no oauth read")
+	server *testServer
+	client *Client
+}
+
+func newTc() *tc {
+	return &tc{
+		oauthCode: "oauth:123123132",
+
+		waitPass:          make(chan struct{}),
+		waitServerConnect: make(chan struct{}),
+		waitClientConnect: make(chan struct{}),
+	}
+}
+
+func (c *tc) init(t *testing.T) {
+	c.server = startServer2(t, closeOnConnect(c.waitServerConnect), closeOnPassReceived(&c.received, c.waitPass))
+
+	c.client = newTestClient(c.server.host)
+	c.client.OnConnect(clientCloseOnConnect(c.waitClientConnect))
+	c.clientDisconnected = connectAndEnsureGoodDisconnect(t, c.client)
+}
+
+func (c *tc) end(t *testing.T) {
+	// Disconnect client from server
+	err := c.client.Disconnect()
+	if err != nil {
+		t.Error("Error during disconnect:" + err.Error())
 	}
 
-	assertStringsEqual(t, "PASS "+oauthCode, received)
+	// Wait for client to be fully disconnected
+	<-c.clientDisconnected
+
+	// Wait for server to be fully disconnected
+	<-c.server.stopped
 }
 
 // This test is meant to be a blueprint for a test that needs the flow completely from server start to server stop
 func TestFullConnectAndDisconnect(t *testing.T) {
 	t.Parallel()
-	const oauthCode = "oauth:123123132"
-	waitPass := make(chan struct{})
-	waitServerConnect := make(chan struct{})
-	waitClientConnect := make(chan struct{})
 
-	var received string
-
-	server := startServer2(t, closeOnConnect(waitServerConnect), closeOnPassReceived(&received, waitPass))
-
-	client := newTestClient(server.host)
-	client.OnConnect(clientCloseOnConnect(waitClientConnect))
-	clientDisconnected := connectAndEnsureGoodDisconnect(t, client)
+	tc := newTc()
+	tc.init(t)
 
 	// Wait for correct password to be read in server
-	if !waitWithTimeout(waitPass) {
+	if !waitWithTimeout(tc.waitPass) {
 		t.Fatal("no oauth read")
 	}
 
-	assertStringsEqual(t, "PASS "+oauthCode, received)
+	assertStringsEqual(t, "PASS "+tc.oauthCode, tc.received)
 
 	// Wait for server to acknowledge connection
-	if !waitWithTimeout(waitServerConnect) {
+	if !waitWithTimeout(tc.waitServerConnect) {
 		t.Fatal("no successful connection")
 	}
 
 	// Wait for client to acknowledge connection
-	if !waitWithTimeout(waitClientConnect) {
+	if !waitWithTimeout(tc.waitClientConnect) {
 		t.Fatal("no successful connection")
 	}
 
-	// Disconnect client from server
-	err := client.Disconnect()
-	if err != nil {
-		t.Error("Error during disconnect:" + err.Error())
-	}
-
-	// Wait for client to be fully disconnected
-	<-clientDisconnected
-
-	// Wait for server to be fully disconnected
-	<-server.stopped
+	tc.end(t)
 }
 
 func TestCanConnectAndAuthenticateAnonymous(t *testing.T) {
 	t.Parallel()
-	const oauthCode = "oauth:59301"
-	waitPass := make(chan struct{})
-	waitServerConnect := make(chan struct{})
-	waitClientConnect := make(chan struct{})
 
-	var received string
+	tc := newTc()
+	tc.oauthCode = "oauth:59301"
 
-	server := startServer2(t, closeOnConnect(waitServerConnect), closeOnPassReceived(&received, waitPass))
+	tc.server = startServer2(t, closeOnConnect(tc.waitServerConnect), closeOnPassReceived(&tc.received, tc.waitPass))
 
-	client := newAnonymousTestClient(server.host)
-	client.OnConnect(clientCloseOnConnect(waitClientConnect))
-	clientDisconnected := connectAndEnsureGoodDisconnect(t, client)
+	tc.client = newAnonymousTestClient(tc.server.host)
+	tc.client.OnConnect(clientCloseOnConnect(tc.waitClientConnect))
+	tc.clientDisconnected = connectAndEnsureGoodDisconnect(t, tc.client)
+
+	// Wait for correct password to be read in server
+	if !waitWithTimeout(tc.waitPass) {
+		t.Fatal("no oauth read")
+	}
+
+	assertStringsEqual(t, "PASS "+tc.oauthCode, tc.received)
 
 	// Wait for server to acknowledge connection
-	if !waitWithTimeout(waitServerConnect) {
+	if !waitWithTimeout(tc.waitServerConnect) {
 		t.Fatal("no successful connection")
 	}
 
 	// Wait for client to acknowledge connection
-	if !waitWithTimeout(waitClientConnect) {
+	if !waitWithTimeout(tc.waitClientConnect) {
 		t.Fatal("no successful connection")
 	}
 
-	// Wait to receive password
-	select {
-	case <-waitPass:
-	case <-time.After(time.Second * 3):
-		t.Fatal("no oauth read")
-	}
-
-	assertStringsEqual(t, "PASS "+oauthCode, received)
-
-	// Disconnect client from server
-	err := client.Disconnect()
-	if err != nil {
-		t.Error("Error during disconnect:" + err.Error())
-	}
-
-	// Wait for client to be fully disconnected
-	<-clientDisconnected
-
-	// Wait for server to be fully disconnected
-	<-server.stopped
+	tc.end(t)
 }
 
 func TestCanDisconnect(t *testing.T) {
@@ -492,9 +440,7 @@ func TestCanDisconnect(t *testing.T) {
 	go client.Connect()
 
 	// wait for server to start
-	select {
-	case <-wait:
-	case <-time.After(time.Second * 3):
+	if !waitWithTimeout(wait) {
 		t.Fatal("OnConnect did not fire")
 	}
 
@@ -531,9 +477,7 @@ func TestCanReceivePRIVMSGMessage(t *testing.T) {
 	go client.Connect()
 
 	// wait for server to start
-	select {
-	case <-wait:
-	case <-time.After(time.Second * 3):
+	if !waitWithTimeout(wait) {
 		t.Fatal("no message sent")
 	}
 
@@ -559,9 +503,7 @@ func TestCanReceiveWHISPERMessage(t *testing.T) {
 	go client.Connect()
 
 	// wait for server to start
-	select {
-	case <-wait:
-	case <-time.After(time.Second * 3):
+	if !waitWithTimeout(wait) {
 		t.Fatal("no message sent")
 	}
 
@@ -587,9 +529,7 @@ func TestCanReceiveCLEARCHATMessage(t *testing.T) {
 	go client.Connect()
 
 	// wait for server to start
-	select {
-	case <-wait:
-	case <-time.After(time.Second * 3):
+	if !waitWithTimeout(wait) {
 		t.Fatal("no message sent")
 	}
 
@@ -615,9 +555,7 @@ func TestCanReceiveCLEARMSGMessage(t *testing.T) {
 	go client.Connect()
 
 	// wait for server to start
-	select {
-	case <-wait:
-	case <-time.After(time.Second * 3):
+	if !waitWithTimeout(wait) {
 		t.Fatal("no message sent")
 	}
 
@@ -643,9 +581,7 @@ func TestCanReceiveROOMSTATEMessage(t *testing.T) {
 	go client.Connect()
 
 	// wait for server to start
-	select {
-	case <-wait:
-	case <-time.After(time.Second * 3):
+	if !waitWithTimeout(wait) {
 		t.Fatal("no message sent")
 	}
 
@@ -670,9 +606,7 @@ func TestCanReceiveUSERNOTICEMessage(t *testing.T) {
 
 	go client.Connect()
 
-	select {
-	case <-wait:
-	case <-time.After(time.Second * 3):
+	if !waitWithTimeout(wait) {
 		t.Fatal("no message sent")
 	}
 
@@ -696,9 +630,7 @@ func TestCanReceiveUSERNOTICEMessageResub(t *testing.T) {
 
 	go client.Connect()
 
-	select {
-	case <-wait:
-	case <-time.After(time.Second * 3):
+	if !waitWithTimeout(wait) {
 		t.Fatal("no message sent")
 	}
 
@@ -723,9 +655,7 @@ func checkNoticeMessage(t *testing.T, testMessage string, requirements map[strin
 
 	go client.Connect()
 
-	select {
-	case <-wait:
-	case <-time.After(time.Second * 3):
+	if !waitWithTimeout(wait) {
 		t.Fatal("no message sent")
 	}
 
@@ -773,9 +703,7 @@ func TestCanReceiveUSERStateMessage(t *testing.T) {
 
 	go client.Connect()
 
-	select {
-	case <-wait:
-	case <-time.After(time.Second * 3):
+	if !waitWithTimeout(wait) {
 		t.Fatal("no message sent")
 	}
 
@@ -800,9 +728,7 @@ func TestCanReceiveJOINMessage(t *testing.T) {
 	go client.Connect()
 
 	// wait for server to start
-	select {
-	case <-wait:
-	case <-time.After(time.Second * 3):
+	if !waitWithTimeout(wait) {
 		t.Fatal("no message sent")
 	}
 
@@ -832,9 +758,7 @@ func TestDoesNotReceiveJOINMessageFromSelf(t *testing.T) {
 	go client.Connect()
 
 	// wait for server to start
-	select {
-	case <-wait:
-	case <-time.After(time.Second * 3):
+	if !waitWithTimeout(wait) {
 		t.Fatal("no message sent")
 	}
 
@@ -861,9 +785,7 @@ func TestCanReceivePARTMessage(t *testing.T) {
 	go client.Connect()
 
 	// wait for server to start
-	select {
-	case <-wait:
-	case <-time.After(time.Second * 3):
+	if !waitWithTimeout(wait) {
 		t.Fatal("no message sent")
 	}
 
@@ -893,9 +815,7 @@ func TestDoesNotReceivePARTMessageFromSelf(t *testing.T) {
 	go client.Connect()
 
 	// wait for server to start
-	select {
-	case <-wait:
-	case <-time.After(time.Second * 3):
+	if !waitWithTimeout(wait) {
 		t.Fatal("no message sent")
 	}
 
@@ -923,9 +843,7 @@ func TestCanReceiveUNSETMessage(t *testing.T) {
 
 	go client.Connect()
 
-	select {
-	case <-wait:
-	case <-time.After(time.Second * 3):
+	if !waitWithTimeout(wait) {
 		t.Fatal("no message sent")
 	}
 
@@ -937,20 +855,20 @@ func TestCanHandleRECONNECTMessage(t *testing.T) {
 	t.Parallel()
 	const testMessage = ":tmi.twitch.tv RECONNECT"
 
-	wait := make(chan bool)
+	wait := make(chan struct{})
 
 	var received ReconnectMessage
 
 	var connCount int32
 
-	host := startServerMultiConns(t, 2, func(conn net.Conn) {
+	server := startServerMultiConns(t, 2, func(conn net.Conn) {
 		atomic.AddInt32(&connCount, 1)
-		wait <- true
+		wait <- struct{}{}
 		time.AfterFunc(100*time.Millisecond, func() {
 			fmt.Fprintf(conn, "%s\r\n", testMessage)
 		})
 	}, nothingOnMessage)
-	client := newTestClient(host)
+	client := newTestClient(server.host)
 	client.OnReconnectMessage(func(msg ReconnectMessage) {
 		received = msg
 	})
@@ -958,17 +876,13 @@ func TestCanHandleRECONNECTMessage(t *testing.T) {
 	go client.Connect()
 
 	// wait for server to start
-	select {
-	case <-wait:
-	case <-time.After(time.Second * 3):
+	if !waitWithTimeout(wait) {
 		t.Fatal("no message sent")
 	}
 
 	assertInt32sEqual(t, 1, atomic.LoadInt32(&connCount))
 
-	select {
-	case <-wait:
-	case <-time.After(time.Second * 3):
+	if !waitWithTimeout(wait) {
 		t.Fatal("no message sent")
 	}
 
@@ -981,13 +895,13 @@ func TestCanSayMessage(t *testing.T) {
 	t.Parallel()
 	const testMessage = "Do not go gentle into that good night."
 
-	waitEnd := make(chan struct{})
+	privmsgReceived := make(chan struct{})
 	var received string
 
 	host := startServer(t, nothingOnConnect, func(message string) {
 		if strings.HasPrefix(message, "PRIVMSG") {
 			received = message
-			close(waitEnd)
+			close(privmsgReceived)
 		}
 	})
 
@@ -1000,9 +914,7 @@ func TestCanSayMessage(t *testing.T) {
 	go client.Connect()
 
 	// wait for server to receive message
-	select {
-	case <-waitEnd:
-	case <-time.After(time.Second * 3):
+	if !waitWithTimeout(privmsgReceived) {
 		t.Fatal("no privmsg received")
 	}
 
@@ -1457,11 +1369,11 @@ func TestLocalCanReconnectAfterNoPongResponse(t *testing.T) {
 
 	var connCount int32
 
-	host := startServerMultiConns(t, 3, func(conn net.Conn) {
+	server := startServerMultiConns(t, 3, func(conn net.Conn) {
 		atomic.AddInt32(&connCount, 1)
 		wait <- true
 	}, nothingOnMessage)
-	client := newTestClient(host)
+	client := newTestClient(server.host)
 	client.IdlePingInterval = idlePingInterval
 	client.PongTimeout = pongTimeout
 
@@ -1885,30 +1797,28 @@ func TestCreateJoinMessageSkipsJoinedChannels(t *testing.T) {
 
 func TestRejoinOnReconnect(t *testing.T) {
 	t.Parallel()
-	waitEnd := make(chan struct{})
+	joinReceived := make(chan struct{})
 	var receivedMsg string
 
-	host := startServerMultiConns(t, 2, nothingOnConnect, func(message string) {
+	server := startServerMultiConns(t, 2, nothingOnConnect, func(message string) {
 		if strings.HasPrefix(message, "JOIN") {
 			receivedMsg = message
-			close(waitEnd)
+			joinReceived <- struct{}{}
 		}
 	})
 
-	client := newTestClient(host)
+	client := newTestClient(server.host)
 
 	client.Join("gempiR")
 
-	go client.Connect()
+	connectAndEnsureGoodDisconnect(t, client)
 
-	// wait for server to receive message
-	select {
-	case <-waitEnd:
-	case <-time.After(time.Second * 3):
-		t.Fatal("no join message received")
+	// Wait for JOIN #1
+	if !waitWithTimeout(joinReceived) {
+		t.Fatal("Join message #1 was not received")
 	}
 
-	// Server received first JOIN message
+	// Ensure join was to the right channel
 	assertStringsEqual(t, "JOIN #gempir", receivedMsg)
 
 	receivedMsg = ""
@@ -1916,16 +1826,66 @@ func TestRejoinOnReconnect(t *testing.T) {
 	// Manually disconnect
 	client.Disconnect()
 
-	// Manually reconnect
-	go client.Connect()
+	// Wait for client to disconnect
+	// <-clientDisconnected
 
-	waitEnd = make(chan struct{})
-	select {
-	case <-waitEnd:
-	case <-time.After(time.Second * 3):
-		t.Fatal("no join message received 2")
+	// Manually reconnect
+	connectAndEnsureGoodDisconnect(t, client)
+
+	// Wait for JOIN #2
+	if !waitWithTimeout(joinReceived) {
+		t.Fatal("Join message #2 was not received")
 	}
 
-	// Server received second JOIN message
+	// Ensure join was to the right channel again
 	assertStringsEqual(t, "JOIN #gempir", receivedMsg)
+
+	client.Disconnect()
+
+	// Wait for client to disconnect
+	// <-clientDisconnected2
+
+	// Wait for server to be fully disconnected
+	<-server.stopped
+}
+
+func TestDoubleConnectThrowsError(t *testing.T) {
+	t.Parallel()
+	joinReceived := make(chan struct{})
+	var receivedMsg string
+
+	server := startServer2(t, nothingOnConnect, func(message string) {
+		if strings.HasPrefix(message, "JOIN") {
+			receivedMsg = message
+			joinReceived <- struct{}{}
+		}
+	})
+
+	client := newTestClient(server.host)
+
+	client.Join("gempiR")
+
+	clientDisconnected := connectAndEnsureGoodDisconnect(t, client)
+
+	err := client.Connect()
+	if err != ErrAlreadyConnected {
+		t.Fatal("expected AlreadyConnected error")
+	}
+
+	// Wait for JOIN #1
+	if !waitWithTimeout(joinReceived) {
+		t.Fatal("Join message #1 was not received")
+	}
+
+	// Ensure join was to the right channel
+	assertStringsEqual(t, "JOIN #gempir", receivedMsg)
+
+	// Manually disconnect
+	client.Disconnect()
+
+	// Wait for client to disconnect
+	<-clientDisconnected
+
+	// Wait for server to be fully disconnected
+	<-server.stopped
 }

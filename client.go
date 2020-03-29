@@ -32,6 +32,9 @@ var (
 	// ErrConnectionIsNotOpen is returned by Disconnect in case you call it without being connected
 	ErrConnectionIsNotOpen = errors.New("connection is not open")
 
+	// ErrAlreadyConnected is returned from Connect if the user has called Connect twice in a row without disconnecting
+	ErrAlreadyConnected = errors.New("already connected, call Disconnect first")
+
 	// WriteBufferSize can be modified to change the write channel buffer size.
 	// Must be configured before NewClient is called to take effect
 	WriteBufferSize = 512
@@ -600,6 +603,7 @@ func (c *Client) Depart(channel string) {
 
 // Disconnect close current connection
 func (c *Client) Disconnect() error {
+	// connActive is NOT the correct thing to check here
 	if !c.connActive.get() {
 		return ErrConnectionIsNotOpen
 	}
@@ -611,6 +615,11 @@ func (c *Client) Disconnect() error {
 
 // Connect connect the client to the irc server
 func (c *Client) Connect() error {
+	// connActive is NOT the correct thing to check here
+	if c.connActive.get() {
+		return ErrAlreadyConnected
+	}
+
 	if c.IrcAddress == "" && c.TLS {
 		c.IrcAddress = ircTwitchTLS
 	} else if c.IrcAddress == "" && !c.TLS {
