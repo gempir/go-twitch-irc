@@ -85,8 +85,16 @@ func newTestClient(host string) *Client {
 	return client
 }
 
+func newAnonymousTestClient(host string) *Client {
+	client := NewAnonymousClient()
+	client.IrcAddress = host
+
+	return client
+}
+
 func connectAndEnsureGoodDisconnect(t *testing.T, client *Client) chan struct{} {
 	c := make(chan struct{})
+
 	go func() {
 		err := client.Connect()
 		assertErrorsEqual(t, ErrClientDisconnected, err)
@@ -409,6 +417,53 @@ func TestFullConnectAndDisconnect(t *testing.T) {
 	if !waitWithTimeout(waitClientConnect) {
 		t.Fatal("no successful connection")
 	}
+
+	// Disconnect client from server
+	err := client.Disconnect()
+	if err != nil {
+		t.Error("Error during disconnect:" + err.Error())
+	}
+
+	// Wait for client to be fully disconnected
+	<-clientDisconnected
+
+	// Wait for server to be fully disconnected
+	<-server.stopped
+}
+
+func TestCanConnectAndAuthenticateAnonymous(t *testing.T) {
+	t.Parallel()
+	const oauthCode = "oauth:59301"
+	waitPass := make(chan struct{})
+	waitServerConnect := make(chan struct{})
+	waitClientConnect := make(chan struct{})
+
+	var received string
+
+	server := startServer2(t, closeOnConnect(waitServerConnect), closeOnPassReceived(&received, waitPass))
+
+	client := newAnonymousTestClient(server.host)
+	client.OnConnect(clientCloseOnConnect(waitClientConnect))
+	clientDisconnected := connectAndEnsureGoodDisconnect(t, client)
+
+	// Wait for server to acknowledge connection
+	if !waitWithTimeout(waitServerConnect) {
+		t.Fatal("no successful connection")
+	}
+
+	// Wait for client to acknowledge connection
+	if !waitWithTimeout(waitClientConnect) {
+		t.Fatal("no successful connection")
+	}
+
+	// Wait to receive password
+	select {
+	case <-waitPass:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no oauth read")
+	}
+
+	assertStringsEqual(t, "PASS "+oauthCode, received)
 
 	// Disconnect client from server
 	err := client.Disconnect()
