@@ -20,6 +20,15 @@ const (
 
 	pingSignature = "go-twitch-irc"
 	pingMessage   = "PING :" + pingSignature
+
+	// TagsCapability for Twitch's Tags capabilities, see https://dev.twitch.tv/docs/irc/tags
+	TagsCapability = "twitch.tv/tags"
+
+	// CommandsCapability for Twitch's Commands capabilities, see https://dev.twitch.tv/docs/irc/commands
+	CommandsCapability = "twitch.tv/commands"
+
+	// MembershipCapability for Twitch's Membership capabilities, see https://dev.twitch.tv/docs/irc/membership
+	MembershipCapability = "twitch.tv/membership"
 )
 
 var (
@@ -39,6 +48,9 @@ var (
 	// ReadBufferSize can be modified to change the read channel buffer size.
 	// Must be configured before NewClient is called to take effect
 	ReadBufferSize = 64
+
+	// DefaultCapabilities is the default caps when creating a new Client
+	DefaultCapabilities = []string{TagsCapability, CommandsCapability, MembershipCapability}
 )
 
 // Internal errors
@@ -390,6 +402,11 @@ type Client struct {
 	// SetupCmd is the command that is ran on successful connection to Twitch. Useful if you are proxying or something to run a custom command on connect.
 	// The variable must be modified before calling Connect or the command will not run.
 	SetupCmd string
+
+	// Capabilities is the list of capabilities that should be sent as part of the connection setup
+	// By default, this is all caps (Tags, Commands, Membership)
+	// If this is an empty list or nil, no CAP REQ message is sent at all
+	Capabilities []string
 }
 
 // NewClient to create a new client
@@ -412,6 +429,8 @@ func NewClient(username, oauth string) *Client {
 		PongTimeout:      time.Second * 5,
 
 		channelUserlistMutex: &sync.RWMutex{},
+
+		Capabilities: DefaultCapabilities,
 	}
 }
 
@@ -791,7 +810,9 @@ func (c *Client) setupConnection(conn net.Conn) {
 	if c.SetupCmd != "" {
 		conn.Write([]byte(c.SetupCmd + "\r\n"))
 	}
-	conn.Write([]byte("CAP REQ :twitch.tv/tags twitch.tv/commands twitch.tv/membership\r\n"))
+	if len(c.Capabilities) > 0 {
+		_, _ = conn.Write([]byte("CAP REQ :" + strings.Join(c.Capabilities, " ") + "\r\n"))
+	}
 	conn.Write([]byte("PASS " + c.ircToken + "\r\n"))
 	conn.Write([]byte("NICK " + c.ircUser + "\r\n"))
 }
