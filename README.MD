@@ -211,11 +211,7 @@ Option modifications must be done before calling Connect on the client.
 
 #### Capabilities
 
-By default, the Client sends along all 3 Twitch capabilities (Tags, Commands, Membership).  
-Information about each capability can be found here:
- * Tags: https://dev.twitch.tv/docs/irc/tags
- * Commands https://dev.twitch.tv/docs/irc/commands
- * Membership https://dev.twitch.tv/docs/irc/membership
+By default, the Client sends along all 3 Twitch capabilities ([Tags](https://dev.twitch.tv/docs/irc/tags), [Commands](https://dev.twitch.tv/docs/irc/commands), [Membership](https://dev.twitch.tv/docs/irc/membership)).  
 
 ### Callbacks
 
