@@ -810,7 +810,7 @@ func (c *Client) setupConnection(conn net.Conn) {
 		conn.Write([]byte(c.SetupCmd + "\r\n"))
 	}
 	if len(c.Caps) > 0 {
-		conn.Write([]byte("CAP REQ :" + strings.Join(c.Caps, " ") + "\r\n"))
+		_, _ = conn.Write([]byte("CAP REQ :" + strings.Join(c.Caps, " ") + "\r\n"))
 	}
 	conn.Write([]byte("PASS " + c.ircToken + "\r\n"))
 	conn.Write([]byte("NICK " + c.ircUser + "\r\n"))
