@@ -1931,130 +1931,135 @@ func TestRejoinOnReconnect(t *testing.T) {
 }
 
 func TestCaps(t *testing.T) {
-	var tests = []struct {
+	type testTable struct {
 		name     string
 		in       []string
 		expected string
-	}{
+	}
+	var tests = []testTable{
 		{"Default Caps (not modifying)", nil, "CAP REQ :" + strings.Join([]string{TagsCap, CommandsCap, MembershipCap}, " ")},
 		{"Modified Caps", []string{CommandsCap, MembershipCap}, "CAP REQ :" + strings.Join([]string{CommandsCap, MembershipCap}, " ")},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			waitRecv := make(chan struct{})
-			waitServerConnect := make(chan struct{})
-			waitClientConnect := make(chan struct{})
+		func(tt testTable) {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+				waitRecv := make(chan struct{})
+				waitServerConnect := make(chan struct{})
+				waitClientConnect := make(chan struct{})
 
-			var received string
+				var received string
 
-			server := startServer2(t, closeOnConnect(waitServerConnect), func(message string) {
-				if strings.HasPrefix(message, "CAP REQ") {
-					received = message
-					close(waitRecv)
+				server := startServer2(t, closeOnConnect(waitServerConnect), func(message string) {
+					if strings.HasPrefix(message, "CAP REQ") {
+						received = message
+						close(waitRecv)
+					}
+				})
+
+				client := newTestClient(server.host)
+				if tt.in != nil {
+					client.Caps = tt.in
 				}
+				client.OnConnect(clientCloseOnConnect(waitClientConnect))
+				clientDisconnected := connectAndEnsureGoodDisconnect(t, client)
+
+				// Wait for correct password to be read in server
+				if !waitWithTimeout(waitRecv) {
+					t.Fatal("no oauth read")
+				}
+
+				assertStringsEqual(t, tt.expected, received)
+
+				// Wait for server to acknowledge connection
+				if !waitWithTimeout(waitServerConnect) {
+					t.Fatal("no successful connection")
+				}
+
+				// Wait for client to acknowledge connection
+				if !waitWithTimeout(waitClientConnect) {
+					t.Fatal("no successful connection")
+				}
+
+				// Disconnect client from server
+				err := client.Disconnect()
+				if err != nil {
+					t.Error("Error during disconnect:" + err.Error())
+				}
+
+				// Wait for client to be fully disconnected
+				<-clientDisconnected
+
+				// Wait for server to be fully disconnected
+				<-server.stopped
 			})
-
-			client := newTestClient(server.host)
-			if tt.in != nil {
-				client.Caps = tt.in
-			}
-			client.OnConnect(clientCloseOnConnect(waitClientConnect))
-			clientDisconnected := connectAndEnsureGoodDisconnect(t, client)
-
-			// Wait for correct password to be read in server
-			if !waitWithTimeout(waitRecv) {
-				t.Fatal("no oauth read")
-			}
-
-			assertStringsEqual(t, tt.expected, received)
-
-			// Wait for server to acknowledge connection
-			if !waitWithTimeout(waitServerConnect) {
-				t.Fatal("no successful connection")
-			}
-
-			// Wait for client to acknowledge connection
-			if !waitWithTimeout(waitClientConnect) {
-				t.Fatal("no successful connection")
-			}
-
-			// Disconnect client from server
-			err := client.Disconnect()
-			if err != nil {
-				t.Error("Error during disconnect:" + err.Error())
-			}
-
-			// Wait for client to be fully disconnected
-			<-clientDisconnected
-
-			// Wait for server to be fully disconnected
-			<-server.stopped
-		})
+		}(tt)
 	}
 }
 
 func TestEmptyCaps(t *testing.T) {
-	var tests = []struct {
+	type testTable struct {
 		name string
 		in   []string
-	}{
+	}
+	var tests = []testTable{
 		{"nil", nil},
 		{"Empty list", []string{}},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			// we will modify the clients caps to only send commands and membership
-			receivedCaps := false
-			waitRecv := make(chan struct{})
-			waitServerConnect := make(chan struct{})
-			waitClientConnect := make(chan struct{})
+		func(tt testTable) {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+				// we will modify the clients caps to only send commands and membership
+				receivedCaps := false
+				waitRecv := make(chan struct{})
+				waitServerConnect := make(chan struct{})
+				waitClientConnect := make(chan struct{})
 
-			server := startServer2(t, closeOnConnect(waitServerConnect), func(message string) {
-				if strings.HasPrefix(message, "CAP REQ") {
-					receivedCaps = true
-				} else if strings.HasPrefix(message, "PASS") {
-					close(waitRecv)
+				server := startServer2(t, closeOnConnect(waitServerConnect), func(message string) {
+					if strings.HasPrefix(message, "CAP REQ") {
+						receivedCaps = true
+					} else if strings.HasPrefix(message, "PASS") {
+						close(waitRecv)
+					}
+				})
+
+				client := newTestClient(server.host)
+				client.Caps = tt.in
+				client.OnConnect(clientCloseOnConnect(waitClientConnect))
+				clientDisconnected := connectAndEnsureGoodDisconnect(t, client)
+
+				// Wait for correct password to be read in server
+				if !waitWithTimeout(waitRecv) {
+					t.Fatal("no oauth read")
 				}
+
+				assertFalse(t, receivedCaps, "We should NOT have received caps since we sent an empty list of caps")
+
+				// Wait for server to acknowledge connection
+				if !waitWithTimeout(waitServerConnect) {
+					t.Fatal("no successful connection")
+				}
+
+				// Wait for client to acknowledge connection
+				if !waitWithTimeout(waitClientConnect) {
+					t.Fatal("no successful connection")
+				}
+
+				// Disconnect client from server
+				err := client.Disconnect()
+				if err != nil {
+					t.Error("Error during disconnect:" + err.Error())
+				}
+
+				// Wait for client to be fully disconnected
+				<-clientDisconnected
+
+				// Wait for server to be fully disconnected
+				<-server.stopped
 			})
-
-			client := newTestClient(server.host)
-			client.Caps = tt.in
-			client.OnConnect(clientCloseOnConnect(waitClientConnect))
-			clientDisconnected := connectAndEnsureGoodDisconnect(t, client)
-
-			// Wait for correct password to be read in server
-			if !waitWithTimeout(waitRecv) {
-				t.Fatal("no oauth read")
-			}
-
-			assertFalse(t, receivedCaps, "We should NOT have received caps since we sent an empty list of caps")
-
-			// Wait for server to acknowledge connection
-			if !waitWithTimeout(waitServerConnect) {
-				t.Fatal("no successful connection")
-			}
-
-			// Wait for client to acknowledge connection
-			if !waitWithTimeout(waitClientConnect) {
-				t.Fatal("no successful connection")
-			}
-
-			// Disconnect client from server
-			err := client.Disconnect()
-			if err != nil {
-				t.Error("Error during disconnect:" + err.Error())
-			}
-
-			// Wait for client to be fully disconnected
-			<-clientDisconnected
-
-			// Wait for server to be fully disconnected
-			<-server.stopped
-
-		})
+		}(tt)
 	}
 }
