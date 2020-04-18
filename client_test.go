@@ -1930,15 +1930,23 @@ func TestRejoinOnReconnect(t *testing.T) {
 	assertStringsEqual(t, "JOIN #gempir", receivedMsg)
 }
 
-func TestCaps(t *testing.T) {
+func TestCapabilities(t *testing.T) {
 	type testTable struct {
 		name     string
 		in       []string
 		expected string
 	}
 	var tests = []testTable{
-		{"Default Caps (not modifying)", nil, "CAP REQ :" + strings.Join([]string{TagsCap, CommandsCap, MembershipCap}, " ")},
-		{"Modified Caps", []string{CommandsCap, MembershipCap}, "CAP REQ :" + strings.Join([]string{CommandsCap, MembershipCap}, " ")},
+		{
+			"Default Capabilities (not modifying)",
+			nil,
+			"CAP REQ :" + strings.Join([]string{TagsCapability, CommandsCapability, MembershipCapability}, " "),
+		},
+		{
+			"Modified Capabilities",
+			[]string{CommandsCapability, MembershipCapability},
+			"CAP REQ :" + strings.Join([]string{CommandsCapability, MembershipCapability}, " "),
+		},
 	}
 
 	for _, tt := range tests {
@@ -1960,7 +1968,7 @@ func TestCaps(t *testing.T) {
 
 				client := newTestClient(server.host)
 				if tt.in != nil {
-					client.Caps = tt.in
+					client.Capabilities = tt.in
 				}
 				client.OnConnect(clientCloseOnConnect(waitClientConnect))
 				clientDisconnected := connectAndEnsureGoodDisconnect(t, client)
@@ -1998,7 +2006,7 @@ func TestCaps(t *testing.T) {
 	}
 }
 
-func TestEmptyCaps(t *testing.T) {
+func TestEmptyCapabilities(t *testing.T) {
 	type testTable struct {
 		name string
 		in   []string
@@ -2013,21 +2021,21 @@ func TestEmptyCaps(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				t.Parallel()
 				// we will modify the clients caps to only send commands and membership
-				receivedCaps := false
+				receivedCapabilities := false
 				waitRecv := make(chan struct{})
 				waitServerConnect := make(chan struct{})
 				waitClientConnect := make(chan struct{})
 
 				server := startServer2(t, closeOnConnect(waitServerConnect), func(message string) {
 					if strings.HasPrefix(message, "CAP REQ") {
-						receivedCaps = true
+						receivedCapabilities = true
 					} else if strings.HasPrefix(message, "PASS") {
 						close(waitRecv)
 					}
 				})
 
 				client := newTestClient(server.host)
-				client.Caps = tt.in
+				client.Capabilities = tt.in
 				client.OnConnect(clientCloseOnConnect(waitClientConnect))
 				clientDisconnected := connectAndEnsureGoodDisconnect(t, client)
 
@@ -2036,7 +2044,7 @@ func TestEmptyCaps(t *testing.T) {
 					t.Fatal("no oauth read")
 				}
 
-				assertFalse(t, receivedCaps, "We should NOT have received caps since we sent an empty list of caps")
+				assertFalse(t, receivedCapabilities, "We should NOT have received caps since we sent an empty list of caps")
 
 				// Wait for server to acknowledge connection
 				if !waitWithTimeout(waitServerConnect) {
