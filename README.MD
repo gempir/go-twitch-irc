@@ -237,3 +237,31 @@ These are the 7 major message types currently supported:
     NOTICE
     JOIN
     PART
+
+### Capabilities
+
+By default, the Client sends along all 3 Twitch capabilities (Tags, Commands, Membership).  
+Information about each capability can be found here:
+ * Tags: https://dev.twitch.tv/docs/irc/tags
+ * Commands https://dev.twitch.tv/docs/irc/commands
+ * Membership https://dev.twitch.tv/docs/irc/membership
+
+If you want to modify which capabilities that are sent, you can modify the `Capabilities` variable in the client before calling Connect
+
+Example:
+```go
+client := twitch.NewClient("yourtwitchusername", "oauth:123123123")
+
+client.Capabilities = nil
+
+// or
+
+client.Capabilities = []string{twitch.TagsCapability, twitch.CommandsCapability}
+
+client.Join("gempir")
+
+err := client.Connect()
+if err != nil {
+    panic(err)
+}
+```
