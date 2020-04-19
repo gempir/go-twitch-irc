@@ -10,8 +10,6 @@ linters-settings:
   goconst:
     min-len: 2
     min-occurrences: 4
-  lll:
-    line-length: 140
   gocritic:
     enabled-tags:
       - diagnostic
@@ -46,7 +44,7 @@ linters:
     - govet
     - ineffassign
     - interfacer
-    - lll
+  # - lll
   # - misspell
     - scopelint
     - staticcheck
