@@ -520,3 +520,38 @@ func TestCanParsePONG3(t *testing.T) {
 	assertStringsEqual(t, message.Message, "")
 	assertMessageTypesEqual(t, PONG, message.GetType())
 }
+
+func TestPRIVMSGEmotesParsedProperly(t *testing.T) {
+	type test struct {
+		name    string
+		message string
+	}
+	var tests = []test{
+		{
+			"Normal PRIVMSG",
+			"@badge-info=subscriber/52;badges=broadcaster/1,subscriber/48,partner/1;color=#CC44FF;display-name=pajlada;emotes=25:6-10/1902:16-20;flags=;id=2a3f9d35-5487-4239-80b3-6c9a5a1907a9;mod=0;room-id=11148817;subscriber=1;tmi-sent-ts=1587291978478;turbo=0;user-id=11148817;user-type= :pajlada!pajlada@pajlada.tmi.twitch.tv PRIVMSG #pajlada :-tags Kappa 123 Keepo",
+		},
+		{
+			"Action PRIVMSG",
+			"@badge-info=subscriber/52;badges=broadcaster/1,subscriber/48,partner/1;color=#CC44FF;display-name=pajlada;emotes=25:6-10/1902:16-20;flags=;id=0c46c822-f668-4427-b19a-a1a0780a44ae;mod=0;room-id=11148817;subscriber=1;tmi-sent-ts=1587291881363;turbo=0;user-id=11148817;user-type= :pajlada!pajlada@pajlada.tmi.twitch.tv PRIVMSG #pajlada :\x01ACTION -tags Kappa 123 Keepo\x01",
+		},
+	}
+
+	for _, tt := range tests {
+		func(tt test) {
+			t.Run(tt.name, func(t *testing.T) {
+				message := ParseMessage(tt.message)
+				privateMessage := message.(*PrivateMessage)
+				assertIntsEqual(t, len(privateMessage.Emotes), 2)
+
+				// Emote 1: Kappa at 6-10
+				assertStringsEqual(t, privateMessage.Emotes[0].Name, "Kappa")
+				assertStringsEqual(t, privateMessage.Emotes[0].ID, "25")
+
+				// Emote 2: Keepo at 16-20
+				assertStringsEqual(t, privateMessage.Emotes[1].Name, "Keepo")
+				assertStringsEqual(t, privateMessage.Emotes[1].ID, "1902")
+			})
+		}(tt)
+	}
+}
