@@ -184,12 +184,13 @@ func parseWhisperMessage(message *ircMessage) Message {
 	}
 
 	whisperMessage.Target = message.Params[0]
-	whisperMessage.Emotes = parseEmotes(message.Tags["emotes"], whisperMessage.Message)
 
 	if strings.Contains(whisperMessage.Message, "/me") {
 		whisperMessage.Message = strings.TrimPrefix(whisperMessage.Message, "/me")
 		whisperMessage.Action = true
 	}
+
+	whisperMessage.Emotes = parseEmotes(message.Tags["emotes"], whisperMessage.Message)
 
 	return &whisperMessage
 }
@@ -212,7 +213,6 @@ func parsePrivateMessage(message *ircMessage) Message {
 	}
 
 	privateMessage.Channel = strings.TrimPrefix(message.Params[0], "#")
-	privateMessage.Emotes = parseEmotes(message.Tags["emotes"], privateMessage.Message)
 
 	rawBits, ok := message.Tags["bits"]
 	if ok {
@@ -225,6 +225,8 @@ func parsePrivateMessage(message *ircMessage) Message {
 		privateMessage.Message = text[8 : len(text)-1]
 		privateMessage.Action = true
 	}
+
+	privateMessage.Emotes = parseEmotes(message.Tags["emotes"], privateMessage.Message)
 
 	return &privateMessage
 }
