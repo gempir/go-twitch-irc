@@ -555,3 +555,24 @@ func TestPRIVMSGEmotesParsedProperly(t *testing.T) {
 		}(tt)
 	}
 }
+
+func TestPRIVMSGMalformedEmotesDontCrash(t *testing.T) {
+	type test struct {
+		name    string
+		message string
+	}
+	var tests = []test{
+		{
+			"Broken #1",
+			"@badge-info=subscriber/52;badges=moderator/1,subscriber/48;color=#2E8B57;display-name=pajbot;emotes=80481_/3:7-14;flags=;id=1ec936d3-7853-4113-9984-664ac5c42694;mod=1;room-id=11148817;subscriber=1;tmi-sent-ts=1589640131796;turbo=0;user-id=82008718;user-type=mod :pajbot!pajbot@pajbot.tmi.twitch.tv PRIVMSG #pajlada :󠀀-tags pajaW_/3.0",
+		},
+	}
+
+	for _, tt := range tests {
+		func(tt test) {
+			t.Run(tt.name, func(t *testing.T) {
+				ParseMessage(tt.message)
+			})
+		}(tt)
+	}
+}
