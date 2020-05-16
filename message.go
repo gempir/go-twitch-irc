@@ -475,7 +475,15 @@ func parseEmotes(rawEmotes, message string) []*Emote {
 
 	for _, v := range strings.Split(rawEmotes, "/") {
 		split := strings.SplitN(v, ":", 2)
+		if len(split) != 2 {
+			// We have received bad emote data :(
+			continue
+		}
 		pairs := strings.SplitN(split[1], ",", 2)
+		if len(pairs) != 2 {
+			// We have received bad emote data :(
+			continue
+		}
 		pair := strings.SplitN(pairs[0], "-", 2)
 
 		firstIndex, _ := strconv.Atoi(pair[0])
