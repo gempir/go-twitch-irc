@@ -183,19 +183,23 @@ type RawMessage struct {
 
 ParseMessage parses a raw Twitch IRC message into a User and a message object. User can be nil.
 
-	func ParseMessage(line string) (*User, interface{})
+```go
+func ParseMessage(line string) (*User, interface{})
+```
 
 ### Client Methods
 
 These are the available methods of the client so you can get your bot going:
 
-	func (c *Client) Say(channel, text string)
-	func (c *Client) Whisper(username, text string)
-	func (c *Client) Join(channel string)
-	func (c *Client) Depart(channel string)
-	func (c *Client) Userlist(channel string) ([]string, error)
-	func (c *Client) Connect() error
-	func (c *Client) Disconnect() error
+```go
+func (c *Client) Say(channel, text string)
+func (c *Client) Whisper(username, text string)
+func (c *Client) Join(channel string)
+func (c *Client) Depart(channel string)
+func (c *Client) Userlist(channel string) ([]string, error)
+func (c *Client) Connect() error
+func (c *Client) Disconnect() error
+```
 
 ### Options
 
@@ -223,7 +227,7 @@ client.OnWhisperMessage(func(message WhisperMessage) {})
 client.OnClearChatMessage(func(message ClearChatMessage) {})
 client.OnClearMessage(func message ClearMessage) {})
 client.OnRoomStateMessage(func(message RoomStateMessage) {})
-client.OnUsernoticeMessage(func(message UserNoticeMessage) {})
+client.OnUserNoticeMessage(func(message UserNoticeMessage) {})
 client.OnUserstateMessage(func(message UserStateMessage) {})
 client.OnNoticeMessage(func(message NoticeMessage) {})
 client.OnUserJoinMessage(func(message UserJoinMessage) {})
