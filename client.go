@@ -382,9 +382,6 @@ type Client struct {
 	// pongReceived is listened to by the pinger go-routine after it has sent off a ping. will be triggered by handleLine
 	pongReceived chan bool
 
-	// messageReceived is listened to by the pinger go-routine to interrupt the idle ping interval
-	messageReceived chan bool
-
 	// Option whether to send pings every `IdlePingInterval`. The IdlePingInterval is interrupted every time a message is received from the irc server
 	// The variable may only be modified before calling Connect
 	SendPings bool
@@ -417,7 +414,6 @@ func NewClient(username, oauth string) *Client {
 		channels:        map[string]bool{},
 		channelUserlist: map[string]map[string]bool{},
 		channelsMtx:     &sync.RWMutex{},
-		messageReceived: make(chan bool),
 		// NOTE: IdlePingInterval must be higher than PongTimeout
 		SendPings:        true,
 		IdlePingInterval: time.Second * 15,
@@ -540,7 +536,6 @@ func (c *Client) Whisper(username, text string) {
 // Join enter a twitch channel to read more messages.
 func (c *Client) Join(channels ...string) {
 	messages, joined := createJoinMessages(c.channels, channels...)
-
 	// If we have an active connection, explicitly join
 	// before we add the joined channels to our map
 	c.channelsMtx.Lock()
@@ -549,6 +544,7 @@ func (c *Client) Join(channels ...string) {
 		if conn.isActive.get() {
 			go conn.send(message)
 		}
+		fmt.Println(message)
 	}
 
 	for _, channel := range joined {
@@ -672,6 +668,7 @@ func (c *Client) Connect() error {
 func (c *Client) makeConnection() (*connection, error) {
 	fmt.Println("making new connection")
 	connection := newConnection()
+	c.connections = append(c.connections, connection)
 
 	if c.IrcAddress == "" && c.TLS {
 		c.IrcAddress = ircTwitchTLS
@@ -738,8 +735,6 @@ func (c *Client) makeConnection() (*connection, error) {
 	// Wait for the reader, pinger, and writer to close
 	wg.Wait()
 
-	c.connections = append(c.connections, connection)
-
 	return connection, nil
 }
 
@@ -779,6 +774,7 @@ func (c *Client) startReader(reader io.Reader, wg *sync.WaitGroup, connection *c
 
 	for {
 		line, err := tp.ReadLine()
+		fmt.Println(line)
 		if err != nil {
 			return
 		}
@@ -902,14 +898,6 @@ func (c *Client) sendBufferLength() int {
 // Errors returned from handleLine break out of readConnections, which starts a reconnect
 // This means that we should only return fatal errors as errors here
 func (c *Client) handleLine(line string) error {
-	go func() {
-		// Send a message on the `messageReceived` channel, but do not block in case no one is receiving on the other end
-		select {
-		case c.messageReceived <- true:
-		default:
-		}
-	}()
-
 	message := ParseMessage(line)
 
 	switch msg := message.(type) {

@@ -35,6 +35,14 @@ func (c *connection) StartParser(handleLine func(line string) error) error {
 		// reader
 		select {
 		case msg := <-c.read:
+			go func() {
+				// Send a message on the `messageReceived` channel, but do not block in case no one is receiving on the other end
+				select {
+				case c.messageReceived <- true:
+				default:
+				}
+			}()
+
 			if err := handleLine(msg); err != nil {
 				return err
 			}
