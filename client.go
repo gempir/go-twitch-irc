@@ -524,7 +524,8 @@ func (c *Client) OnPingSent(callback func()) {
 func (c *Client) Say(channel, text string) {
 	channel = strings.ToLower(channel)
 
-	c.send(fmt.Sprintf("PRIVMSG #%s :%s", channel, text))
+	conn := c.getWriteConnection(channel)
+	conn.send(fmt.Sprintf("PRIVMSG #%s :%s", channel, text))
 }
 
 // Whisper write something in private to someone on twitch
@@ -532,7 +533,8 @@ func (c *Client) Say(channel, text string) {
 // so your message might get blocked because of this
 // verify your bot to prevent this
 func (c *Client) Whisper(username, text string) {
-	c.send(fmt.Sprintf("PRIVMSG #%s :/w %s %s", c.ircUser, username, text))
+	conn := c.getWriteConnection("")
+	conn.send(fmt.Sprintf("PRIVMSG #%s :/w %s %s", c.ircUser, username, text))
 }
 
 // Join enter a twitch channel to read more messages.
@@ -543,8 +545,9 @@ func (c *Client) Join(channels ...string) {
 	// before we add the joined channels to our map
 	c.channelsMtx.Lock()
 	for _, message := range messages {
-		if c.connActive.get() {
-			go c.send(message)
+		conn := c.getNonFilledConnection()
+		if conn.isActive.get() {
+			go conn.send(message)
 		}
 	}
 
@@ -557,13 +560,28 @@ func (c *Client) Join(channels ...string) {
 	c.channelsMtx.Unlock()
 }
 
-func (c *Client) getUsableConnection() *connection {
+func (c *Client) getNonFilledConnection() *connection {
 	for _, connection := range c.connections {
-		if len(connection.Channels) < 50 {
+		if len(connection.channels) < 50 {
 			return connection
 		}
 	}
 
+	connection, _ := c.makeConnection()
+	// handle errors somehow here later
+	return connection
+}
+
+func (c *Client) getWriteConnection(targetChannel string) *connection {
+	for _, connection := range c.connections {
+		for _, channel := range connection.channels {
+			if channel == targetChannel || targetChannel == "" {
+				return connection
+			}
+		}
+	}
+
+	// need to do join logic here
 	connection, _ := c.makeConnection()
 	// handle errors somehow here later
 	return connection
@@ -612,8 +630,9 @@ func createJoinMessages(joinedChannels map[string]bool, channels ...string) ([]s
 
 // Depart leave a twitch channel
 func (c *Client) Depart(channel string) {
-	if c.connActive.get() {
-		go c.send(fmt.Sprintf("PART #%s", channel))
+	conn := c.getWriteConnection(channel)
+	if conn.isActive.get() {
+		go conn.send(fmt.Sprintf("PART #%s", channel))
 	}
 
 	c.channelsMtx.Lock()
@@ -651,6 +670,7 @@ func (c *Client) Connect() error {
 }
 
 func (c *Client) makeConnection() (*connection, error) {
+	fmt.Println("making new connection")
 	connection := newConnection()
 
 	if c.IrcAddress == "" && c.TLS {
@@ -692,13 +712,13 @@ func (c *Client) makeConnection() (*connection, error) {
 	wg.Add(1)
 	go c.startReader(conn, &wg, connection)
 
-	if c.SendPings {
-		// If SendPings is true (which it is by default), start the thread
-		// responsible for managing sending pings and reading pongs
-		// in a separate go-routine
-		wg.Add(1)
-		c.startPinger(conn, &wg, connection)
-	}
+	// if c.SendPings {
+	// 	// If SendPings is true (which it is by default), start the thread
+	// 	// responsible for managing sending pings and reading pongs
+	// 	// in a separate go-routine
+	// 	wg.Add(1)
+	// 	c.startPinger(conn, &wg, connection)
+	// }
 
 	// Send the initial connection messages (like logging in, getting the CAP REQ stuff)
 	c.setupConnection(conn)
@@ -800,7 +820,7 @@ func (c *Client) startPinger(closer io.Closer, wg *sync.WaitGroup, connection *c
 				if c.onPingSent != nil {
 					c.onPingSent()
 				}
-				c.send(pingMessage)
+				connection.send(pingMessage)
 
 				select {
 				case <-c.pongReceived:
@@ -841,6 +861,7 @@ func (c *Client) startWriter(writer io.WriteCloser, wg *sync.WaitGroup, connecti
 			return
 
 		case msg := <-connection.write:
+			fmt.Println(msg)
 			_, err := writer.Write([]byte(msg + "\r\n"))
 			if err != nil {
 				// Attempt to re-send failed messages

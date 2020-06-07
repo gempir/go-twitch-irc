@@ -6,8 +6,8 @@ import (
 
 type connection struct {
 	isActive  tAtomBool
-	Conn      *net.Conn
-	Channels  []string
+	conn      *net.Conn
+	channels  []string
 	reconnect chanCloser
 	// read is the incoming messages channel, normally buffered with ReadBufferSize
 	read chan string
@@ -45,5 +45,14 @@ func (c *connection) StartParser(handleLine func(line string) error) error {
 		case <-c.disconnect.channel:
 			return ErrClientDisconnected
 		}
+	}
+}
+
+func (c *connection) send(line string) bool {
+	select {
+	case c.write <- line:
+		return true
+	default:
+		return false
 	}
 }
