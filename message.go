@@ -47,6 +47,8 @@ const (
 	PONG MessageType = 12
 	// CLEARMSG whenever a single message is deleted
 	CLEARMSG MessageType = 13
+	// GLOBALUSERSTATE On successful login, provides data about the current logged-in user through IRC tags
+	GLOBALUSERSTATE MessageType = 14
 )
 
 type messageTypeDescription struct {
@@ -58,20 +60,21 @@ var messageTypeMap map[string]messageTypeDescription
 
 func init() {
 	messageTypeMap = map[string]messageTypeDescription{
-		"WHISPER":    {WHISPER, parseWhisperMessage},
-		"PRIVMSG":    {PRIVMSG, parsePrivateMessage},
-		"CLEARCHAT":  {CLEARCHAT, parseClearChatMessage},
-		"ROOMSTATE":  {ROOMSTATE, parseRoomStateMessage},
-		"USERNOTICE": {USERNOTICE, parseUserNoticeMessage},
-		"USERSTATE":  {USERSTATE, parseUserStateMessage},
-		"NOTICE":     {NOTICE, parseNoticeMessage},
-		"JOIN":       {JOIN, parseUserJoinMessage},
-		"PART":       {PART, parseUserPartMessage},
-		"RECONNECT":  {RECONNECT, parseReconnectMessage},
-		"353":        {NAMES, parseNamesMessage},
-		"PING":       {PING, parsePingMessage},
-		"PONG":       {PONG, parsePongMessage},
-		"CLEARMSG":   {CLEARMSG, parseClearMessage},
+		"WHISPER":         {WHISPER, parseWhisperMessage},
+		"PRIVMSG":         {PRIVMSG, parsePrivateMessage},
+		"CLEARCHAT":       {CLEARCHAT, parseClearChatMessage},
+		"ROOMSTATE":       {ROOMSTATE, parseRoomStateMessage},
+		"USERNOTICE":      {USERNOTICE, parseUserNoticeMessage},
+		"USERSTATE":       {USERSTATE, parseUserStateMessage},
+		"NOTICE":          {NOTICE, parseNoticeMessage},
+		"JOIN":            {JOIN, parseUserJoinMessage},
+		"PART":            {PART, parseUserPartMessage},
+		"RECONNECT":       {RECONNECT, parseReconnectMessage},
+		"353":             {NAMES, parseNamesMessage},
+		"PING":            {PING, parsePingMessage},
+		"PONG":            {PONG, parsePongMessage},
+		"CLEARMSG":        {CLEARMSG, parseClearMessage},
+		"GLOBALUSERSTATE": {GLOBALUSERSTATE, parseGlobalUserStateMessage},
 	}
 }
 
@@ -302,6 +305,19 @@ func parseRoomStateMessage(message *ircMessage) Message {
 	return &roomStateMessage
 }
 
+func parseGlobalUserStateMessage(message *ircMessage) Message {
+	globalUserStateMessage := GlobalUserStateMessage{
+		Raw:       message.Raw,
+		Type:      parseMessageType(message.Command),
+		RawType:   message.Command,
+		Tags:      message.Tags,
+		User:      parseUser(message),
+		EmoteSets: parseEmoteSets(message),
+	}
+
+	return &globalUserStateMessage
+}
+
 func parseUserNoticeMessage(message *ircMessage) Message {
 	userNoticeMessage := UserNoticeMessage{
 		User: parseUser(message),
@@ -338,17 +354,12 @@ func parseUserStateMessage(message *ircMessage) Message {
 	userStateMessage := UserStateMessage{
 		User: parseUser(message),
 
-		Raw:     message.Raw,
-		Type:    parseMessageType(message.Command),
-		RawType: message.Command,
-		Tags:    message.Tags,
-	}
-
-	userStateMessage.Channel = strings.TrimPrefix(message.Params[0], "#")
-
-	rawEmoteSets, ok := message.Tags["emote-sets"]
-	if ok {
-		userStateMessage.EmoteSets = strings.Split(rawEmoteSets, ",")
+		Raw:       message.Raw,
+		Type:      parseMessageType(message.Command),
+		RawType:   message.Command,
+		Tags:      message.Tags,
+		Channel:   strings.TrimPrefix(message.Params[0], "#"),
+		EmoteSets: parseEmoteSets(message),
 	}
 
 	return &userStateMessage
@@ -507,4 +518,13 @@ func parseEmotes(rawEmotes, message string) []*Emote {
 	}
 
 	return emotes
+}
+
+func parseEmoteSets(message *ircMessage) []string {
+	_, ok := message.Tags["emote-sets"]
+	if !ok {
+		return []string{}
+	}
+
+	return strings.Split(message.Tags["emote-sets"], ",")
 }
