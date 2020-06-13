@@ -306,7 +306,7 @@ func parseRoomStateMessage(message *ircMessage) Message {
 }
 
 func parseGlobalUserStateMessage(message *ircMessage) Message {
-	roomStateMessage := GlobalUserStateMessage{
+	globalUserStateMessage := GlobalUserStateMessage{
 		Raw:       message.Raw,
 		Type:      parseMessageType(message.Command),
 		RawType:   message.Command,
@@ -315,7 +315,7 @@ func parseGlobalUserStateMessage(message *ircMessage) Message {
 		EmoteSets: parseEmoteSets(message),
 	}
 
-	return &roomStateMessage
+	return &globalUserStateMessage
 }
 
 func parseUserNoticeMessage(message *ircMessage) Message {
