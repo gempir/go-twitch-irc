@@ -576,3 +576,27 @@ func TestPRIVMSGMalformedEmotesDontCrash(t *testing.T) {
 		}(tt)
 	}
 }
+
+func TestCanParseGlobalUserStateMessage(t *testing.T) {
+	testMessage := "@badge-info=;badges=;color=#2E8B57;display-name=pajbot;emote-sets=0,15961,24569,24570;user-id=82008718;user-type= :tmi.twitch.tv GLOBALUSERSTATE"
+
+	message := ParseMessage(testMessage)
+	globalUserStateMessage := message.(*GlobalUserStateMessage)
+	user := globalUserStateMessage.User
+
+	assertStringsEqual(t, "82008718", user.ID)
+	assertStringsEqual(t, "pajbot", user.Name)
+	assertStringsEqual(t, "pajbot", user.DisplayName)
+	assertStringsEqual(t, "#2E8B57", user.Color)
+
+	expectedBadges := map[string]int{}
+	assertStringIntMapsEqual(t, expectedBadges, user.Badges)
+
+	if globalUserStateMessage.Type != GLOBALUSERSTATE {
+		t.Error("parsing MessageType failed")
+	}
+	assertStringsEqual(t, "GLOBALUSERSTATE", globalUserStateMessage.RawType)
+
+	expectedEmoteSets := []string{"0", "15961", "24569", "24570"}
+	assertStringSlicesEqual(t, expectedEmoteSets, globalUserStateMessage.EmoteSets)
+}
