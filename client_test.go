@@ -798,6 +798,7 @@ func TestCanReceiveGlobalUserStateMessage(t *testing.T) {
 		close(wait)
 	})
 
+	//nolint
 	go client.Connect()
 
 	select {
