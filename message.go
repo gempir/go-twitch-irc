@@ -354,17 +354,12 @@ func parseUserStateMessage(message *ircMessage) Message {
 	userStateMessage := UserStateMessage{
 		User: parseUser(message),
 
-		Raw:     message.Raw,
-		Type:    parseMessageType(message.Command),
-		RawType: message.Command,
-		Tags:    message.Tags,
-	}
-
-	userStateMessage.Channel = strings.TrimPrefix(message.Params[0], "#")
-
-	_, ok := message.Tags["emote-sets"]
-	if ok {
-		userStateMessage.EmoteSets = parseEmoteSets(message)
+		Raw:       message.Raw,
+		Type:      parseMessageType(message.Command),
+		RawType:   message.Command,
+		Tags:      message.Tags,
+		Channel:   strings.TrimPrefix(message.Params[0], "#"),
+		EmoteSets: parseEmoteSets(message),
 	}
 
 	return &userStateMessage
@@ -526,5 +521,10 @@ func parseEmotes(rawEmotes, message string) []*Emote {
 }
 
 func parseEmoteSets(message *ircMessage) []string {
+	_, ok := message.Tags["emote-sets"]
+	if !ok {
+		return []string{}
+	}
+
 	return strings.Split(message.Tags["emote-sets"], ",")
 }
