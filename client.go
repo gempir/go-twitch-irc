@@ -539,11 +539,13 @@ func (c *Client) Join(channels ...string) {
 	// If we have an active connection, explicitly join
 	// before we add the joined channels to our map
 	c.channelsMtx.Lock()
+	fmt.Println("starting join")
 	for _, message := range messages {
 		conn := c.getNonFilledConnection()
 		if conn.isActive.get() {
 			go conn.send(message)
 		}
+		fmt.Print("join message: ")
 		fmt.Println(message)
 	}
 
@@ -653,14 +655,17 @@ func (c *Client) Disconnect() error {
 // Connect connect the client to the irc server
 func (c *Client) Connect() error {
 	for {
-		_, err := c.makeConnection()
+		conn, err := c.makeConnection()
+		c.connections = append(c.connections, conn)
 
 		switch err {
 		case errReconnect:
 			continue
 
 		default:
-			return err
+			for {
+				// idk do stuff
+			}
 		}
 	}
 }
@@ -721,19 +726,21 @@ func (c *Client) makeConnection() (*connection, error) {
 	c.setupConnection(conn)
 
 	// Start the connection writer in a separate go-routine
-	wg.Add(1)
-	go c.startWriter(conn, &wg, connection)
+	go c.startWriter(conn, connection)
 
-	// start the parser in the same go-routine as makeConnection was called from
-	// the error returned from parser will be forwarded to the caller of makeConnection
-	// and that error will decide whether or not to reconnect
-	err = connection.StartParser(c.handleLine)
+	go func() {
+		// start the parser in the same go-routine as makeConnection was called from
+		// the error returned from parser will be forwarded to the caller of makeConnection
+		// and that error will decide whether or not to reconnect
+		err = connection.StartParser(c.handleLine)
+		fmt.Println(err) // respawn connection here later etc
 
-	conn.Close()
-	connection.reconnect.Close()
-
-	// Wait for the reader, pinger, and writer to close
+		conn.Close()
+		connection.reconnect.Close()
+	}()
+	// Wait connection me setup and return 001
 	wg.Wait()
+	fmt.Println("returning conn")
 
 	return connection, nil
 }
@@ -764,25 +771,21 @@ func (c *Client) SetIRCToken(ircToken string) {
 }
 
 func (c *Client) startReader(reader io.Reader, wg *sync.WaitGroup, connection *connection) {
-	defer func() {
-		c.clientReconnect.Close()
-
-		wg.Done()
-	}()
+	defer c.clientReconnect.Close()
 
 	tp := textproto.NewReader(bufio.NewReader(reader))
 
 	for {
 		line, err := tp.ReadLine()
-		fmt.Println(line)
 		if err != nil {
 			return
 		}
 		messages := strings.Split(line, "\r\n")
 		for _, msg := range messages {
 			if !connection.isActive.get() && strings.Contains(msg, ":tmi.twitch.tv 001") {
+				fmt.Println("activating connection")
 				connection.isActive.set(true)
-				c.initialJoins()
+				wg.Done()
 				if c.onConnect != nil {
 					c.onConnect()
 				}
@@ -844,10 +847,7 @@ func (c *Client) setupConnection(conn net.Conn) {
 	conn.Write([]byte("NICK " + c.ircUser + "\r\n"))
 }
 
-func (c *Client) startWriter(writer io.WriteCloser, wg *sync.WaitGroup, connection *connection) {
-	defer func() {
-		wg.Done()
-	}()
+func (c *Client) startWriter(writer io.WriteCloser, connection *connection) {
 	for {
 		select {
 		case <-connection.reconnect.channel:
@@ -857,6 +857,7 @@ func (c *Client) startWriter(writer io.WriteCloser, wg *sync.WaitGroup, connecti
 			return
 
 		case msg := <-connection.write:
+			fmt.Print("WRITING: ")
 			fmt.Println(msg)
 			_, err := writer.Write([]byte(msg + "\r\n"))
 			if err != nil {
