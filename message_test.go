@@ -165,6 +165,54 @@ func TestCanParseEmoteMessage(t *testing.T) {
 	assertIntsEqual(t, 5, privateMessage.Emotes[0].Count)
 }
 
+func TestCanHandleBadEmoteMessage(t *testing.T) {
+	type test struct {
+		name           string
+		message        string
+		expectedEmotes []Emote
+	}
+	var tests = []test{
+		{
+			"Broken Emote Message",
+			"@badge-info=subscriber/3;badges=subscriber/3;color=#0000FF;display-name=Linkoping;emotes=25:40-44;flags=17-26:S.6;id=744f9c58-b180-4f46-bd9e-b515b5ef75c1;mod=0;room-id=188442366;subscriber=1;tmi-sent-ts=1566335866017;turbo=0;user-id=91673457;user-type= :linkoping!linkoping@linkoping.tmi.twitch.tv PRIVMSG #queenqarro :Då kan du begära skadestånd och förtal Kappa",
+			[]Emote{{Name: "appa", ID: "25", Count: 1}},
+		},
+		{
+			"Broken Emote Message",
+			"@badge-info=;badges=moderator/1,partner/1;color=#5B99FF;display-name=StreamElements;emotes=86:30-39/822112:73-79;flags=22-27:S.5;id=03c3eec9-afd1-4858-a2e0-fccbf6ad8d1a;mod=1;room-id=506590738;subscriber=0;tmi-sent-ts=1588638345928;turbo=0;user-id=100135110;user-type=mod :streamelements!streamelements@streamelements.tmi.twitch.tv PRIVMSG #nobru :\u0001ACTION A LOJA AINDA NÃO ESTÁ PRONTA BibleThump , AGUARDE... NOVIDADES EM BREVE FortOne\u0001",
+			[]Emote{{Name: "ibleThump ", ID: "86", Count: 1}, {Name: "ortOne", ID: "822112", Count: 1}},
+		},
+		{
+			"Broken Emote Message",
+			"@badge-info=subscriber/1;badges=subscriber/0;color=;display-name=jhoelsc;emotes=301683486:46-58,60-72,74-86/301683544:88-100;flags=0-4:S.6;id=1f1afcdd-d94c-4699-b35f-d214deb1e11a;mod=0;room-id=167189231;subscriber=1;tmi-sent-ts=1588640587462;turbo=0;user-id=505763008;user-type= :jhoelsc!jhoelsc@jhoelsc.tmi.twitch.tv PRIVMSG #staryuuki :pensé que no habría directo que bueno que si staryuukiLove staryuukiLove staryuukiLove staryuukiBits",
+			[]Emote{{Name: "taryuukiLove ", ID: "301683486", Count: 3}, {Name: "taryuukiBits", ID: "301683544", Count: 1}},
+		},
+		{
+			// This message is a modified example from https://github.com/twitchdev/issues/issues/104 that I have modified to make the emote be one extra character off, which I imagine could happen if the same unicode parsing thing magic bug happens twice in the same message
+			"Extra Broken Emote Message",
+			"@badge-info=subscriber/3;badges=subscriber/3;color=#0000FF;display-name=Linkoping;emotes=25:41-45;flags=17-26:S.6;id=744f9c58-b180-4f46-bd9e-b515b5ef75c1;mod=0;room-id=188442366;subscriber=1;tmi-sent-ts=1566335866017;turbo=0;user-id=91673457;user-type= :linkoping!linkoping@linkoping.tmi.twitch.tv PRIVMSG #queenqarro :Då kan du begära skadestånd och förtal Kappa",
+			[]Emote{{Name: "ppa", ID: "25", Count: 1}},
+		},
+	}
+
+	for _, tt := range tests {
+		func(tt test) {
+			t.Run(tt.name, func(t *testing.T) {
+				message := ParseMessage(tt.message)
+				privateMessage := message.(*PrivateMessage)
+
+				assertIntsEqual(t, len(tt.expectedEmotes), len(privateMessage.Emotes))
+
+				for i, expectedEmote := range tt.expectedEmotes {
+					assertStringsEqual(t, expectedEmote.ID, privateMessage.Emotes[i].ID)
+					assertStringsEqual(t, expectedEmote.Name, privateMessage.Emotes[i].Name)
+					assertIntsEqual(t, expectedEmote.Count, privateMessage.Emotes[i].Count)
+				}
+			})
+		}(tt)
+	}
+}
+
 func TestCanParseBitsMessage(t *testing.T) {
 	testMessage := "@badges=bits/5000;bits=5000;color=#007EFF;display-name=FletcherCodes;emotes=;flags=;id=405c4ccb-7d69-4a57-ac16-292e72ba288b;mod=0;room-id=408892348;subscriber=0;tmi-sent-ts=1551478518354;turbo=0;user-id=269899575;user-type= :fletchercodes!fletchercodes@fletchercodes.tmi.twitch.tv PRIVMSG #clippyassistant :showlove5000 Chew your food slower... it's healthier"
 
