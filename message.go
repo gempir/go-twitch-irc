@@ -505,7 +505,11 @@ func parseEmotes(rawEmotes, message string) []*Emote {
 		lastIndex, _ := strconv.Atoi(pair[1])
 
 		if lastIndex+1 > len(runes) {
-			lastIndex--
+			lastIndex = len(runes) - 1
+		}
+
+		if firstIndex+1 > len(runes) {
+			firstIndex = len(runes) - 1
 		}
 
 		emote := &Emote{
