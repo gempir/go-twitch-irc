@@ -1077,6 +1077,10 @@ func (c *Client) handleNamesMessage(msg NamesMessage) {
 	c.channelUserlistMutex.Lock()
 	defer c.channelUserlistMutex.Unlock()
 
+	if c.channelUserlist[msg.Channel] == nil {
+		c.channelUserlist[msg.Channel] = map[string]bool{}
+	}
+
 	for _, user := range msg.Users {
 		c.channelUserlist[msg.Channel][user] = true
 	}
