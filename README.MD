@@ -141,6 +141,16 @@ type UserStateMessage struct {
 	EmoteSets []string
 }
 
+type GlobalUserStateMessage struct {
+	User User
+
+	Raw       string
+	Type      MessageType
+	RawType   string
+	Tags      map[string]string
+	EmoteSets []string
+}
+
 type NoticeMessage struct {
 	Raw     string
 	Type    MessageType
@@ -228,7 +238,8 @@ client.OnClearChatMessage(func(message ClearChatMessage) {})
 client.OnClearMessage(func message ClearMessage) {})
 client.OnRoomStateMessage(func(message RoomStateMessage) {})
 client.OnUserNoticeMessage(func(message UserNoticeMessage) {})
-client.OnUserstateMessage(func(message UserStateMessage) {})
+client.OnUserStateMessage(func(message UserStateMessage) {})
+client.OnGlobalUserStateMessage(func(message GlobalUserStateMessage) {})
 client.OnNoticeMessage(func(message NoticeMessage) {})
 client.OnUserJoinMessage(func(message UserJoinMessage) {})
 client.OnUserPartMessage(func(message UserPartMessage) {})
@@ -237,7 +248,7 @@ client.OnUserPartMessage(func(message UserPartMessage) {})
 ### Message Types
 
 If you ever need more than basic PRIVMSG, this might be for you.
-These are the 7 major message types currently supported:
+These are the message types currently supported:
 
     WHISPER
     PRIVMSG
@@ -246,6 +257,7 @@ These are the 7 major message types currently supported:
     ROOMSTATE
     USERNOTICE
     USERSTATE
+    GLOBALUSERSTATE
     NOTICE
     JOIN
     PART

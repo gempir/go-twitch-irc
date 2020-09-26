@@ -782,6 +782,34 @@ func TestCanReceiveUSERStateMessage(t *testing.T) {
 	assertStringsEqual(t, "1", received)
 }
 
+func TestCanReceiveGlobalUserStateMessage(t *testing.T) {
+	t.Parallel()
+	testMessage := `@badge-info=;badges=;color=#00FF7F;display-name=gempbot;emote-sets=0,14417,300206298,300374282,300548762;user-id=99659894;user-type= :tmi.twitch.tv GLOBALUSERSTATE`
+
+	wait := make(chan struct{})
+	var received string
+
+	host := startServer(t, postMessageOnConnect(testMessage), nothingOnMessage)
+	client := newTestClient(host)
+
+	client.OnGlobalUserStateMessage(func(message GlobalUserStateMessage) {
+		received = message.Tags["user-id"]
+		assertMessageTypesEqual(t, GLOBALUSERSTATE, message.GetType())
+		close(wait)
+	})
+
+	//nolint
+	go client.Connect()
+
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no message sent")
+	}
+
+	assertStringsEqual(t, "99659894", received)
+}
+
 func TestCanReceiveJOINMessage(t *testing.T) {
 	t.Parallel()
 	testMessage := `:username123!username123@username123.tmi.twitch.tv JOIN #mychannel`

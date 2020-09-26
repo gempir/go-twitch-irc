@@ -280,6 +280,23 @@ func (msg *UserPartMessage) GetType() MessageType {
 	return msg.Type
 }
 
+// GlobalUserStateMessage On successful login, provides data about the current logged-in user through IRC tags
+// See https://dev.twitch.tv/docs/irc/tags/#globaluserstate-twitch-tags
+type GlobalUserStateMessage struct {
+	User User
+
+	Raw       string
+	Type      MessageType
+	RawType   string
+	Tags      map[string]string
+	EmoteSets []string
+}
+
+// GetType implements the Message interface, and returns this message's type
+func (msg *GlobalUserStateMessage) GetType() MessageType {
+	return msg.Type
+}
+
 // ReconnectMessage describes the
 type ReconnectMessage struct {
 	Raw     string
@@ -341,32 +358,32 @@ func (msg *PongMessage) GetType() MessageType {
 
 // Client client to control your connection and attach callbacks
 type Client struct {
-	IrcAddress           string
-	ircUser              string
-	ircToken             string
-	TLS                  bool
-	connActive           tAtomBool
-	channels             map[string]bool
-	connections          []*connection
-	channelUserlistMutex *sync.RWMutex
-	channelUserlist      map[string]map[string]bool
-	channelsMtx          *sync.RWMutex
-	onConnect            func()
-	onWhisperMessage     func(message WhisperMessage)
-	onPrivateMessage     func(message PrivateMessage)
-	onClearChatMessage   func(message ClearChatMessage)
-	onRoomStateMessage   func(message RoomStateMessage)
-	onClearMessage       func(message ClearMessage)
-	onUserNoticeMessage  func(message UserNoticeMessage)
-	onUserStateMessage   func(message UserStateMessage)
-	onNoticeMessage      func(message NoticeMessage)
-	onUserJoinMessage    func(message UserJoinMessage)
-	onUserPartMessage    func(message UserPartMessage)
-	onReconnectMessage   func(message ReconnectMessage)
-	onNamesMessage       func(message NamesMessage)
-	onPingMessage        func(message PingMessage)
-	onPongMessage        func(message PongMessage)
-	onUnsetMessage       func(message RawMessage)
+	IrcAddress               string
+	ircUser                  string
+	ircToken                 string
+	TLS                      bool
+	connActive               tAtomBool
+	channels                 map[string]bool
+	channelUserlistMutex     *sync.RWMutex
+	channelUserlist          map[string]map[string]bool
+	channelsMtx              *sync.RWMutex
+	onConnect                func()
+	onWhisperMessage         func(message WhisperMessage)
+	onPrivateMessage         func(message PrivateMessage)
+	onClearChatMessage       func(message ClearChatMessage)
+	onRoomStateMessage       func(message RoomStateMessage)
+	onClearMessage           func(message ClearMessage)
+	onUserNoticeMessage      func(message UserNoticeMessage)
+	onUserStateMessage       func(message UserStateMessage)
+	onGlobalUserStateMessage func(message GlobalUserStateMessage)
+	onNoticeMessage          func(message NoticeMessage)
+	onUserJoinMessage        func(message UserJoinMessage)
+	onUserPartMessage        func(message UserPartMessage)
+	onReconnectMessage       func(message ReconnectMessage)
+	onNamesMessage           func(message NamesMessage)
+	onPingMessage            func(message PingMessage)
+	onPongMessage            func(message PongMessage)
+	onUnsetMessage           func(message RawMessage)
 
 	onPingSent func()
 
@@ -469,6 +486,11 @@ func (c *Client) OnUserNoticeMessage(callback func(message UserNoticeMessage)) {
 // OnUserStateMessage attach callback to new userstate
 func (c *Client) OnUserStateMessage(callback func(message UserStateMessage)) {
 	c.onUserStateMessage = callback
+}
+
+// OnGlobalUserStateMessage attach callback to new global user state
+func (c *Client) OnGlobalUserStateMessage(callback func(message GlobalUserStateMessage)) {
+	c.onGlobalUserStateMessage = callback
 }
 
 // OnNoticeMessage attach callback to new notice message such as hosts
@@ -944,6 +966,12 @@ func (c *Client) handleLine(line string) error {
 		}
 		return nil
 
+	case *GlobalUserStateMessage:
+		if c.onGlobalUserStateMessage != nil {
+			c.onGlobalUserStateMessage(*msg)
+		}
+		return nil
+
 	case *NoticeMessage:
 		if c.onNoticeMessage != nil {
 			c.onNoticeMessage(*msg)
@@ -1050,6 +1078,10 @@ func (c *Client) handleUserPartMessage(msg UserPartMessage) bool {
 func (c *Client) handleNamesMessage(msg NamesMessage) {
 	c.channelUserlistMutex.Lock()
 	defer c.channelUserlistMutex.Unlock()
+
+	if c.channelUserlist[msg.Channel] == nil {
+		c.channelUserlist[msg.Channel] = map[string]bool{}
+	}
 
 	for _, user := range msg.Users {
 		c.channelUserlist[msg.Channel][user] = true
