@@ -363,6 +363,7 @@ type Client struct {
 	ircToken                 string
 	TLS                      bool
 	connActive               tAtomBool
+	connections              []*connection
 	channels                 map[string]bool
 	channelUserlistMutex     *sync.RWMutex
 	channelUserlist          map[string]map[string]bool
