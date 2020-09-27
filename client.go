@@ -595,10 +595,8 @@ func (c *Client) getNonFilledConnection() *connection {
 
 func (c *Client) getWriteConnection(targetChannel string) *connection {
 	for _, connection := range c.connections {
-		for _, channel := range connection.channels {
-			if channel == targetChannel || targetChannel == "" {
-				return connection
-			}
+		if connection.isActive.get() {
+			return connection
 		}
 	}
 
@@ -763,7 +761,6 @@ func (c *Client) makeConnection() (*connection, error) {
 	}()
 	// Wait connection me setup and return 001
 	wg.Wait()
-	fmt.Println("returning conn")
 
 	return connection, nil
 }
@@ -860,6 +857,7 @@ func (c *Client) startPinger(closer io.Closer, wg *sync.WaitGroup, connection *c
 }
 
 func (c *Client) setupConnection(conn net.Conn) {
+	fmt.Println("setup connection")
 	if c.SetupCmd != "" {
 		conn.Write([]byte(c.SetupCmd + "\r\n"))
 	}
