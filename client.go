@@ -562,14 +562,11 @@ func (c *Client) Join(channels ...string) {
 	// If we have an active connection, explicitly join
 	// before we add the joined channels to our map
 	c.channelsMtx.Lock()
-	fmt.Println("starting join")
 	for _, message := range messages {
 		conn := c.getNonFilledConnection()
 		if conn.isActive.get() {
 			go conn.send(message)
 		}
-		fmt.Print("join message: ")
-		fmt.Println(message)
 	}
 
 	for _, channel := range joined {
@@ -692,7 +689,6 @@ func (c *Client) Connect() error {
 }
 
 func (c *Client) makeConnection() (*connection, error) {
-	fmt.Println("making new connection")
 	connection := newConnection()
 	c.connections = append(c.connections, connection)
 
@@ -803,7 +799,6 @@ func (c *Client) startReader(reader io.Reader, wg *sync.WaitGroup, connection *c
 		messages := strings.Split(line, "\r\n")
 		for _, msg := range messages {
 			if !connection.isActive.get() && strings.Contains(msg, ":tmi.twitch.tv 001") {
-				fmt.Println("activating connection")
 				connection.isActive.set(true)
 				wg.Done()
 				if c.onConnect != nil {
@@ -857,7 +852,6 @@ func (c *Client) startPinger(closer io.Closer, wg *sync.WaitGroup, connection *c
 }
 
 func (c *Client) setupConnection(conn net.Conn) {
-	fmt.Println("setup connection")
 	if c.SetupCmd != "" {
 		conn.Write([]byte(c.SetupCmd + "\r\n"))
 	}
@@ -878,8 +872,6 @@ func (c *Client) startWriter(writer io.WriteCloser, connection *connection) {
 			return
 
 		case msg := <-connection.write:
-			fmt.Print("WRITING: ")
-			fmt.Println(msg)
 			_, err := writer.Write([]byte(msg + "\r\n"))
 			if err != nil {
 				// Attempt to re-send failed messages
