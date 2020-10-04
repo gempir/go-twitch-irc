@@ -1629,8 +1629,7 @@ func (wo *WriteOnlyClient) startReader(reader io.Reader, wg *sync.WaitGroup) {
 	wg.Done()
 }
 
-func (wo *WriteOnlyClient) startPinger(closer io.Closer, wg *sync.WaitGroup) {
-	wg.Done()
+func (wo *WriteOnlyClient) startPinger(closer io.Closer) {
 }
 
 func TestWriter(t *testing.T) {
