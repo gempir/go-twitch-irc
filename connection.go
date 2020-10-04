@@ -1,12 +1,7 @@
 package twitch
 
-import (
-	"net"
-)
-
 type connection struct {
 	isActive  tAtomBool
-	conn      *net.Conn
 	channels  []string
 	reconnect chanCloser
 	// read is the incoming messages channel, normally buffered with ReadBufferSize
@@ -56,11 +51,6 @@ func (c *connection) StartParser(handleLine func(line string) error) error {
 	}
 }
 
-func (c *connection) send(line string) bool {
-	select {
-	case c.write <- line:
-		return true
-	default:
-		return false
-	}
+func (c *connection) send(line string) {
+	c.write <- line
 }

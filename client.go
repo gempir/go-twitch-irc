@@ -543,7 +543,7 @@ func (c *Client) OnPingSent(callback func()) {
 func (c *Client) Say(channel, text string) {
 	channel = strings.ToLower(channel)
 
-	conn := c.getWriteConnection(channel)
+	conn := c.getWriteConnection()
 	conn.send(fmt.Sprintf("PRIVMSG #%s :%s", channel, text))
 }
 
@@ -552,7 +552,7 @@ func (c *Client) Say(channel, text string) {
 // so your message might get blocked because of this
 // verify your bot to prevent this
 func (c *Client) Whisper(username, text string) {
-	conn := c.getWriteConnection("")
+	conn := c.getWriteConnection()
 	conn.send(fmt.Sprintf("PRIVMSG #%s :/w %s %s", c.ircUser, username, text))
 }
 
@@ -590,7 +590,7 @@ func (c *Client) getNonFilledConnection() *connection {
 	return connection
 }
 
-func (c *Client) getWriteConnection(targetChannel string) *connection {
+func (c *Client) getWriteConnection() *connection {
 	for _, connection := range c.connections {
 		if connection.isActive.get() {
 			return connection
@@ -646,7 +646,7 @@ func createJoinMessages(joinedChannels map[string]bool, channels ...string) ([]s
 
 // Depart leave a twitch channel
 func (c *Client) Depart(channel string) {
-	conn := c.getWriteConnection(channel)
+	conn := c.getWriteConnection()
 	if conn.isActive.get() {
 		go conn.send(fmt.Sprintf("PART #%s", channel))
 	}
@@ -682,7 +682,7 @@ func (c *Client) Connect() error {
 
 		default:
 			for {
-				// idk do stuff
+				time.Sleep(time.Second)
 			}
 		}
 	}
@@ -731,13 +731,12 @@ func (c *Client) makeConnection() (*connection, error) {
 	wg.Add(1)
 	go c.startReader(conn, &wg, connection)
 
-	// if c.SendPings {
-	// 	// If SendPings is true (which it is by default), start the thread
-	// 	// responsible for managing sending pings and reading pongs
-	// 	// in a separate go-routine
-	// 	wg.Add(1)
-	// 	c.startPinger(conn, &wg, connection)
-	// }
+	if c.SendPings {
+		// If SendPings is true (which it is by default), start the thread
+		// responsible for managing sending pings and reading pongs
+		// in a separate go-routine
+		c.startPinger(conn, connection)
+	}
 
 	// Send the initial connection messages (like logging in, getting the CAP REQ stuff)
 	c.setupConnection(conn)
@@ -810,14 +809,10 @@ func (c *Client) startReader(reader io.Reader, wg *sync.WaitGroup, connection *c
 	}
 }
 
-func (c *Client) startPinger(closer io.Closer, wg *sync.WaitGroup, connection *connection) {
+func (c *Client) startPinger(closer io.Closer, connection *connection) {
 	c.pongReceived = make(chan bool, 1)
 
 	go func() {
-		defer func() {
-			wg.Done()
-		}()
-
 		for {
 			select {
 			case <-connection.reconnect.channel:
