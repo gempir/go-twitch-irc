@@ -1104,6 +1104,14 @@ func (c *Client) handlePongMessage(msg PongMessage) {
 	}
 }
 
+func (c *Client) RestrictChatForFollowers(channel string, duration string) {
+	c.Say(channel, "/followers "+duration)
+}
+
+func (c *Client) AllowChatForEverybody(channel string) {
+	c.Say(channel, "/followersoff")
+}
+
 // chanCloser is a helper function for abusing channels for notifications
 // this is an easy "notify many" channel
 type chanCloser struct {
