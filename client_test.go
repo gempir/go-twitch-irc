@@ -1094,7 +1094,7 @@ func TestCanJoinChannel(t *testing.T) {
 	assertStringsEqual(t, "JOIN #gempir", receivedMsg)
 }
 
-func TestCanRestrictChatForFollowers(t *testing.T) {
+func TestCanRunFollowersOn(t *testing.T) {
 	t.Parallel()
 
 	waitEnd := make(chan struct{})
@@ -1110,7 +1110,7 @@ func TestCanRestrictChatForFollowers(t *testing.T) {
 	client := newTestClient(host)
 
 	client.OnConnect(func() {
-		client.RestrictChatForFollowers("gempiR", "30m")
+		client.FollowersOn("gempiR", "30m")
 	})
 
 	go client.Connect()
@@ -1125,7 +1125,7 @@ func TestCanRestrictChatForFollowers(t *testing.T) {
 	assertStringsEqual(t, "PRIVMSG #gempir :/followers 30m", received)
 }
 
-func TestCanAllowChatForEverybody(t *testing.T) {
+func TestCanRunFollowersOff(t *testing.T) {
 	t.Parallel()
 
 	waitEnd := make(chan struct{})
@@ -1141,7 +1141,7 @@ func TestCanAllowChatForEverybody(t *testing.T) {
 	client := newTestClient(host)
 
 	client.OnConnect(func() {
-		client.AllowChatForEverybody("gempiR")
+		client.FollowersOff("gempiR")
 	})
 
 	go client.Connect()

@@ -585,6 +585,16 @@ func (c *Client) Join(channels ...string) {
 	c.channelsMtx.Unlock()
 }
 
+// FollowersOn run twitch command `/followers` with the given channel and duration in argument
+func (c *Client) FollowersOn(channel, duration string) {
+	c.Say(channel, "/followers "+duration)
+}
+
+// FollowersOn run twitch command `/followersoff` with the given channel in argument
+func (c *Client) FollowersOff(channel string) {
+	c.Say(channel, "/followersoff")
+}
+
 // Creates an irc join message to join the given channels.
 //
 // Returns the join message, any channels included in the join message,
@@ -1102,14 +1112,6 @@ func (c *Client) handlePongMessage(msg PongMessage) {
 		default:
 		}
 	}
-}
-
-func (c *Client) RestrictChatForFollowers(channel string, duration string) {
-	c.Say(channel, "/followers "+duration)
-}
-
-func (c *Client) AllowChatForEverybody(channel string) {
-	c.Say(channel, "/followersoff")
 }
 
 // chanCloser is a helper function for abusing channels for notifications
