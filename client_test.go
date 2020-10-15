@@ -1113,7 +1113,7 @@ func TestCanRunFollowersOn(t *testing.T) {
 		client.FollowersOn("gempiR", "30m")
 	})
 
-	go client.Connect()
+	go client.Connect() //nolint
 
 	// wait for server to receive message
 	select {
@@ -1144,7 +1144,7 @@ func TestCanRunFollowersOff(t *testing.T) {
 		client.FollowersOff("gempiR")
 	})
 
-	go client.Connect()
+	go client.Connect() //nolint
 
 	// wait for server to receive message
 	select {
