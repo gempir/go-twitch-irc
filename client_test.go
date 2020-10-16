@@ -1094,6 +1094,68 @@ func TestCanJoinChannel(t *testing.T) {
 	assertStringsEqual(t, "JOIN #gempir", receivedMsg)
 }
 
+func TestCanRunFollowersOn(t *testing.T) {
+	t.Parallel()
+
+	waitEnd := make(chan struct{})
+	var received string
+
+	host := startServer(t, nothingOnConnect, func(message string) {
+		if strings.HasPrefix(message, "PRIVMSG") {
+			received = message
+			close(waitEnd)
+		}
+	})
+
+	client := newTestClient(host)
+
+	client.OnConnect(func() {
+		client.FollowersOn("gempiR", "30m")
+	})
+
+	go client.Connect() //nolint
+
+	// wait for server to receive message
+	select {
+	case <-waitEnd:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no privmsg received")
+	}
+
+	assertStringsEqual(t, "PRIVMSG #gempir :/followers 30m", received)
+}
+
+func TestCanRunFollowersOff(t *testing.T) {
+	t.Parallel()
+
+	waitEnd := make(chan struct{})
+	var received string
+
+	host := startServer(t, nothingOnConnect, func(message string) {
+		if strings.HasPrefix(message, "PRIVMSG") {
+			received = message
+			close(waitEnd)
+		}
+	})
+
+	client := newTestClient(host)
+
+	client.OnConnect(func() {
+		client.FollowersOff("gempiR")
+	})
+
+	go client.Connect() //nolint
+
+	// wait for server to receive message
+	select {
+	case <-waitEnd:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no privmsg received")
+	}
+
+	assertStringsEqual(t, "PRIVMSG #gempir :/followersoff", received)
+}
+
 func TestCanJoinChannelAfterConnection(t *testing.T) {
 	t.Parallel()
 	waitEnd := make(chan struct{})
