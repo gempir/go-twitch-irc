@@ -1022,7 +1022,8 @@ func TestCanSayMessage(t *testing.T) {
 	client := newTestClient(host)
 
 	client.OnConnect(func() {
-		client.Say("gempir", testMessage)
+		client.Join("gempirTestCanSayMessage")
+		client.Say("gempirTestCanSayMessage", testMessage)
 	})
 
 	go client.Connect()
@@ -1034,7 +1035,7 @@ func TestCanSayMessage(t *testing.T) {
 		t.Fatal("no privmsg received")
 	}
 
-	assertStringsEqual(t, "PRIVMSG #gempir :"+testMessage, received)
+	assertStringsEqual(t, "PRIVMSG #gempirtestcansaymessage :"+testMessage, received)
 }
 
 func TestCanWhisperMessage(t *testing.T) {
@@ -1080,7 +1081,7 @@ func TestCanJoinChannel(t *testing.T) {
 
 	client := newTestClient(host)
 
-	client.Join("gempiR")
+	client.Join("gempiRTestCanJoinChannel")
 
 	go client.Connect()
 
@@ -1091,7 +1092,7 @@ func TestCanJoinChannel(t *testing.T) {
 		t.Fatal("no join message received")
 	}
 
-	assertStringsEqual(t, "JOIN #gempir", receivedMsg)
+	assertStringsEqual(t, "JOIN #gempirtestcanjoinchannel", receivedMsg)
 }
 
 func TestCanRunFollowersOn(t *testing.T) {
@@ -1109,8 +1110,9 @@ func TestCanRunFollowersOn(t *testing.T) {
 
 	client := newTestClient(host)
 
+	client.Join("gempirtestcanrunfollowerson")
 	client.OnConnect(func() {
-		client.FollowersOn("gempiR", "30m")
+		client.FollowersOn("gempirtestcanrunfollowerson", "30m")
 	})
 
 	go client.Connect() //nolint
@@ -1122,7 +1124,7 @@ func TestCanRunFollowersOn(t *testing.T) {
 		t.Fatal("no privmsg received")
 	}
 
-	assertStringsEqual(t, "PRIVMSG #gempir :/followers 30m", received)
+	assertStringsEqual(t, "PRIVMSG #gempirtestcanrunfollowerson :/followers 30m", received)
 }
 
 func TestCanRunFollowersOff(t *testing.T) {
@@ -1140,8 +1142,9 @@ func TestCanRunFollowersOff(t *testing.T) {
 
 	client := newTestClient(host)
 
+	client.Join("gempirtestcanrunfollowersoff")
 	client.OnConnect(func() {
-		client.FollowersOff("gempiR")
+		client.FollowersOff("gempirtestcanrunfollowersoff")
 	})
 
 	go client.Connect() //nolint
@@ -1153,7 +1156,7 @@ func TestCanRunFollowersOff(t *testing.T) {
 		t.Fatal("no privmsg received")
 	}
 
-	assertStringsEqual(t, "PRIVMSG #gempir :/followersoff", received)
+	assertStringsEqual(t, "PRIVMSG #gempirtestcanrunfollowersoff :/followersoff", received)
 }
 
 func TestCanJoinChannelAfterConnection(t *testing.T) {
@@ -1175,7 +1178,7 @@ func TestCanJoinChannelAfterConnection(t *testing.T) {
 	for !client.connActive.get() {
 		time.Sleep(time.Millisecond * 2)
 	}
-	client.Join("gempir")
+	client.Join("gempirTestCanJoinChannelAfterConnection")
 
 	// wait for server to receive message
 	select {
@@ -1184,7 +1187,7 @@ func TestCanJoinChannelAfterConnection(t *testing.T) {
 		t.Fatal("no join message received")
 	}
 
-	assertStringsEqual(t, "JOIN #gempir", receivedMsg)
+	assertStringsEqual(t, "JOIN #gempirtestcanjoinchannelafterconnection", receivedMsg)
 }
 
 func TestCanDepartChannel(t *testing.T) {
@@ -1296,8 +1299,8 @@ func TestDepartNegatesJoinIfNotConnected(t *testing.T) {
 
 	client := newTestClient(host)
 
-	client.Join("gempir")
-	client.Depart("gempir")
+	client.Join("gempirtestdepartnegatesjoinifnotconnected")
+	client.Depart("gempirtestdepartnegatesjoinifnotconnected")
 
 	go client.Connect()
 
@@ -1987,7 +1990,7 @@ func TestRejoinOnReconnect(t *testing.T) {
 
 	client := newTestClient(host)
 
-	client.Join("gempiR")
+	client.Join("gempiRTestRejoinOnReconnect")
 
 	go client.Connect()
 
@@ -1999,7 +2002,7 @@ func TestRejoinOnReconnect(t *testing.T) {
 	}
 
 	// Server received first JOIN message
-	assertStringsEqual(t, "JOIN #gempir", receivedMsg)
+	assertStringsEqual(t, "JOIN #gempirtestrejoinonreconnect", receivedMsg)
 
 	receivedMsg = ""
 
@@ -2013,11 +2016,12 @@ func TestRejoinOnReconnect(t *testing.T) {
 	select {
 	case <-waitEnd:
 	case <-time.After(time.Second * 3):
+		//TODO determine why this is nondeterministic and sometimes errors
 		t.Fatal("no join message received 2")
 	}
 
 	// Server received second JOIN message
-	assertStringsEqual(t, "JOIN #gempir", receivedMsg)
+	assertStringsEqual(t, "JOIN #gempirtestrejoinonreconnect", receivedMsg)
 }
 
 func TestCapabilities(t *testing.T) {

@@ -2,6 +2,7 @@ package twitch
 
 import (
 	"bufio"
+	"container/list"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -29,6 +30,39 @@ const (
 
 	// MembershipCapability for Twitch's Membership capabilities, see https://dev.twitch.tv/docs/irc/membership
 	MembershipCapability = "twitch.tv/membership"
+)
+
+const (
+	//Ratelimit time constants
+
+	//IgnoreRatelimit is the default, and is set when the
+	IgnoreRatelimit = time.Second * 0
+
+	//UnknownBotSay is the time between message sending for non operator/moderator bots (20 per 30 seconds)
+	UnknownBotSay = time.Millisecond * 1500
+	//ModeratorBotSay is the time between message sending for operator/moderator bots (100 per 30 seconds where mod/opperator.)
+	ModeratorBotSay = time.Millisecond * 300
+
+	//UnknownBotWhisper is the time between whispers for unknown bots (100 per minute)
+	UnknownBotWhisper = time.Millisecond * 600
+	//KnownBotWhisper is the time between whispers for known bots (200 per minute)
+	KnownBotWhisper = time.Millisecond * 300
+	//VerifiedBotWhisper is the time between whispers for verified bots (1200 per minute)
+	VerifiedBotWhisper = time.Millisecond * 50
+
+	//UnknownBotJoin is the time between whispers for verified bots (20 per 10 seconds)
+	UnknownBotJoin = time.Millisecond * 500
+	//KnownBotJoin is the time between whispers for verified bots (20 per 10 seconds)
+	KnownBotJoin = time.Millisecond * 500
+	//VerifiedBotJoin is the time between whispers for verified bots (2000 per 10 seconds)
+	VerifiedBotJoin = time.Millisecond * 5
+
+	//UnknownBotAuth is the time between authenticate attempts for verified bots (20 per 10 seconds)
+	UnknownBotAuth = time.Millisecond * 500
+	//KnownBotAuth is the time between authenticate attempts for verified bots (20 per 10 seconds)
+	KnownBotAuth = time.Millisecond * 500
+	//VerifiedBotAuth is the time between authenticate attempts for verified bots (200 per 10 seconds)
+	VerifiedBotAuth = time.Millisecond * 50
 )
 
 var (
@@ -425,11 +459,33 @@ type Client struct {
 	// By default, this is all caps (Tags, Commands, Membership)
 	// If this is an empty list or nil, no CAP REQ message is sent at all
 	Capabilities []string
+
+	//whisperRateLimit is the ratelimit used for private whispers.
+	whisperRatelimit time.Duration
+	//joinRatelimit is the ratelimit used for join to channel requests.
+	joinRateLimit time.Duration
+	//sayBaseRateLimit is the ratelimit used for normal messages in channels where not a moderator or operator.
+	sayRateLimit time.Duration
+	//sayModRateLimit is the ratelimit used for normal messages in channels where a moderator or operator.
+	sayModRateLimit time.Duration
+	//authRateLimit is the ratelimit used for authorization requests.
+	authRateLimit time.Duration
+
+	//lists used to buffer the different requests
+	//whisperLimiter is the list used to track the different whisper requests.
+	whisperLimiter *RateLimiter
+	//joinLimiter is the list used to track the different join requests.
+	joinLimiter *RateLimiter
+	//sayLimiters is the map of list used to track the different messages in each channel.
+	sayLimiters map[string]*RateLimiter
+	//authLimiter is the list used to track the different auth requests.
+	authLimiter *RateLimiter
 }
 
 // NewClient to create a new client
 func NewClient(username, oauth string) *Client {
-	return &Client{
+
+	c := &Client{
 		ircUser:         username,
 		ircToken:        oauth,
 		TLS:             true,
@@ -449,7 +505,41 @@ func NewClient(username, oauth string) *Client {
 		channelUserlistMutex: &sync.RWMutex{},
 
 		Capabilities: DefaultCapabilities,
+
+		//Ratelimit stuff
+		whisperRatelimit: UnknownBotWhisper,
+		joinRateLimit:    UnknownBotJoin,
+		sayRateLimit:     UnknownBotSay,
+		sayModRateLimit:  ModeratorBotSay,
+		authRateLimit:    UnknownBotWhisper,
+
+		//lists used to buffer the different requests
+		//whisperLimiter is the list used to track the different whisper requests.
+		whisperLimiter: &RateLimiter{
+			messages:      &list.List{},
+			isMod:         false,
+			messageChanel: make(chan string),
+			tickerRunning: true,
+		},
+		//joinLimiter is the list used to track the different join requests.
+		joinLimiter: &RateLimiter{
+			messages:      &list.List{},
+			isMod:         false,
+			messageChanel: make(chan string),
+			tickerRunning: true,
+		},
+		//sayLimiters is the map of list used to track the different messages in each channel.
+		sayLimiters: make(map[string]*RateLimiter),
+		//authLimiter is the list used to track the different auth requests.
+		authLimiter: &RateLimiter{
+			messages:      &list.List{},
+			isMod:         false,
+			messageChanel: make(chan string),
+			tickerRunning: true,
+		},
 	}
+
+	return c
 }
 
 // NewAnonymousClient to create a new client without login requirements (anonymous user)
@@ -552,7 +642,12 @@ func (c *Client) OnPingSent(callback func()) {
 func (c *Client) Say(channel, text string) {
 	channel = strings.ToLower(channel)
 
-	c.send(fmt.Sprintf("PRIVMSG #%s :%s", channel, text))
+	tracker, ok := c.sayLimiters[channel]
+
+	if ok {
+		tracker.messageChanel <- fmt.Sprintf("PRIVMSG #%s :%s", channel, text)
+	}
+
 }
 
 // Whisper write something in private to someone on twitch
@@ -560,7 +655,7 @@ func (c *Client) Say(channel, text string) {
 // so your message might get blocked because of this
 // verify your bot to prevent this
 func (c *Client) Whisper(username, text string) {
-	c.send(fmt.Sprintf("PRIVMSG #%s :/w %s %s", c.ircUser, username, text))
+	c.whisperLimiter.messageChanel <- fmt.Sprintf("PRIVMSG #%s :/w %s %s", c.ircUser, username, text)
 }
 
 // Join enter a twitch channel to read more messages.
@@ -572,7 +667,7 @@ func (c *Client) Join(channels ...string) {
 	c.channelsMtx.Lock()
 	for _, message := range messages {
 		if c.connActive.get() {
-			go c.send(message)
+			c.joinLimiter.messageChanel <- message
 		}
 	}
 
@@ -580,6 +675,20 @@ func (c *Client) Join(channels ...string) {
 		c.channels[channel] = c.connActive.get()
 		c.channelUserlistMutex.Lock()
 		c.channelUserlist[channel] = map[string]bool{}
+		//Create Ratelimit Tracker
+		r := &RateLimiter{
+			messages:      &list.List{},
+			isMod:         false,
+			messageChanel: make(chan string),
+			tickerRunning: true,
+		}
+
+		//mod or not, set to unknown.
+		//TODO get mod status from join response.
+		r.startTracker(UnknownBotSay)
+
+		c.sayLimiters[channel] = r
+		go c.sayMiddleware(channel)
 		c.channelUserlistMutex.Unlock()
 	}
 	c.channelsMtx.Unlock()
@@ -590,7 +699,7 @@ func (c *Client) FollowersOn(channel, duration string) {
 	c.Say(channel, "/followers "+duration)
 }
 
-// FollowersOn run twitch command `/followersoff` with the given channel in argument
+// FollowersOff run twitch command `/followersoff` with the given channel in argument
 func (c *Client) FollowersOff(channel string) {
 	c.Say(channel, "/followersoff")
 }
@@ -646,6 +755,11 @@ func (c *Client) Depart(channel string) {
 	delete(c.channels, channel)
 	c.channelUserlistMutex.Lock()
 	delete(c.channelUserlist, channel)
+	tracker, ok := c.sayLimiters[channel]
+	if ok {
+		tracker.stopTracker()
+		delete(c.sayLimiters, channel)
+	}
 	c.channelUserlistMutex.Unlock()
 	c.channelsMtx.Unlock()
 }
@@ -655,6 +769,7 @@ func (c *Client) Disconnect() error {
 	if !c.connActive.get() {
 		return ErrConnectionIsNotOpen
 	}
+	go c.stopMiddlewares()
 
 	c.userDisconnect.Close()
 
@@ -683,6 +798,7 @@ func (c *Client) Connect() error {
 		conf = &tls.Config{}
 	}
 
+	c.startMiddlewares()
 	for {
 		err := c.makeConnection(dialer, conf)
 
