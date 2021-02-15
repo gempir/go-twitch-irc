@@ -1098,7 +1098,7 @@ func (c *Client) handleLine(line string) error {
 			} else {
 				c.vipsMtx.RUnlock()
 			}
-		} else if msg.MsgID == "mods_success" {
+		} else if msg.MsgID == "room_mods" {
 			c.modsMtx.RLock()
 			if v, ok := c.modsChan[msg.Channel]; ok {
 				c.modsMtx.RUnlock()
