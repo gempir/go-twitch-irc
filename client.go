@@ -696,7 +696,8 @@ func (c *Client) GetMods(channel string) []string {
 
 	// "The moderators of this channel are: " is 36 characters
 	content := msg.Message[36:]
-	return strings.Split(content[:len(content)-1], ", ")
+	// nice to know that the output at the end of `/mods` doesnt contain a fullstop where as the `/vips` command output contains a fullstop.
+	return strings.Split(content, ", ")
 }
 
 // Creates an irc join message to join the given channels.
