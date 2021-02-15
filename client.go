@@ -649,7 +649,7 @@ func (c *Client) GetVips(channel string) []string {
 		return []string{}
 	}
 
-	//"The VIPs of this channel are: " is 30 characters
+	// "The VIPs of this channel are: " is 30 characters
 	content := msg.Message[30:]
 	return strings.Split(content[:len(content)-1], ", ")
 }
@@ -694,7 +694,7 @@ func (c *Client) GetMods(channel string) []string {
 		return []string{}
 	}
 
-	//"The moderators of this channel are: " is 36 characters
+	// "The moderators of this channel are: " is 36 characters
 	content := msg.Message[36:]
 	return strings.Split(content[:len(content)-1], ", ")
 }
@@ -1111,7 +1111,6 @@ func (c *Client) handleLine(line string) error {
 			} else {
 				c.modsMtx.RUnlock()
 			}
-
 		}
 		if c.onNoticeMessage != nil {
 			c.onNoticeMessage(*msg)
