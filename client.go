@@ -356,6 +356,12 @@ func (msg *PongMessage) GetType() MessageType {
 	return msg.Type
 }
 
+type noticeCallback struct {
+	chans    []chan NoticeMessage
+	mutex    *sync.Mutex
+	finished bool
+}
+
 // Client client to control your connection and attach callbacks
 type Client struct {
 	IrcAddress               string
@@ -367,6 +373,10 @@ type Client struct {
 	channelUserlistMutex     *sync.RWMutex
 	channelUserlist          map[string]map[string]bool
 	channelsMtx              *sync.RWMutex
+	vipsChan                 map[string]*noticeCallback
+	vipsMtx                  *sync.RWMutex
+	modsChan                 map[string]*noticeCallback
+	modsMtx                  *sync.RWMutex
 	onConnect                func()
 	onWhisperMessage         func(message WhisperMessage)
 	onPrivateMessage         func(message PrivateMessage)
@@ -436,6 +446,10 @@ func NewClient(username, oauth string) *Client {
 		channels:        map[string]bool{},
 		channelUserlist: map[string]map[string]bool{},
 		channelsMtx:     &sync.RWMutex{},
+		vipsChan:        map[string]*noticeCallback{},
+		vipsMtx:         &sync.RWMutex{},
+		modsChan:        map[string]*noticeCallback{},
+		modsMtx:         &sync.RWMutex{},
 		messageReceived: make(chan bool),
 
 		read:  make(chan string, ReadBufferSize),
@@ -593,6 +607,96 @@ func (c *Client) FollowersOn(channel, duration string) {
 // FollowersOn run twitch command `/followersoff` with the given channel in argument
 func (c *Client) FollowersOff(channel string) {
 	c.Say(channel, "/followersoff")
+}
+
+// GetVips run twitch command `/vips` with the given channel in argument and returns a string slice of all vips
+func (c *Client) GetVips(channel string) []string {
+	channel = strings.ToLower(channel)
+	ch := make(chan NoticeMessage)
+	makeNew := true
+
+	defer func() {
+		close(ch)
+		if makeNew {
+			c.vipsMtx.Lock()
+			delete(c.vipsChan, channel)
+			c.vipsMtx.Unlock()
+		}
+	}()
+
+	c.vipsMtx.RLock()
+	if v, ok := c.vipsChan[channel]; ok {
+		v.mutex.Lock()
+		if !v.finished {
+			v.chans = append(v.chans, ch)
+			makeNew = false
+		}
+		v.mutex.Unlock()
+	}
+	c.vipsMtx.RUnlock()
+	if makeNew {
+		c.vipsMtx.Lock()
+		c.vipsChan[channel] = &noticeCallback{
+			chans: []chan NoticeMessage{ch},
+			mutex: &sync.Mutex{},
+		}
+		c.vipsMtx.Unlock()
+		c.Say(channel, "/vips")
+	}
+
+	msg := <-ch
+	if msg.Message == "This channel does not have any VIPs." {
+		return []string{}
+	}
+
+	//"The VIPs of this channel are: " is 30 characters
+	content := msg.Message[30:]
+	return strings.Split(content[:len(content)-1], ", ")
+}
+
+// GetMods run twitch command `/mods` with the given channel in argument and returns a string slice of all mods
+func (c *Client) GetMods(channel string) []string {
+	channel = strings.ToLower(channel)
+	ch := make(chan NoticeMessage)
+	makeNew := true
+
+	defer func() {
+		close(ch)
+		if makeNew {
+			c.modsMtx.Lock()
+			delete(c.modsChan, channel)
+			c.modsMtx.Unlock()
+		}
+	}()
+
+	c.modsMtx.RLock()
+	if v, ok := c.modsChan[channel]; ok {
+		v.mutex.Lock()
+		if !v.finished {
+			v.chans = append(v.chans, ch)
+			makeNew = false
+		}
+		v.mutex.Unlock()
+	}
+	c.modsMtx.RUnlock()
+	if makeNew {
+		c.modsMtx.Lock()
+		c.modsChan[channel] = &noticeCallback{
+			chans: []chan NoticeMessage{ch},
+			mutex: &sync.Mutex{},
+		}
+		c.modsMtx.Unlock()
+		c.Say(channel, "/mods")
+	}
+
+	msg := <-ch
+	if msg.Message == "There are no moderators of this channel." {
+		return []string{}
+	}
+
+	//"The moderators of this channel are: " is 36 characters
+	content := msg.Message[36:]
+	return strings.Split(content[:len(content)-1], ", ")
 }
 
 // Creates an irc join message to join the given channels.
@@ -981,6 +1085,34 @@ func (c *Client) handleLine(line string) error {
 		return nil
 
 	case *NoticeMessage:
+		if msg.MsgID == "vips_success" {
+			c.vipsMtx.RLock()
+			if v, ok := c.vipsChan[msg.Channel]; ok {
+				c.vipsMtx.RUnlock()
+				v.mutex.Lock()
+				v.finished = true
+				for _, ch := range v.chans {
+					ch <- *msg
+				}
+				v.mutex.Unlock()
+			} else {
+				c.vipsMtx.RUnlock()
+			}
+		} else if msg.MsgID == "mods_success" {
+			c.modsMtx.RLock()
+			if v, ok := c.modsChan[msg.Channel]; ok {
+				c.modsMtx.RUnlock()
+				v.mutex.Lock()
+				v.finished = true
+				for _, ch := range v.chans {
+					ch <- *msg
+				}
+				v.mutex.Unlock()
+			} else {
+				c.modsMtx.RUnlock()
+			}
+
+		}
 		if c.onNoticeMessage != nil {
 			c.onNoticeMessage(*msg)
 		}
