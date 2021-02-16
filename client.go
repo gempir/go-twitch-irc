@@ -612,6 +612,21 @@ func (c *Client) FollowersOff(channel string) {
 	c.Say(channel, "/followersoff")
 }
 
+func parseVipsOrModsMsg(content string) []string {
+	// "The VIPs of this channel are: " is 30 characters
+	index := strings.IndexRune(content, ':')
+	if index == -1 {
+		// As far as i know, doing len(nil) or for range nil both work, and then allows to check if there are mods/vips with `!= nil` .
+		// https://play.golang.org/p/aksShsaJe3o
+		return nil
+	}
+	content = strings.Trim(content[index:], " ")
+	if content[len(content)-1] == '.' {
+		content = content[:len(content)-1]
+	}
+	return strings.Split(content, ", ")
+}
+
 // GetVips run twitch command `/vips` with the given channel in argument and returns a string slice of all vips
 func (c *Client) GetVips(channel string, timeout time.Duration) ([]string, error) {
 	// make sure the channel is always lowercase to prevent duplicate entries in the map.
@@ -678,15 +693,7 @@ func (c *Client) GetVips(channel string, timeout time.Duration) ([]string, error
 		}
 	}
 
-	if msg.Message == "This channel does not have any VIPs." {
-		return []string{}, nil
-	}
-	// "The VIPs of this channel are: " is 30 characters
-	content := strings.Trim(msg.Message[strings.IndexRune(msg.Message, ':'):], " ")
-	if content[len(content)-1] == '.' {
-		content = content[:len(content)-1]
-	}
-	return strings.Split(content, ", "), nil
+	return parseVipsOrModsMsg(msg.Message), nil
 }
 
 // GetMods run twitch command `/mods` with the given channel in argument and returns a string slice of all mods
@@ -755,17 +762,7 @@ func (c *Client) GetMods(channel string, timeout time.Duration) ([]string, error
 		}
 	}
 
-	if msg.Message == "There are no moderators of this channel." {
-		return []string{}, nil
-	}
-
-	// "The moderators of this channel are: " is 36 characters
-	content := strings.Trim(msg.Message[strings.IndexRune(msg.Message, ':'):], " ")
-	if content[len(content)-1] == '.' {
-		content = content[:len(content)-1]
-	}
-	// nice to know that the output at the end of `/mods` doesnt contain a fullstop where as the `/vips` command output does contains a fullstop.
-	return strings.Split(content, ", "), nil
+	return parseVipsOrModsMsg(msg.Message), nil
 }
 
 // Creates an irc join message to join the given channels.
