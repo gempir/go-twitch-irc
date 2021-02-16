@@ -618,7 +618,7 @@ func parseVipsOrModsMsg(content string) []string {
 		// https://play.golang.org/p/2LNyI4GbQuh
 		return nil
 	}
-	content = strings.Trim(content[index:], " ")
+	content = strings.Trim(content[index+1:], " ")
 	if content[len(content)-1] == '.' {
 		content = content[:len(content)-1]
 	}
