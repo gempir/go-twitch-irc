@@ -613,11 +613,9 @@ func (c *Client) FollowersOff(channel string) {
 }
 
 func parseVipsOrModsMsg(content string) []string {
-	// "The VIPs of this channel are: " is 30 characters
 	index := strings.IndexRune(content, ':')
 	if index == -1 {
-		// As far as i know, doing len(nil) or for range nil both work, and then allows to check if there are mods/vips with `!= nil` .
-		// https://play.golang.org/p/aksShsaJe3o
+		// https://play.golang.org/p/2LNyI4GbQuh
 		return nil
 	}
 	content = strings.Trim(content[index:], " ")
