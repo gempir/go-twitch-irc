@@ -682,8 +682,11 @@ func (c *Client) GetVips(channel string, timeout time.Duration) ([]string, error
 		return []string{}, nil
 	}
 	// "The VIPs of this channel are: " is 30 characters
-	content := msg.Message[30:]
-	return strings.Split(content[:len(content)-1], ", "), nil
+	content := strings.Trim(msg.Message[strings.IndexRune(msg.Message, ':'):], " ")
+	if content[len(content)-1] == '.' {
+		content = content[:len(content)-1]
+	}
+	return strings.Split(content, ", "), nil
 }
 
 // GetMods run twitch command `/mods` with the given channel in argument and returns a string slice of all mods
@@ -757,7 +760,10 @@ func (c *Client) GetMods(channel string, timeout time.Duration) ([]string, error
 	}
 
 	// "The moderators of this channel are: " is 36 characters
-	content := msg.Message[36:]
+	content := strings.Trim(msg.Message[strings.IndexRune(msg.Message, ':'):], " ")
+	if content[len(content)-1] == '.' {
+		content = content[:len(content)-1]
+	}
 	// nice to know that the output at the end of `/mods` doesnt contain a fullstop where as the `/vips` command output does contains a fullstop.
 	return strings.Split(content, ", "), nil
 }
