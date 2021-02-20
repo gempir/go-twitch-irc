@@ -2270,7 +2270,7 @@ func TestVipsModsParsing(t *testing.T) {
 		"komodotroy",
 	}, vips)
 
-	mods := parseVipsOrModsMsg("The moderators of this channel are: 9kmmrbot, admiralbullbot, alc4pwn, ales_, archlul, bellemiku, boro_, c00s, chaosmango, cjayride, darth_henry, datguy1, dewardalot, elaitoh, hafthorjulius, imorteus, inu_07, j_god_yamaxanadu, jakenbakelive, kazz1896, keeperofthedark123, kkonallord, laden, leffernan, litenbanana, logviewer, luesal, luffy9724, martin3_3, moobot, moonmoon, msenere, ncolt, nexev, nightbot, poncho_, prkz, prymahl, qzectbumo, roflma0, roy6651, royalfluxh, streamelements, troydota")
+	mods := parseVipsOrModsMsg("The moderators of this channel are: 9kmmrbot, admiralbullbot, alc4pwn, ales_, archlul, bellemiku, boro_, c00s, chaosmango, cjayride, darth_henry, datguy1, dewardalot, elaitoh, hafthorjulius, imorteus, inu_07, j_god_yamaxanadu, jakenbakelive, kazz1896, keeperofthedark123, kkonallord, laden, leffernan, litenbanana, logviewer, luesal, luffy9724, martin3_3, moobot, moonmoon, msenere, ncolt, nexev, nightbot, poncho_")
 	assertStringSlicesEqual(t, []string{
 		"9kmmrbot",
 		"admiralbullbot",
@@ -2308,14 +2308,6 @@ func TestVipsModsParsing(t *testing.T) {
 		"nexev",
 		"nightbot",
 		"poncho_",
-		"prkz",
-		"prymahl",
-		"qzectbumo",
-		"roflma0",
-		"roy6651",
-		"royalfluxh",
-		"streamelements",
-		"troydota",
 	}, mods)
 
 	vips = parseVipsOrModsMsg("This channel does not have any VIPs.")
