@@ -2217,7 +2217,7 @@ func TestVipsModsRequest(t *testing.T) {
 }
 
 func TestVipsModsParsing(t *testing.T) {
-	vips := parseVipsOrModsMsg("The VIPs of this channel are: 2gd, 39daph, abfnggshka, alicexz, alliance, ambulung, anele, arikkona, attackerdota, b0b3rman, bbf_, blackdotatv, blastupald, bookinator_, bububu, buttersomg, canceldota, chad912, chaoootic, chenpokomon, conrad, cyborgmatt, cycycy, darcco_, devonanimation, diaframps, djdoto, dotademon, drewbnewbie, fogged, fribergcs, garter, gde_i_kogda, gilgir, gorgc, graidl, gumanoid29, healingslave, imjasmine, invokergirl, ivi_ag_ivi, jimmydorry, just9n, kaiisytv, kellymilkies, kenokungen, khezu, knut, komodotroy, lacari, ladythatcher.")
+	vips := parseVipsOrModsMsg("The VIPs of this channel are: 2gd, 39daph, abfnggshka, alicexz, alliance, ambulung, anele, arikkona, attackerdota, b0b3rman, bbf_, blackdotatv, blastupald, bookinator_, bububu, buttersomg, canceldota, chad912, chaoootic, chenpokomon, conrad, cyborgmatt, cycycy, darcco_, devonanimation, diaframps, djdoto, dotademon, drewbnewbie, fogged, fribergcs, garter, gde_i_kogda, gilgir, gorgc, graidl, gumanoid29, healingslave, imjasmine, invokergirl, ivi_ag_ivi, jimmydorry, just9n, kaiisytv, kellymilkies, kenokungen, khezu, knut, komodotroy.")
 	assertStringSlicesEqual(t, []string{
 		"2gd",
 		"39daph",
@@ -2268,11 +2268,9 @@ func TestVipsModsParsing(t *testing.T) {
 		"khezu",
 		"knut",
 		"komodotroy",
-		"lacari",
-		"ladythatcher",
 	}, vips)
 
-	mods := parseVipsOrModsMsg("The moderators of this channel are: 9kmmrbot, admiralbullbot, alc4pwn, ales_, archlul, bellemiku, boro_, c00s, chaosmango, cjayride, darth_henry, datguy1, dewardalot, elaitoh, hafthorjulius, imorteus, inu_07, j_god_yamaxanadu, jakenbakelive, kazz1896, keeperofthedark123, kkonallord, laden, leffernan, litenbanana, logviewer, luesal, luffy9724, martin3_3, moobot, moonmoon, msenere, ncolt, nexev, nightbot, poncho_, prkz, prymahl, qzectbumo, roflma0, roy6651, royalfluxh, streamelements, troydota, verrk, vo1djam, wavey_d_d, welloy, wortho, xqcow, zai")
+	mods := parseVipsOrModsMsg("The moderators of this channel are: 9kmmrbot, admiralbullbot, alc4pwn, ales_, archlul, bellemiku, boro_, c00s, chaosmango, cjayride, darth_henry, datguy1, dewardalot, elaitoh, hafthorjulius, imorteus, inu_07, j_god_yamaxanadu, jakenbakelive, kazz1896, keeperofthedark123, kkonallord, laden, leffernan, litenbanana, logviewer, luesal, luffy9724, martin3_3, moobot, moonmoon, msenere, ncolt, nexev, nightbot, poncho_, prkz, prymahl, qzectbumo, roflma0, roy6651, royalfluxh, streamelements, troydota")
 	assertStringSlicesEqual(t, []string{
 		"9kmmrbot",
 		"admiralbullbot",
@@ -2318,13 +2316,6 @@ func TestVipsModsParsing(t *testing.T) {
 		"royalfluxh",
 		"streamelements",
 		"troydota",
-		"verrk",
-		"vo1djam",
-		"wavey_d_d",
-		"welloy",
-		"wortho",
-		"xqcow",
-		"zai",
 	}, mods)
 
 	vips = parseVipsOrModsMsg("This channel does not have any VIPs.")
