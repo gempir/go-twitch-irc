@@ -2165,6 +2165,7 @@ func TestEmptyCapabilities(t *testing.T) {
 func TestVipsModsRequest(t *testing.T) {
 	t.Parallel()
 	var receivedMsg string
+	var err error
 	ch := make(chan struct{})
 
 	host := startServerMultiConns(t, 2, nothingOnConnect, func(message string) {
@@ -2214,6 +2215,44 @@ func TestVipsModsRequest(t *testing.T) {
 	wg.Wait()
 
 	assertStringsEqual(t, "PRIVMSG #gempir :/mods", receivedMsg)
+
+	// time has passed and the request for the first vips should be "complete", so this request should result in a new `/vips` request.
+	receivedMsg = ""
+	ch = make(chan struct{})
+
+	_, err = client.GetVips("gEMpIR", time.Second)
+	assertErrorsEqual(t, ErrRequestTimedout, err)
+
+	<-ch
+	assertStringsEqual(t, "PRIVMSG #gempir :/vips", receivedMsg)
+
+	receivedMsg = ""
+	ch = make(chan struct{})
+
+	_, err = client.GetVips("gEMpIR", time.Second)
+	assertErrorsEqual(t, ErrRequestTimedout, err)
+
+	<-ch
+	assertStringsEqual(t, "PRIVMSG #gempir :/vips", receivedMsg)
+
+	// time has passed and the request for the first mods should be "complete", so this request should result in a new `/mods` request.
+	receivedMsg = ""
+	ch = make(chan struct{})
+
+	_, err = client.GetMods("gEMpIR", time.Second)
+	assertErrorsEqual(t, ErrRequestTimedout, err)
+
+	<-ch
+	assertStringsEqual(t, "PRIVMSG #gempir :/mods", receivedMsg)
+
+	receivedMsg = ""
+	ch = make(chan struct{})
+
+	_, err = client.GetMods("gEMpIR", time.Second)
+	assertErrorsEqual(t, ErrRequestTimedout, err)
+
+	<-ch
+	assertStringsEqual(t, "PRIVMSG #gempir :/mods", receivedMsg)
 }
 
 func TestVipsModsParsing(t *testing.T) {
@@ -2225,6 +2264,11 @@ func TestVipsModsParsing(t *testing.T) {
 		{"The moderators of this channel are: 9kmmrbot, admiralbullbot, alc4pwn, ales_, archlul, bellemiku, boro_, c00s, chaosmango, cjayride, darth_henry, datguy1, dewardalot, elaitoh, hafthorjulius, imorteus, inu_07, j_god_yamaxanadu, jakenbakelive, kazz1896, keeperofthedark123, kkonallord, laden, leffernan, litenbanana, logviewer, luesal, luffy9724, martin3_3, moobot, moonmoon, msenere, ncolt, nexev, nightbot, poncho_", []string{"9kmmrbot", "admiralbullbot", "alc4pwn", "ales_", "archlul", "bellemiku", "boro_", "c00s", "chaosmango", "cjayride", "darth_henry", "datguy1", "dewardalot", "elaitoh", "hafthorjulius", "imorteus", "inu_07", "j_god_yamaxanadu", "jakenbakelive", "kazz1896", "keeperofthedark123", "kkonallord", "laden", "leffernan", "litenbanana", "logviewer", "luesal", "luffy9724", "martin3_3", "moobot", "moonmoon", "msenere", "ncolt", "nexev", "nightbot", "poncho_"}},
 		{"This channel does not have any VIPs.", []string{}},
 		{"There are no moderators of this channel.", []string{}},
+		// its supposed to parse anything after ':'
+		{"sdkjlfkojlfdsioupsdfiojpsdfufdsjl;sdfljk;das: abc.:, abcb ", []string{"abc.:", "abcb"}},
+		{"There are no moderators of this channel.", []string{}},
+		{"The VIPs of this channel are: liltrapdog.", []string{"liltrapdog"}},
+		{"The moderators of this channel are: troydota", []string{"troydota"}},
 	}
 
 	for _, tt := range testCases {
