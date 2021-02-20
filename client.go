@@ -612,11 +612,12 @@ func (c *Client) FollowersOff(channel string) {
 	c.Say(channel, "/followersoff")
 }
 
-func parseVipsOrModsMsg(content string) []string {
+// ParseVipsOrModsMsg Parses mods and vips from the notice payload returning a string slice of vips/mods.
+func ParseVipsOrModsMsg(content string) []string {
 	index := strings.IndexRune(content, ':')
 	if index == -1 {
 		// https://play.golang.org/p/2LNyI4GbQuh
-		return nil
+		return []string{}
 	}
 	content = strings.Trim(content[index+1:], " ")
 	if content[len(content)-1] == '.' {
@@ -667,6 +668,7 @@ func (c *Client) GetVips(channel string, timeout time.Duration) ([]string, error
 			msgSet = true
 		}
 		v.mutex.Unlock()
+		callback = v
 	} else {
 		c.vipsMtx.RUnlock()
 		c.vipsMtx.Lock()
@@ -691,7 +693,7 @@ func (c *Client) GetVips(channel string, timeout time.Duration) ([]string, error
 		}
 	}
 
-	return parseVipsOrModsMsg(msg.Message), nil
+	return ParseVipsOrModsMsg(msg.Message), nil
 }
 
 // GetMods run twitch command `/mods` with the given channel in argument and returns a string slice of all mods
@@ -736,6 +738,7 @@ func (c *Client) GetMods(channel string, timeout time.Duration) ([]string, error
 			msgSet = true
 		}
 		v.mutex.Unlock()
+		callback = v
 	} else {
 		c.modsMtx.RUnlock()
 		c.modsMtx.Lock()
@@ -760,7 +763,7 @@ func (c *Client) GetMods(channel string, timeout time.Duration) ([]string, error
 		}
 	}
 
-	return parseVipsOrModsMsg(msg.Message), nil
+	return ParseVipsOrModsMsg(msg.Message), nil
 }
 
 // Creates an irc join message to join the given channels.

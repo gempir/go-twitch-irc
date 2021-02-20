@@ -2161,3 +2161,215 @@ func TestEmptyCapabilities(t *testing.T) {
 		}(tt)
 	}
 }
+
+func TestVipsModsRequest(t *testing.T) {
+	t.Parallel()
+	var receivedMsg string
+	ch := make(chan struct{})
+
+	host := startServerMultiConns(t, 2, nothingOnConnect, func(message string) {
+		if strings.HasPrefix(message, "PRIVMSG") {
+			receivedMsg = message
+			// the fact we close this and it doesnt panic means that only one message is received.
+			close(ch)
+		}
+	})
+
+	client := newTestClient(host)
+
+	go client.Connect()
+
+	wg := sync.WaitGroup{}
+
+	wg.Add(1000)
+	for i := 0; i < 1000; i++ {
+		go func() {
+			_, err := client.GetVips("gEMpIR", time.Second)
+			assertErrorsEqual(t, ErrRequestTimedout, err)
+			wg.Done()
+		}()
+	}
+
+	// wait for channel resolve before waiting on wait group because we then know the server doesnt receive the message twice.
+	<-ch
+	wg.Wait()
+
+	assertStringsEqual(t, "PRIVMSG #gempir :/vips", receivedMsg)
+
+	wg = sync.WaitGroup{}
+	receivedMsg = ""
+	ch = make(chan struct{})
+
+	wg.Add(1000)
+	for i := 0; i < 1000; i++ {
+		go func() {
+			_, err := client.GetMods("GemPir", time.Second)
+			assertErrorsEqual(t, ErrRequestTimedout, err)
+			wg.Done()
+		}()
+	}
+
+	// wait for channel resolve before waiting on wait group because we then know the server doesnt receive the message twice.
+	<-ch
+	wg.Wait()
+
+	assertStringsEqual(t, "PRIVMSG #gempir :/mods", receivedMsg)
+}
+
+func TestVipsModsParsing(t *testing.T) {
+	vips := ParseVipsOrModsMsg("The VIPs of this channel are: 2gd, 39daph, abfnggshka, alicexz, alliance, ambulung, anele, arikkona, attackerdota, b0b3rman, bbf_, blackdotatv, blastupald, bookinator_, bububu, buttersomg, canceldota, chad912, chaoootic, chenpokomon, conrad, cyborgmatt, cycycy, darcco_, devonanimation, diaframps, djdoto, dotademon, drewbnewbie, fogged, fribergcs, garter, gde_i_kogda, gilgir, gorgc, graidl, gumanoid29, healingslave, imjasmine, invokergirl, ivi_ag_ivi, jimmydorry, just9n, kaiisytv, kellymilkies, kenokungen, khezu, knut, komodotroy, lacari, ladythatcher, lara6683, lizzarddota2, luko_1, lyon0o0, m3me_fr0g, magicdonkey, magomusculoso, meruna__, moonmeander, nenenxinha, nonamedpleb, notdatguy1, odpixel, orikama, p4pita, pablogaming13, peterpandam, poisonizy, quinndota, raeyei, realbabybulldog, saiiren, shufayewong, sinistereyes, siractionslacks, sliceofbiancakes, smokegank, snakeqc, snith, starjadian, sweden, synderen, thereapo, tobiwan, topramens, vadikus007, vroksnak, whohe, wintersun_aniki, xyclopz.")
+	assertStringSlicesEqual(t, []string{
+		"2gd",
+		"39daph",
+		"abfnggshka",
+		"alicexz",
+		"alliance",
+		"ambulung",
+		"anele",
+		"arikkona",
+		"attackerdota",
+		"b0b3rman",
+		"bbf_",
+		"blackdotatv",
+		"blastupald",
+		"bookinator_",
+		"bububu",
+		"buttersomg",
+		"canceldota",
+		"chad912",
+		"chaoootic",
+		"chenpokomon",
+		"conrad",
+		"cyborgmatt",
+		"cycycy",
+		"darcco_",
+		"devonanimation",
+		"diaframps",
+		"djdoto",
+		"dotademon",
+		"drewbnewbie",
+		"fogged",
+		"fribergcs",
+		"garter",
+		"gde_i_kogda",
+		"gilgir",
+		"gorgc",
+		"graidl",
+		"gumanoid29",
+		"healingslave",
+		"imjasmine",
+		"invokergirl",
+		"ivi_ag_ivi",
+		"jimmydorry",
+		"just9n",
+		"kaiisytv",
+		"kellymilkies",
+		"kenokungen",
+		"khezu",
+		"knut",
+		"komodotroy",
+		"lacari",
+		"ladythatcher",
+		"lara6683",
+		"lizzarddota2",
+		"luko_1",
+		"lyon0o0",
+		"m3me_fr0g",
+		"magicdonkey",
+		"magomusculoso",
+		"meruna__",
+		"moonmeander",
+		"nenenxinha",
+		"nonamedpleb",
+		"notdatguy1",
+		"odpixel",
+		"orikama",
+		"p4pita",
+		"pablogaming13",
+		"peterpandam",
+		"poisonizy",
+		"quinndota",
+		"raeyei",
+		"realbabybulldog",
+		"saiiren",
+		"shufayewong",
+		"sinistereyes",
+		"siractionslacks",
+		"sliceofbiancakes",
+		"smokegank",
+		"snakeqc",
+		"snith",
+		"starjadian",
+		"sweden",
+		"synderen",
+		"thereapo",
+		"tobiwan",
+		"topramens",
+		"vadikus007",
+		"vroksnak",
+		"whohe",
+		"wintersun_aniki",
+		"xyclopz",
+	}, vips)
+
+	mods := ParseVipsOrModsMsg("The moderators of this channel are: 9kmmrbot, admiralbullbot, alc4pwn, ales_, archlul, bellemiku, boro_, c00s, chaosmango, cjayride, darth_henry, datguy1, dewardalot, elaitoh, hafthorjulius, imorteus, inu_07, j_god_yamaxanadu, jakenbakelive, kazz1896, keeperofthedark123, kkonallord, laden, leffernan, litenbanana, logviewer, luesal, luffy9724, martin3_3, moobot, moonmoon, msenere, ncolt, nexev, nightbot, poncho_, prkz, prymahl, qzectbumo, roflma0, roy6651, royalfluxh, streamelements, troydota, verrk, vo1djam, wavey_d_d, welloy, wortho, xqcow, zai")
+	assertStringSlicesEqual(t, []string{
+		"9kmmrbot",
+		"admiralbullbot",
+		"alc4pwn",
+		"ales_",
+		"archlul",
+		"bellemiku",
+		"boro_",
+		"c00s",
+		"chaosmango",
+		"cjayride",
+		"darth_henry",
+		"datguy1",
+		"dewardalot",
+		"elaitoh",
+		"hafthorjulius",
+		"imorteus",
+		"inu_07",
+		"j_god_yamaxanadu",
+		"jakenbakelive",
+		"kazz1896",
+		"keeperofthedark123",
+		"kkonallord",
+		"laden",
+		"leffernan",
+		"litenbanana",
+		"logviewer",
+		"luesal",
+		"luffy9724",
+		"martin3_3",
+		"moobot",
+		"moonmoon",
+		"msenere",
+		"ncolt",
+		"nexev",
+		"nightbot",
+		"poncho_",
+		"prkz",
+		"prymahl",
+		"qzectbumo",
+		"roflma0",
+		"roy6651",
+		"royalfluxh",
+		"streamelements",
+		"troydota",
+		"verrk",
+		"vo1djam",
+		"wavey_d_d",
+		"welloy",
+		"wortho",
+		"xqcow",
+		"zai",
+	}, mods)
+
+	vips = ParseVipsOrModsMsg("This channel does not have any VIPs.")
+	assertStringSlicesEqual(t, []string{}, vips)
+
+	mods = ParseVipsOrModsMsg("There are no moderators of this channel.")
+	assertStringSlicesEqual(t, []string{}, mods)
+}
