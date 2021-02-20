@@ -41,6 +41,9 @@ var (
 	// ErrConnectionIsNotOpen is returned by Disconnect in case you call it without being connected
 	ErrConnectionIsNotOpen = errors.New("connection is not open")
 
+	// ErrRequestTimedout is returned by GetVips or GetMods if a response is not returned after your specified timeout
+	ErrRequestTimedout = errors.New("request timedout")
+
 	// WriteBufferSize can be modified to change the write channel buffer size.
 	// Must be configured before NewClient is called to take effect
 	WriteBufferSize = 512
@@ -356,6 +359,12 @@ func (msg *PongMessage) GetType() MessageType {
 	return msg.Type
 }
 
+type noticeCallback struct {
+	chans []chan NoticeMessage
+	resp  *NoticeMessage
+	mutex *sync.Mutex
+}
+
 // Client client to control your connection and attach callbacks
 type Client struct {
 	IrcAddress               string
@@ -367,6 +376,10 @@ type Client struct {
 	channelUserlistMutex     *sync.RWMutex
 	channelUserlist          map[string]map[string]bool
 	channelsMtx              *sync.RWMutex
+	vipsChan                 map[string]*noticeCallback
+	vipsMtx                  *sync.RWMutex
+	modsChan                 map[string]*noticeCallback
+	modsMtx                  *sync.RWMutex
 	onConnect                func()
 	onWhisperMessage         func(message WhisperMessage)
 	onPrivateMessage         func(message PrivateMessage)
@@ -436,6 +449,10 @@ func NewClient(username, oauth string) *Client {
 		channels:        map[string]bool{},
 		channelUserlist: map[string]map[string]bool{},
 		channelsMtx:     &sync.RWMutex{},
+		vipsChan:        map[string]*noticeCallback{},
+		vipsMtx:         &sync.RWMutex{},
+		modsChan:        map[string]*noticeCallback{},
+		modsMtx:         &sync.RWMutex{},
 		messageReceived: make(chan bool),
 
 		read:  make(chan string, ReadBufferSize),
@@ -593,6 +610,159 @@ func (c *Client) FollowersOn(channel, duration string) {
 // FollowersOn run twitch command `/followersoff` with the given channel in argument
 func (c *Client) FollowersOff(channel string) {
 	c.Say(channel, "/followersoff")
+}
+
+func parseVipsOrModsMsg(content string) []string {
+	index := strings.IndexRune(content, ':')
+	if index == -1 {
+		// https://play.golang.org/p/2LNyI4GbQuh
+		return []string{}
+	}
+	content = strings.Trim(content[index+1:], " ")
+	if content[len(content)-1] == '.' {
+		content = content[:len(content)-1]
+	}
+	return strings.Split(content, ", ")
+}
+
+// GetVips run twitch command `/vips` with the given channel in argument and returns a string slice of all vips
+func (c *Client) GetVips(channel string, timeout time.Duration) ([]string, error) {
+	// make sure the channel is always lowercase to prevent duplicate entries in the map.
+	channel = strings.ToLower(channel)
+	// channel for message callback
+	ch := make(chan NoticeMessage, 1)
+	// if we should make a new callback group
+	var callback *noticeCallback
+	var msg NoticeMessage
+	var msgSet bool
+
+	defer func() {
+		// close the channel
+		close(ch)
+		// concurrent array writes
+		callback.mutex.Lock()
+		defer callback.mutex.Unlock()
+		// simple filter to remove the channel from the array of channels, needed cause with timeout one function might end before another due to the timeout and then we do not want to delete the entry from the map.
+		for i, v := range callback.chans {
+			if v == ch {
+				callback.chans = append(callback.chans[:i], callback.chans[i+1:]...)
+			}
+		}
+		// if we are the last one clean up the parent map.
+		if len(callback.chans) == 0 {
+			c.vipsMtx.Lock()
+			delete(c.vipsChan, channel)
+			c.vipsMtx.Unlock()
+		}
+	}()
+
+	c.vipsMtx.RLock()
+	if v, ok := c.vipsChan[channel]; ok {
+		c.vipsMtx.RUnlock()
+		v.mutex.Lock()
+		// if the callback has already proceeded
+		if v.resp != nil {
+			v.mutex.Unlock()
+			msg = *v.resp
+			msgSet = true
+		}
+		v.mutex.Unlock()
+		callback = v
+	} else {
+		c.vipsMtx.RUnlock()
+		c.vipsMtx.Lock()
+		callback = &noticeCallback{
+			chans: []chan NoticeMessage{ch},
+			mutex: &sync.Mutex{},
+		}
+		c.vipsChan[channel] = callback
+		c.vipsMtx.Unlock()
+		c.Say(channel, "/vips")
+	}
+
+	if !msgSet {
+		if timeout == 0 {
+			msg = <-ch
+		} else {
+			select {
+			case <-time.After(timeout):
+				return nil, ErrRequestTimedout
+			case msg = <-ch:
+			}
+		}
+	}
+
+	return parseVipsOrModsMsg(msg.Message), nil
+}
+
+// GetMods run twitch command `/mods` with the given channel in argument and returns a string slice of all mods
+func (c *Client) GetMods(channel string, timeout time.Duration) ([]string, error) {
+	// make sure the channel is always lowercase to prevent duplicate entries in the map.
+	channel = strings.ToLower(channel)
+	// channel for message callback
+	ch := make(chan NoticeMessage, 1)
+	// if we should make a new callback group
+	var callback *noticeCallback
+	var msg NoticeMessage
+	var msgSet bool
+
+	defer func() {
+		// close the channel
+		close(ch)
+		// concurrent array writes
+		callback.mutex.Lock()
+		defer callback.mutex.Unlock()
+		// simple filter to remove the channel from the array of channels, needed cause with timeout one function might end before another due to the timeout and then we do not want to delete the entry from the map.
+		for i, v := range callback.chans {
+			if v == ch {
+				callback.chans = append(callback.chans[:i], callback.chans[i+1:]...)
+			}
+		}
+		// if we are the last one clean up the parent map.
+		if len(callback.chans) == 0 {
+			c.modsMtx.Lock()
+			delete(c.modsChan, channel)
+			c.modsMtx.Unlock()
+		}
+	}()
+
+	c.modsMtx.RLock()
+	if v, ok := c.modsChan[channel]; ok {
+		c.modsMtx.RUnlock()
+		v.mutex.Lock()
+		// if the callback has already proceeded
+		if v.resp != nil {
+			v.mutex.Unlock()
+			msg = *v.resp
+			msgSet = true
+		}
+		v.mutex.Unlock()
+		callback = v
+	} else {
+		c.modsMtx.RUnlock()
+		c.modsMtx.Lock()
+		callback = &noticeCallback{
+			chans: []chan NoticeMessage{ch},
+			mutex: &sync.Mutex{},
+		}
+		c.modsChan[channel] = callback
+		c.modsMtx.Unlock()
+		c.Say(channel, "/mods")
+	}
+
+	if !msgSet {
+		if timeout == 0 {
+			msg = <-ch
+		} else {
+			select {
+			case <-time.After(timeout):
+				return nil, ErrRequestTimedout
+			case msg = <-ch:
+			}
+		}
+	}
+
+	return parseVipsOrModsMsg(msg.Message), nil
 }
 
 // Creates an irc join message to join the given channels.
@@ -981,6 +1151,33 @@ func (c *Client) handleLine(line string) error {
 		return nil
 
 	case *NoticeMessage:
+		if msg.MsgID == "vips_success" {
+			c.vipsMtx.RLock()
+			if v, ok := c.vipsChan[msg.Channel]; ok {
+				c.vipsMtx.RUnlock()
+				v.mutex.Lock()
+				v.resp = msg
+				for _, ch := range v.chans {
+					ch <- *msg
+				}
+				v.mutex.Unlock()
+			} else {
+				c.vipsMtx.RUnlock()
+			}
+		} else if msg.MsgID == "room_mods" {
+			c.modsMtx.RLock()
+			if v, ok := c.modsChan[msg.Channel]; ok {
+				c.modsMtx.RUnlock()
+				v.mutex.Lock()
+				v.resp = msg
+				for _, ch := range v.chans {
+					ch <- *msg
+				}
+				v.mutex.Unlock()
+			} else {
+				c.modsMtx.RUnlock()
+			}
+		}
 		if c.onNoticeMessage != nil {
 			c.onNoticeMessage(*msg)
 		}

@@ -2161,3 +2161,117 @@ func TestEmptyCapabilities(t *testing.T) {
 		}(tt)
 	}
 }
+
+func TestVipsModsRequest(t *testing.T) {
+	t.Parallel()
+	var receivedMsg string
+	var err error
+	ch := make(chan struct{})
+
+	host := startServerMultiConns(t, 2, nothingOnConnect, func(message string) {
+		if strings.HasPrefix(message, "PRIVMSG") {
+			receivedMsg = message
+			// the fact we close this and it doesnt panic means that only one message is received.
+			close(ch)
+		}
+	})
+
+	client := newTestClient(host)
+
+	connectAndEnsureGoodDisconnect(t, client)
+
+	wg := sync.WaitGroup{}
+
+	wg.Add(1000)
+	for i := 0; i < 1000; i++ {
+		go func() {
+			_, err := client.GetVips("gEMpIR", time.Second)
+			assertErrorsEqual(t, ErrRequestTimedout, err)
+			wg.Done()
+		}()
+	}
+
+	// wait for channel resolve before waiting on wait group because we then know the server doesnt receive the message twice.
+	<-ch
+	wg.Wait()
+
+	assertStringsEqual(t, "PRIVMSG #gempir :/vips", receivedMsg)
+
+	wg = sync.WaitGroup{}
+	receivedMsg = ""
+	ch = make(chan struct{})
+
+	wg.Add(1000)
+	for i := 0; i < 1000; i++ {
+		go func() {
+			_, err := client.GetMods("GemPir", time.Second)
+			assertErrorsEqual(t, ErrRequestTimedout, err)
+			wg.Done()
+		}()
+	}
+
+	// wait for channel resolve before waiting on wait group because we then know the server doesnt receive the message twice.
+	<-ch
+	wg.Wait()
+
+	assertStringsEqual(t, "PRIVMSG #gempir :/mods", receivedMsg)
+
+	// time has passed and the request for the first vips should be "complete", so this request should result in a new `/vips` request.
+	receivedMsg = ""
+	ch = make(chan struct{})
+
+	_, err = client.GetVips("gEMpIR", time.Second)
+	assertErrorsEqual(t, ErrRequestTimedout, err)
+
+	<-ch
+	assertStringsEqual(t, "PRIVMSG #gempir :/vips", receivedMsg)
+
+	receivedMsg = ""
+	ch = make(chan struct{})
+
+	_, err = client.GetVips("gEMpIR", time.Second)
+	assertErrorsEqual(t, ErrRequestTimedout, err)
+
+	<-ch
+	assertStringsEqual(t, "PRIVMSG #gempir :/vips", receivedMsg)
+
+	// time has passed and the request for the first mods should be "complete", so this request should result in a new `/mods` request.
+	receivedMsg = ""
+	ch = make(chan struct{})
+
+	_, err = client.GetMods("gEMpIR", time.Second)
+	assertErrorsEqual(t, ErrRequestTimedout, err)
+
+	<-ch
+	assertStringsEqual(t, "PRIVMSG #gempir :/mods", receivedMsg)
+
+	receivedMsg = ""
+	ch = make(chan struct{})
+
+	_, err = client.GetMods("gEMpIR", time.Second)
+	assertErrorsEqual(t, ErrRequestTimedout, err)
+
+	<-ch
+	assertStringsEqual(t, "PRIVMSG #gempir :/mods", receivedMsg)
+}
+
+func TestVipsModsParsing(t *testing.T) {
+	var testCases = []struct {
+		in  string
+		out []string
+	}{
+		{"The VIPs of this channel are: 2gd, 39daph, abfnggshka, alicexz, alliance, ambulung, anele, arikkona, attackerdota, b0b3rman, bbf_, blackdotatv, blastupald, bookinator_, bububu, buttersomg, canceldota, chad912, chaoootic, chenpokomon, conrad, cyborgmatt, cycycy, darcco_, devonanimation, diaframps, djdoto, dotademon, drewbnewbie, fogged, fribergcs, garter, gde_i_kogda, gilgir, gorgc, graidl, gumanoid29, healingslave, imjasmine, invokergirl, ivi_ag_ivi, jimmydorry, just9n, kaiisytv, kellymilkies, kenokungen, khezu, knut, komodotroy.", []string{"2gd", "39daph", "abfnggshka", "alicexz", "alliance", "ambulung", "anele", "arikkona", "attackerdota", "b0b3rman", "bbf_", "blackdotatv", "blastupald", "bookinator_", "bububu", "buttersomg", "canceldota", "chad912", "chaoootic", "chenpokomon", "conrad", "cyborgmatt", "cycycy", "darcco_", "devonanimation", "diaframps", "djdoto", "dotademon", "drewbnewbie", "fogged", "fribergcs", "garter", "gde_i_kogda", "gilgir", "gorgc", "graidl", "gumanoid29", "healingslave", "imjasmine", "invokergirl", "ivi_ag_ivi", "jimmydorry", "just9n", "kaiisytv", "kellymilkies", "kenokungen", "khezu", "knut", "komodotroy"}},
+		{"The moderators of this channel are: 9kmmrbot, admiralbullbot, alc4pwn, ales_, archlul, bellemiku, boro_, c00s, chaosmango, cjayride, darth_henry, datguy1, dewardalot, elaitoh, hafthorjulius, imorteus, inu_07, j_god_yamaxanadu, jakenbakelive, kazz1896, keeperofthedark123, kkonallord, laden, leffernan, litenbanana, logviewer, luesal, luffy9724, martin3_3, moobot, moonmoon, msenere, ncolt, nexev, nightbot, poncho_", []string{"9kmmrbot", "admiralbullbot", "alc4pwn", "ales_", "archlul", "bellemiku", "boro_", "c00s", "chaosmango", "cjayride", "darth_henry", "datguy1", "dewardalot", "elaitoh", "hafthorjulius", "imorteus", "inu_07", "j_god_yamaxanadu", "jakenbakelive", "kazz1896", "keeperofthedark123", "kkonallord", "laden", "leffernan", "litenbanana", "logviewer", "luesal", "luffy9724", "martin3_3", "moobot", "moonmoon", "msenere", "ncolt", "nexev", "nightbot", "poncho_"}},
+		{"This channel does not have any VIPs.", []string{}},
+		{"There are no moderators of this channel.", []string{}},
+		// its supposed to parse anything after ':'
+		{"sdkjlfkojlfdsioupsdfiojpsdfufdsjl;sdfljk;das: abc.:, abcb ", []string{"abc.:", "abcb"}},
+		{"There are no moderators of this channel.", []string{}},
+		{"The VIPs of this channel are: liltrapdog.", []string{"liltrapdog"}},
+		{"The moderators of this channel are: troydota", []string{"troydota"}},
+	}
+
+	for _, tt := range testCases {
+		assertStringSlicesEqual(t, parseVipsOrModsMsg(tt.in), tt.out)
+	}
+}
