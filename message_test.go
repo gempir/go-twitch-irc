@@ -163,6 +163,7 @@ func TestCanParseEmoteMessage(t *testing.T) {
 	assertStringsEqual(t, "120232", privateMessage.Emotes[0].ID)
 	assertStringsEqual(t, "TriHard", privateMessage.Emotes[0].Name)
 	assertIntsEqual(t, 5, privateMessage.Emotes[0].Count)
+	assertIntsEqual(t, 5, len(privateMessage.Emotes[0].Positions))
 }
 
 func TestCanHandleBadEmoteMessage(t *testing.T) {

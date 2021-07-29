@@ -78,11 +78,18 @@ func init() {
 	}
 }
 
+// EmotePosition is a single position of an emote to be used for text replacement.
+type EmotePosition struct {
+	Start int
+	End   int
+}
+
 // Emote twitch emotes
 type Emote struct {
-	Name  string
-	ID    string
-	Count int
+	Name      string
+	ID        string
+	Count     int
+	Positions []EmotePosition
 }
 
 // ParseMessage parse a raw Twitch IRC message
@@ -484,13 +491,14 @@ func parseEmotes(rawEmotes, message string) []*Emote {
 
 	runes := []rune(message)
 
+L:
 	for _, v := range strings.Split(rawEmotes, "/") {
 		split := strings.SplitN(v, ":", 2)
 		if len(split) != 2 {
 			// We have received bad emote data :(
 			continue
 		}
-		pairs := strings.SplitN(split[1], ",", 2)
+		pairs := strings.Split(split[1], ",")
 		if len(pairs) < 1 {
 			// We have received bad emote data :(
 			continue
@@ -512,10 +520,36 @@ func parseEmotes(rawEmotes, message string) []*Emote {
 			firstIndex = len(runes) - 1
 		}
 
+		var positions []EmotePosition
+		for _, p := range pairs {
+			pos := strings.SplitN(p, "-", 2)
+			if len(pos) != 2 {
+				// Position is not valid, continue on the outer loop and skip this emote.
+				continue L
+			}
+
+			// Convert the start and end positions from strings, and bail if it fails.
+			start, err := strconv.Atoi(pos[0])
+			if err != nil {
+				continue L
+			}
+
+			end, err := strconv.Atoi(pos[1])
+			if err != nil {
+				continue L
+			}
+
+			positions = append(positions, EmotePosition{
+				Start: start,
+				End:   end,
+			})
+		}
+
 		emote := &Emote{
-			Name:  string(runes[firstIndex : lastIndex+1]),
-			ID:    split[0],
-			Count: strings.Count(split[1], ",") + 1,
+			Name:      string(runes[firstIndex : lastIndex+1]),
+			ID:        split[0],
+			Count:     strings.Count(split[1], ",") + 1,
+			Positions: positions,
 		}
 
 		emotes = append(emotes, emote)
