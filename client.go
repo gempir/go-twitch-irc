@@ -425,6 +425,9 @@ type Client struct {
 	// By default, this is all caps (Tags, Commands, Membership)
 	// If this is an empty list or nil, no CAP REQ message is sent at all
 	Capabilities []string
+
+	// The ratelimits the client will respect when sending messages
+	rateLimits RateLimits
 }
 
 // NewClient to create a new client
@@ -449,6 +452,8 @@ func NewClient(username, oauth string) *Client {
 		channelUserlistMutex: &sync.RWMutex{},
 
 		Capabilities: DefaultCapabilities,
+
+		rateLimits: CreateDefaultRateLimits(),
 	}
 }
 
@@ -564,6 +569,7 @@ func (c *Client) Whisper(username, text string) {
 }
 
 // Join enter a twitch channel to read more messages.
+// This will put messages into a join queue which will be processed in respect to the ratelimits
 func (c *Client) Join(channels ...string) {
 	messages, joined := createJoinMessages(c.channels, channels...)
 
@@ -768,6 +774,11 @@ func (c *Client) Userlist(channel string) ([]string, error) {
 // This will not cause a reconnect, but is meant more for "on next connect, use this new token" in case the old token has expired
 func (c *Client) SetIRCToken(ircToken string) {
 	c.ircToken = ircToken
+}
+
+// SetRateLimits will set the rate limits for the client. It recommended to use templates like CreateVerifiedRateLimits()
+func (c *Client) SetRateLimits(rateLimits RateLimits) {
+	c.rateLimits = rateLimits
 }
 
 func (c *Client) startReader(reader io.Reader, wg *sync.WaitGroup) {
