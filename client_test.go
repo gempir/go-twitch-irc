@@ -1190,6 +1190,49 @@ func TestCanJoinChannelAfterConnection(t *testing.T) {
 	assertStringsEqual(t, "JOIN #gempirtestcanjoinchannelafterconnection", receivedMsg)
 }
 
+func TestCanRespectJoinRateLimits(t *testing.T) {
+	t.Parallel()
+	waitEnd := make(chan struct{})
+
+	type timedMessage struct {
+		message string
+		time    time.Time
+	}
+
+	var messages []timedMessage
+
+	host := startServer(t, nothingOnConnect, func(message string) {
+		fmt.Println(message)
+		if strings.HasPrefix(message, "JOIN ") {
+			messages = append(messages, timedMessage{message, time.Now()})
+		}
+		if message == "JOIN #end" {
+			close(waitEnd)
+		}
+	})
+
+	client := newTestClient(host)
+	go client.Connect()
+
+	// wait for the connection to go active
+	for !client.connActive.get() {
+		time.Sleep(time.Millisecond * 2)
+	}
+	for i := 0; i < 20; i++ {
+		client.Join(fmt.Sprintf("gempir%d", i))
+	}
+	client.Join("end")
+
+	// wait for server to receive message
+	select {
+	case <-waitEnd:
+	case <-time.After(time.Second * 30):
+		t.Fatal("no join end message received")
+	}
+
+	assertTrue(t, messages[20].time.Sub(messages[19].time).Seconds() >= 10, "join rate limit not respected")
+}
+
 func TestCanDepartChannel(t *testing.T) {
 	t.Parallel()
 	waitEnd := make(chan struct{})
