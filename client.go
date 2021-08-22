@@ -33,35 +33,35 @@ const (
 )
 
 const (
-	//Ratelimit time constants
+	// Ratelimit time constants
 
-	//IgnoreRatelimit is the default, and is set when the
+	// IgnoreRatelimit is the default, and is set when the
 	IgnoreRatelimit = time.Second * 0
 
-	//UnknownBotSay is the time between message sending for non operator/moderator bots (20 per 30 seconds)
+	// UnknownBotSay is the time between message sending for non operator/moderator bots (20 per 30 seconds)
 	UnknownBotSay = time.Millisecond * 1500
-	//ModeratorBotSay is the time between message sending for operator/moderator bots (100 per 30 seconds where mod/opperator.)
+	// ModeratorBotSay is the time between message sending for operator/moderator bots (100 per 30 seconds where mod/opperator.)
 	ModeratorBotSay = time.Millisecond * 300
 
-	//UnknownBotWhisper is the time between whispers for unknown bots (100 per minute)
+	// UnknownBotWhisper is the time between whispers for unknown bots (100 per minute)
 	UnknownBotWhisper = time.Millisecond * 600
-	//KnownBotWhisper is the time between whispers for known bots (200 per minute)
+	// KnownBotWhisper is the time between whispers for known bots (200 per minute)
 	KnownBotWhisper = time.Millisecond * 300
-	//VerifiedBotWhisper is the time between whispers for verified bots (1200 per minute)
+	// VerifiedBotWhisper is the time between whispers for verified bots (1200 per minute)
 	VerifiedBotWhisper = time.Millisecond * 50
 
-	//UnknownBotJoin is the time between whispers for verified bots (20 per 10 seconds)
+	// UnknownBotJoin is the time between whispers for verified bots (20 per 10 seconds)
 	UnknownBotJoin = time.Millisecond * 500
-	//KnownBotJoin is the time between whispers for verified bots (20 per 10 seconds)
+	// KnownBotJoin is the time between whispers for verified bots (20 per 10 seconds)
 	KnownBotJoin = time.Millisecond * 500
-	//VerifiedBotJoin is the time between whispers for verified bots (2000 per 10 seconds)
+	// VerifiedBotJoin is the time between whispers for verified bots (2000 per 10 seconds)
 	VerifiedBotJoin = time.Millisecond * 5
 
-	//UnknownBotAuth is the time between authenticate attempts for verified bots (20 per 10 seconds)
+	// UnknownBotAuth is the time between authenticate attempts for verified bots (20 per 10 seconds)
 	UnknownBotAuth = time.Millisecond * 500
-	//KnownBotAuth is the time between authenticate attempts for verified bots (20 per 10 seconds)
+	// KnownBotAuth is the time between authenticate attempts for verified bots (20 per 10 seconds)
 	KnownBotAuth = time.Millisecond * 500
-	//VerifiedBotAuth is the time between authenticate attempts for verified bots (200 per 10 seconds)
+	// VerifiedBotAuth is the time between authenticate attempts for verified bots (200 per 10 seconds)
 	VerifiedBotAuth = time.Millisecond * 50
 )
 
@@ -460,32 +460,31 @@ type Client struct {
 	// If this is an empty list or nil, no CAP REQ message is sent at all
 	Capabilities []string
 
-	//whisperRateLimit is the ratelimit used for private whispers.
+	// whisperRateLimit is the ratelimit used for private whispers.
 	whisperRatelimit time.Duration
-	//joinRatelimit is the ratelimit used for join to channel requests.
+	// joinRatelimit is the ratelimit used for join to channel requests.
 	joinRateLimit time.Duration
-	//sayBaseRateLimit is the ratelimit used for normal messages in channels where not a moderator or operator.
+	// sayBaseRateLimit is the ratelimit used for normal messages in channels where not a moderator or operator.
 	sayRateLimit time.Duration
-	//sayModRateLimit is the ratelimit used for normal messages in channels where a moderator or operator.
+	// sayModRateLimit is the ratelimit used for normal messages in channels where a moderator or operator.
 	sayModRateLimit time.Duration
-	//authRateLimit is the ratelimit used for authorization requests.
+	// authRateLimit is the ratelimit used for authorization requests.
 	authRateLimit time.Duration
 
-	//lists used to buffer the different requests
-	//whisperLimiter is the list used to track the different whisper requests.
+	// lists used to buffer the different requests
+	// whisperLimiter is the list used to track the different whisper requests.
 	whisperLimiter *RateLimiter
-	//joinLimiter is the list used to track the different join requests.
+	// joinLimiter is the list used to track the different join requests.
 	joinLimiter *RateLimiter
-	//sayLimiters is the map of list used to track the different messages in each channel.
+	// sayLimiters is the map of list used to track the different messages in each channel.
 	sayLimiters map[string]*RateLimiter
-	//authLimiter is the list used to track the different auth requests.
+	// authLimiter is the list used to track the different auth requests.
 	authLimiter *RateLimiter
 }
 
 // NewClient to create a new client
 func NewClient(username, oauth string) *Client {
-
-	c := &Client{
+	return &Client{
 		ircUser:         username,
 		ircToken:        oauth,
 		TLS:             true,
@@ -506,31 +505,31 @@ func NewClient(username, oauth string) *Client {
 
 		Capabilities: DefaultCapabilities,
 
-		//Ratelimit stuff
+		// Ratelimit stuff
 		whisperRatelimit: UnknownBotWhisper,
 		joinRateLimit:    UnknownBotJoin,
 		sayRateLimit:     UnknownBotSay,
 		sayModRateLimit:  ModeratorBotSay,
 		authRateLimit:    UnknownBotWhisper,
 
-		//lists used to buffer the different requests
-		//whisperLimiter is the list used to track the different whisper requests.
+		// lists used to buffer the different requests
+		// whisperLimiter is the list used to track the different whisper requests.
 		whisperLimiter: &RateLimiter{
 			messages:       &list.List{},
 			isMod:          false,
 			messageChannel: make(chan string),
 			tickerRunning:  true,
 		},
-		//joinLimiter is the list used to track the different join requests.
+		// joinLimiter is the list used to track the different join requests.
 		joinLimiter: &RateLimiter{
 			messages:       &list.List{},
 			isMod:          false,
 			messageChannel: make(chan string),
 			tickerRunning:  true,
 		},
-		//sayLimiters is the map of list used to track the different messages in each channel.
+		// sayLimiters is the map of list used to track the different messages in each channel.
 		sayLimiters: make(map[string]*RateLimiter),
-		//authLimiter is the list used to track the different auth requests.
+		// authLimiter is the list used to track the different auth requests.
 		authLimiter: &RateLimiter{
 			messages:       &list.List{},
 			isMod:          false,
@@ -538,8 +537,6 @@ func NewClient(username, oauth string) *Client {
 			tickerRunning:  true,
 		},
 	}
-
-	return c
 }
 
 // NewAnonymousClient to create a new client without login requirements (anonymous user)
@@ -647,7 +644,6 @@ func (c *Client) Say(channel, text string) {
 	if ok {
 		tracker.messageChannel <- fmt.Sprintf("PRIVMSG #%s :%s", channel, text)
 	}
-
 }
 
 // Whisper write something in private to someone on twitch
@@ -675,7 +671,7 @@ func (c *Client) Join(channels ...string) {
 		c.channels[channel] = c.connActive.get()
 		c.channelUserlistMutex.Lock()
 		c.channelUserlist[channel] = map[string]bool{}
-		//Create Ratelimit Tracker
+		// Create Ratelimit Tracker
 		r := &RateLimiter{
 			messages:       &list.List{},
 			isMod:          false,
@@ -683,8 +679,8 @@ func (c *Client) Join(channels ...string) {
 			tickerRunning:  true,
 		}
 
-		//mod or not, set to unknown.
-		//TODO get mod status from join response.
+		// mod or not, set to unknown.
+		// TODO get mod status from join response.
 		r.startTracker(UnknownBotSay)
 
 		c.sayLimiters[channel] = r
@@ -792,10 +788,11 @@ func (c *Client) Connect() error {
 	// This means we are connecting to "localhost". Disable certificate chain check
 	if strings.HasPrefix(c.IrcAddress, "127.0.0.1:") {
 		conf = &tls.Config{
+			//nolint we connect locally here, this is fine
 			InsecureSkipVerify: true,
 		}
 	} else {
-		conf = &tls.Config{}
+		conf = &tls.Config{MinVersion: tls.VersionTLS12}
 	}
 
 	c.startMiddlewares()
@@ -841,7 +838,7 @@ func (c *Client) makeConnection(dialer *net.Dialer, conf *tls.Config) (err error
 	}
 
 	// Send the initial connection messages (like logging in, getting the CAP REQ stuff)
-	c.setupConnection(conn)
+	err = c.setupConnection(conn)
 
 	// Start the connection writer in a separate go-routine
 	wg.Add(1)
@@ -955,15 +952,29 @@ func (c *Client) startPinger(closer io.Closer, wg *sync.WaitGroup) {
 	}()
 }
 
-func (c *Client) setupConnection(conn net.Conn) {
+func (c *Client) setupConnection(conn net.Conn) (err error) {
 	if c.SetupCmd != "" {
-		conn.Write([]byte(c.SetupCmd + "\r\n"))
+		_, err = conn.Write([]byte(c.SetupCmd + "\r\n"))
+		if err != nil {
+			return
+		}
 	}
 	if len(c.Capabilities) > 0 {
-		_, _ = conn.Write([]byte("CAP REQ :" + strings.Join(c.Capabilities, " ") + "\r\n"))
+		_, err = conn.Write([]byte("CAP REQ :" + strings.Join(c.Capabilities, " ") + "\r\n"))
+		if err != nil {
+			return
+		}
 	}
-	conn.Write([]byte("PASS " + c.ircToken + "\r\n"))
-	conn.Write([]byte("NICK " + c.ircUser + "\r\n"))
+	_, err = conn.Write([]byte("PASS " + c.ircToken + "\r\n"))
+	if err != nil {
+		return
+	}
+	_, err = conn.Write([]byte("NICK " + c.ircUser + "\r\n"))
+	if err != nil {
+		return
+	}
+
+	return
 }
 
 func (c *Client) startWriter(writer io.WriteCloser, wg *sync.WaitGroup) {
