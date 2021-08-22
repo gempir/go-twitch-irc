@@ -1218,7 +1218,7 @@ func TestCanRespectJoinRateLimits(t *testing.T) {
 	for !client.connActive.get() {
 		time.Sleep(time.Millisecond * 2)
 	}
-	for i := 0; i < 20; i++ {
+	for i := 0; i < 21; i++ {
 		client.Join(fmt.Sprintf("gempir%d", i))
 	}
 	client.Join("end")
@@ -1230,7 +1230,7 @@ func TestCanRespectJoinRateLimits(t *testing.T) {
 		t.Fatal("no join end message received")
 	}
 
-	assertTrue(t, messages[20].time.Sub(messages[19].time).Seconds() >= 10, "join rate limit not respected")
+	assertTrue(t, messages[21].time.Sub(messages[0].time).Seconds() >= 10, "join rate limit not respected")
 }
 
 func TestCanDepartChannel(t *testing.T) {
