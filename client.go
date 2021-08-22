@@ -516,26 +516,26 @@ func NewClient(username, oauth string) *Client {
 		//lists used to buffer the different requests
 		//whisperLimiter is the list used to track the different whisper requests.
 		whisperLimiter: &RateLimiter{
-			messages:      &list.List{},
-			isMod:         false,
-			messageChanel: make(chan string),
-			tickerRunning: true,
+			messages:       &list.List{},
+			isMod:          false,
+			messageChannel: make(chan string),
+			tickerRunning:  true,
 		},
 		//joinLimiter is the list used to track the different join requests.
 		joinLimiter: &RateLimiter{
-			messages:      &list.List{},
-			isMod:         false,
-			messageChanel: make(chan string),
-			tickerRunning: true,
+			messages:       &list.List{},
+			isMod:          false,
+			messageChannel: make(chan string),
+			tickerRunning:  true,
 		},
 		//sayLimiters is the map of list used to track the different messages in each channel.
 		sayLimiters: make(map[string]*RateLimiter),
 		//authLimiter is the list used to track the different auth requests.
 		authLimiter: &RateLimiter{
-			messages:      &list.List{},
-			isMod:         false,
-			messageChanel: make(chan string),
-			tickerRunning: true,
+			messages:       &list.List{},
+			isMod:          false,
+			messageChannel: make(chan string),
+			tickerRunning:  true,
 		},
 	}
 
@@ -645,7 +645,7 @@ func (c *Client) Say(channel, text string) {
 	tracker, ok := c.sayLimiters[channel]
 
 	if ok {
-		tracker.messageChanel <- fmt.Sprintf("PRIVMSG #%s :%s", channel, text)
+		tracker.messageChannel <- fmt.Sprintf("PRIVMSG #%s :%s", channel, text)
 	}
 
 }
@@ -655,7 +655,7 @@ func (c *Client) Say(channel, text string) {
 // so your message might get blocked because of this
 // verify your bot to prevent this
 func (c *Client) Whisper(username, text string) {
-	c.whisperLimiter.messageChanel <- fmt.Sprintf("PRIVMSG #%s :/w %s %s", c.ircUser, username, text)
+	c.whisperLimiter.messageChannel <- fmt.Sprintf("PRIVMSG #%s :/w %s %s", c.ircUser, username, text)
 }
 
 // Join enter a twitch channel to read more messages.
@@ -667,7 +667,7 @@ func (c *Client) Join(channels ...string) {
 	c.channelsMtx.Lock()
 	for _, message := range messages {
 		if c.connActive.get() {
-			c.joinLimiter.messageChanel <- message
+			c.joinLimiter.messageChannel <- message
 		}
 	}
 
@@ -677,10 +677,10 @@ func (c *Client) Join(channels ...string) {
 		c.channelUserlist[channel] = map[string]bool{}
 		//Create Ratelimit Tracker
 		r := &RateLimiter{
-			messages:      &list.List{},
-			isMod:         false,
-			messageChanel: make(chan string),
-			tickerRunning: true,
+			messages:       &list.List{},
+			isMod:          false,
+			messageChannel: make(chan string),
+			tickerRunning:  true,
 		}
 
 		//mod or not, set to unknown.

@@ -128,7 +128,7 @@ func (c *Client) sayMiddleware(channel string) {
 		// there was an error here and it must have departed before joining.
 		return
 	}
-	messageChan := r.messageChanel
+	messageChan := r.messageChannel
 	for {
 		select {
 		case message := <-messageChan:
@@ -188,7 +188,7 @@ func (c *Client) whisperMiddleware() {
 	r := c.whisperLimiter
 	for {
 		select {
-		case message := <-r.messageChanel:
+		case message := <-r.messageChannel:
 			if c.whisperRatelimit != IgnoreRatelimit {
 				if !r.tickerRunning {
 					r.ticker.Reset(c.whisperRatelimit)
@@ -227,7 +227,7 @@ func (c *Client) joinMiddleware() {
 	r := c.joinLimiter
 	for {
 		select {
-		case message := <-r.messageChanel:
+		case message := <-r.messageChannel:
 			if c.joinRateLimit != IgnoreRatelimit {
 				if !r.tickerRunning {
 					r.ticker.Reset(c.joinRateLimit)
@@ -266,7 +266,7 @@ func (c *Client) authMiddleware() {
 	r := c.authLimiter
 	for {
 		select {
-		case message := <-r.messageChanel:
+		case message := <-r.messageChannel:
 			if c.authRateLimit != IgnoreRatelimit {
 				if !r.tickerRunning {
 					r.ticker.Reset(c.authRateLimit)
@@ -307,7 +307,7 @@ func (c *Client) authMiddleware() {
 type RateLimiter struct {
 	messages             *list.List
 	isMod                bool
-	messageChanel        chan string
+	messageChannel       chan string
 	messageContext       context.Context
 	messageContextCancel context.CancelFunc
 	ticker               *time.Ticker
