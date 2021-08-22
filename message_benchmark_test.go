@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"fmt"
 	"os"
+	"runtime"
 	"testing"
 )
 
@@ -48,13 +49,13 @@ func readLog(logFile string) []string {
 	gz, err := gzip.NewReader(f)
 	if err != nil {
 		fmt.Println("logFile gzip not readable")
-		os.Exit(1)
+		runtime.Goexit()
 	}
 
 	scanner := bufio.NewScanner(gz)
 	if err != nil {
 		fmt.Println("logFile not readable")
-		os.Exit(1)
+		runtime.Goexit()
 	}
 
 	content := []string{}
