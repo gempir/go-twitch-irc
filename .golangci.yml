@@ -24,7 +24,7 @@ linters-settings:
     statements: 50
 
 linters:
-  disable-all: false
+  disable-all: true
   enable:
     - bodyclose
     - deadcode
