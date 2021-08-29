@@ -869,21 +869,22 @@ func (c *Client) startWriter(writer io.WriteCloser, wg *sync.WaitGroup) {
 		select {
 		case <-c.clientReconnect.channel:
 			return
-
 		case <-c.userDisconnect.channel:
 			return
-
 		case msg := <-c.write:
-			_, err := writer.Write([]byte(msg + "\r\n"))
-			if err != nil {
-				// Attempt to re-send failed messages
-				c.write <- msg
-
-				writer.Close()
-				c.clientReconnect.Close()
-				return
-			}
+			c.writeMessage(writer, msg)
 		}
+	}
+}
+
+func (c *Client) writeMessage(writer io.WriteCloser, msg string) {
+	_, err := writer.Write([]byte(msg + "\r\n"))
+	if err != nil {
+		// Attempt to re-send failed messages
+		c.write <- msg
+
+		writer.Close()
+		c.clientReconnect.Close()
 	}
 }
 
