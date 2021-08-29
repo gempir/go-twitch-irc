@@ -1199,14 +1199,13 @@ func TestCanRespectJoinRateLimits(t *testing.T) {
 	var messages []timedMessage
 
 	host := startServer(t, nothingOnConnect, func(message string) {
-		fmt.Println(message)
 		if strings.HasPrefix(message, "JOIN ") {
 			messages = append(messages, timedMessage{message, time.Now()})
 		}
 		if message == "JOIN #end" {
 			go func() {
 				// wait for other messages to come in, they might not come in order
-				time.Sleep(time.Second)
+				time.Sleep(time.Second * 25)
 				close(waitEnd)
 			}()
 		}
@@ -1231,8 +1230,7 @@ func TestCanRespectJoinRateLimits(t *testing.T) {
 		t.Fatal("no join end message received")
 	}
 
-	assertTrue(t, len(messages) == 22, fmt.Sprintf("expected 20 messages, got %d", len(messages)))
-	assertTrue(t, messages[21].time.Sub(messages[0].time).Seconds() >= 10, "join rate limit not respected")
+	assertTrue(t, messages[len(messages)-1].time.Sub(messages[0].time).Seconds() >= 10, "join rate limit not respected")
 }
 
 func TestCanDepartChannel(t *testing.T) {
