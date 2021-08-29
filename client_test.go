@@ -1204,7 +1204,11 @@ func TestCanRespectJoinRateLimits(t *testing.T) {
 			messages = append(messages, timedMessage{message, time.Now()})
 		}
 		if message == "JOIN #end" {
-			close(waitEnd)
+			go func() {
+				// wait for other messages to come in, they might not come in order
+				time.Sleep(time.Second)
+				close(waitEnd)
+			}()
 		}
 	})
 
@@ -1227,6 +1231,7 @@ func TestCanRespectJoinRateLimits(t *testing.T) {
 		t.Fatal("no join end message received")
 	}
 
+	assertTrue(t, len(messages) == 22, fmt.Sprintf("expected 20 messages, got %d", len(messages)))
 	assertTrue(t, messages[21].time.Sub(messages[0].time).Seconds() >= 10, "join rate limit not respected")
 }
 
