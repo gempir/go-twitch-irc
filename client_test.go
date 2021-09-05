@@ -1209,7 +1209,7 @@ func TestCanRespectJoinRateLimits(t *testing.T) {
 	})
 
 	client := newTestClient(host)
-	go client.Connect()
+	go client.Connect() //nolint
 
 	// wait for the connection to go active
 	for !client.connActive.get() {
