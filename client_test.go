@@ -18,7 +18,7 @@ import (
 )
 
 var startPortMutex sync.Mutex
-var startPort = 3000
+var startPort = 10000
 
 func newPort() (r int) {
 	startPortMutex.Lock()
@@ -1187,7 +1187,7 @@ func TestCanJoinChannelAfterConnection(t *testing.T) {
 	assertStringsEqual(t, "JOIN #gempir", receivedMsg)
 }
 
-func TestCanRespectJoinRateLimits(t *testing.T) {
+func TestCanRespectDefaultJoinRateLimits(t *testing.T) {
 	t.Parallel()
 	waitEnd := make(chan struct{})
 
@@ -1197,18 +1197,20 @@ func TestCanRespectJoinRateLimits(t *testing.T) {
 	}
 
 	var messages []timedMessage
+	targetJoinCount := 25
 
 	host := startServer(t, nothingOnConnect, func(message string) {
 		if strings.HasPrefix(message, "JOIN ") {
 			messages = append(messages, timedMessage{message, time.Now()})
-		}
-		fmt.Printf("rec: %s len: %d\n", message, len(messages))
-		if len(messages) == 25 {
-			close(waitEnd)
+
+			if len(messages) == targetJoinCount {
+				close(waitEnd)
+			}
 		}
 	})
 
 	client := newTestClient(host)
+	client.SetRateLimits(CreateDefaultRateLimits())
 	go client.Connect() //nolint
 
 	// wait for the connection to go active
@@ -1216,8 +1218,8 @@ func TestCanRespectJoinRateLimits(t *testing.T) {
 		time.Sleep(time.Millisecond * 2)
 	}
 
-	// send 25 messages to ensure we hit the rate limit
-	for i := 1; i <= 25; i++ {
+	// send enough messages to ensure we hit the rate limit
+	for i := 1; i <= targetJoinCount; i++ {
 		client.Join(fmt.Sprintf("gempir%d", i))
 	}
 
@@ -1225,10 +1227,102 @@ func TestCanRespectJoinRateLimits(t *testing.T) {
 	select {
 	case <-waitEnd:
 	case <-time.After(time.Second * 30):
-		t.Fatal("no join end message received")
+		t.Fatal("didn't receive all messages in time")
 	}
 
 	assertTrue(t, messages[len(messages)-1].time.Sub(messages[0].time).Seconds() >= 10, "join rate limit not respected")
+}
+
+func TestCanRespectVerifiedJoinRateLimits(t *testing.T) {
+	t.Parallel()
+	waitEnd := make(chan struct{})
+
+	type timedMessage struct {
+		message string
+		time    time.Time
+	}
+
+	var messages []timedMessage
+	targetJoinCount := 2025
+
+	host := startServer(t, nothingOnConnect, func(message string) {
+		if strings.HasPrefix(message, "JOIN ") {
+			messages = append(messages, timedMessage{message, time.Now()})
+
+			if len(messages) == targetJoinCount {
+				close(waitEnd)
+			}
+		}
+	})
+
+	client := newTestClient(host)
+	client.SetRateLimits(CreateVerifiedRateLimits())
+	go client.Connect() //nolint
+
+	// wait for the connection to go active
+	for !client.connActive.get() {
+		time.Sleep(time.Millisecond * 2)
+	}
+
+	// send enough messages to ensure we hit the rate limit
+	for i := 1; i <= targetJoinCount; i++ {
+		client.Join(fmt.Sprintf("gempir%d", i))
+	}
+
+	// wait for server to receive message
+	select {
+	case <-waitEnd:
+	case <-time.After(time.Second * 30):
+		t.Fatal("didn't receive all messages in time")
+	}
+
+	assertTrue(t, messages[len(messages)-1].time.Sub(messages[0].time).Seconds() >= 10, "join rate limit not respected")
+}
+
+func TestCanIgnoreJoinRateLimits(t *testing.T) {
+	t.Parallel()
+	waitEnd := make(chan struct{})
+
+	type timedMessage struct {
+		message string
+		time    time.Time
+	}
+
+	var messages []timedMessage
+	targetJoinCount := 699 // this breaks when above 700, why? the fuck?
+
+	host := startServer(t, nothingOnConnect, func(message string) {
+		if strings.HasPrefix(message, "JOIN ") {
+			messages = append(messages, timedMessage{message, time.Now()})
+
+			if len(messages) == targetJoinCount {
+				close(waitEnd)
+			}
+		}
+	})
+
+	client := newTestClient(host)
+	client.SetRateLimits(CreateUnlimitedRateLimits())
+	go client.Connect() //nolint
+
+	// wait for the connection to go active
+	for !client.connActive.get() {
+		time.Sleep(time.Millisecond * 2)
+	}
+
+	// send enough messages to ensure we hit the rate limit
+	for i := 1; i <= targetJoinCount; i++ {
+		client.Join(fmt.Sprintf("gempir%d", i))
+	}
+
+	// wait for server to receive message
+	select {
+	case <-waitEnd:
+	case <-time.After(time.Second * 10):
+		t.Fatal("didn't receive all messages in time")
+	}
+
+	assertTrue(t, messages[len(messages)-1].time.Sub(messages[0].time).Seconds() <= 10, "join rate limit respected")
 }
 
 func TestCanDepartChannel(t *testing.T) {

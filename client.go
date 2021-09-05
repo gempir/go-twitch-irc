@@ -872,7 +872,6 @@ func (c *Client) startWriter(writer io.WriteCloser, wg *sync.WaitGroup) {
 		case <-c.userDisconnect.channel:
 			return
 		case msg := <-c.write:
-			fmt.Println("new msg found:", msg)
 			c.writeMessage(writer, msg)
 		}
 	}
