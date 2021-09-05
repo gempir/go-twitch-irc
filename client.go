@@ -879,12 +879,14 @@ func (c *Client) startWriter(writer io.WriteCloser, wg *sync.WaitGroup) {
 }
 
 func (c *Client) writeMessage(writer io.WriteCloser, msg string) {
-	rv := c.rateLimits.limiter.Reserve()
-	if !rv.OK() {
-		return // idk??
+	if strings.HasPrefix(msg, "JOIN") {
+		rv := c.rateLimits.joinLimiter.Reserve()
+		if !rv.OK() {
+			return
+		}
+		delay := rv.Delay()
+		time.Sleep(delay)
 	}
-	delay := rv.Delay()
-	time.Sleep(delay)
 
 	_, err := writer.Write([]byte(msg + "\r\n"))
 	if err != nil {
