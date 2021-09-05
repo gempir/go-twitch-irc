@@ -718,8 +718,6 @@ func (c *Client) makeConnection(dialer *net.Dialer, conf *tls.Config) (err error
 	c.clientReconnect.Reset()
 	c.userDisconnect.Reset()
 
-	go c.rateLimits.StartRateLimitTicker()
-
 	// Start the connection reader in a separate go-routine
 	wg.Add(1)
 	go c.startReader(conn, &wg)
@@ -874,27 +872,19 @@ func (c *Client) startWriter(writer io.WriteCloser, wg *sync.WaitGroup) {
 		case <-c.userDisconnect.channel:
 			return
 		case msg := <-c.write:
+			fmt.Println("new msg found:", msg)
 			c.writeMessage(writer, msg)
 		}
 	}
 }
 
 func (c *Client) writeMessage(writer io.WriteCloser, msg string) {
-	if strings.HasPrefix(msg, MessagePrefixJoin) {
-		if c.rateLimits.joins.get() >= c.rateLimits.JoinsAndPartsPerTenSeconds {
-			fmt.Println("ratelimit hit, will send later: " + msg)
-			// we should sleep here or something otherwise we'll just loop a lot, not sure if this is optimal
-			go func() {
-				time.Sleep(time.Millisecond * 100)
-				c.write <- msg
-			}()
-			return
-		}
-
-		c.rateLimits.joins.increment()
+	rv := c.rateLimits.limiter.Reserve()
+	if !rv.OK() {
+		return // idk??
 	}
-
-	fmt.Println("writing " + msg)
+	delay := rv.Delay()
+	time.Sleep(delay)
 
 	_, err := writer.Write([]byte(msg + "\r\n"))
 	if err != nil {

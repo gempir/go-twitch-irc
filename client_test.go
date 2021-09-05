@@ -1202,12 +1202,9 @@ func TestCanRespectJoinRateLimits(t *testing.T) {
 		if strings.HasPrefix(message, "JOIN ") {
 			messages = append(messages, timedMessage{message, time.Now()})
 		}
-		if message == "JOIN #end" {
-			go func() {
-				// wait for other messages to come in, they might not come in order
-				time.Sleep(time.Second * 25)
-				close(waitEnd)
-			}()
+		fmt.Printf("rec: %s len: %d\n", message, len(messages))
+		if len(messages) == 25 {
+			close(waitEnd)
 		}
 	})
 
@@ -1218,10 +1215,11 @@ func TestCanRespectJoinRateLimits(t *testing.T) {
 	for !client.connActive.get() {
 		time.Sleep(time.Millisecond * 2)
 	}
-	for i := 0; i < 21; i++ {
+
+	// send 25 messages to ensure we hit the rate limit
+	for i := 1; i <= 25; i++ {
 		client.Join(fmt.Sprintf("gempir%d", i))
 	}
-	client.Join("end")
 
 	// wait for server to receive message
 	select {

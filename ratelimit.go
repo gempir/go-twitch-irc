@@ -1,13 +1,13 @@
 package twitch
 
 import (
-	"fmt"
 	"time"
+
+	"golang.org/x/time/rate"
 )
 
 type RateLimits struct {
-	JoinsAndPartsPerTenSeconds int32
-	joins                      tAtomInt32
+	limiter *rate.Limiter
 }
 
 // move these later? not sure where to put them
@@ -17,24 +17,12 @@ const (
 
 func CreateDefaultRateLimits() RateLimits {
 	return RateLimits{
-		JoinsAndPartsPerTenSeconds: 20,
+		limiter: rate.NewLimiter(rate.Every(time.Second*10/20), 1),
 	}
 }
 
 func CreateVerifiedRateLimits() RateLimits {
 	return RateLimits{
-		JoinsAndPartsPerTenSeconds: 20,
+		limiter: rate.NewLimiter(rate.Every(time.Second*10/100), 1), // verify limits later
 	}
-}
-
-func (r *RateLimits) StartRateLimitTicker() {
-	go func() {
-		for {
-			// i don't know why this results in 20s and that's why I have to divide it, figure it out later
-			// fmt.Println(time.Duration(r.JoinsAndPartsPerTenSeconds) * time.Second)
-			time.Sleep((time.Second * time.Duration(r.JoinsAndPartsPerTenSeconds)) / 2)
-			fmt.Println("reset ratelimit")
-			r.joins.set(0)
-		}
-	}()
 }
