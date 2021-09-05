@@ -1289,11 +1289,12 @@ func TestCanIgnoreJoinRateLimits(t *testing.T) {
 	}
 
 	var messages []timedMessage
-	targetJoinCount := 699 // this breaks when above 700, why? the fuck?
+	targetJoinCount := 3000 // this breaks when above 700, why? the fuck?
 
 	host := startServer(t, nothingOnConnect, func(message string) {
 		if strings.HasPrefix(message, "JOIN ") {
 			messages = append(messages, timedMessage{message, time.Now()})
+			fmt.Println(len(messages))
 
 			if len(messages) == targetJoinCount {
 				close(waitEnd)

@@ -2,6 +2,7 @@ package twitch
 
 import (
 	"bufio"
+	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -879,12 +880,10 @@ func (c *Client) startWriter(writer io.WriteCloser, wg *sync.WaitGroup) {
 
 func (c *Client) writeMessage(writer io.WriteCloser, msg string) {
 	if strings.HasPrefix(msg, "JOIN") {
-		rv := c.rateLimits.joinLimiter.Reserve()
-		if !rv.OK() {
+		err := c.rateLimits.joinLimiter.Wait(context.Background())
+		if err != nil {
 			return
 		}
-		delay := rv.Delay()
-		time.Sleep(delay)
 	}
 
 	_, err := writer.Write([]byte(msg + "\r\n"))
