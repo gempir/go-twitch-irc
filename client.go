@@ -2,7 +2,6 @@ package twitch
 
 import (
 	"bufio"
-	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -723,6 +722,8 @@ func (c *Client) makeConnection(dialer *net.Dialer, conf *tls.Config) (err error
 	wg.Add(1)
 	go c.startReader(conn, &wg)
 
+	go c.rateLimits.StartFixedWindowLimiter()
+
 	if c.SendPings {
 		// If SendPings is true (which it is by default), start the thread
 		// responsible for managing sending pings and reading pongs
@@ -880,11 +881,17 @@ func (c *Client) startWriter(writer io.WriteCloser, wg *sync.WaitGroup) {
 
 func (c *Client) writeMessage(writer io.WriteCloser, msg string) {
 	if strings.HasPrefix(msg, "JOIN") {
-		err := c.rateLimits.joinLimiter.Wait(context.Background())
-		if err != nil {
+		fmt.Println(c.rateLimits.Allowed())
+		if !c.rateLimits.Allowed() {
+			fmt.Println("BRUH not allowed")
+			time.Sleep(time.Millisecond * 100)
+			c.writeMessage(writer, msg)
 			return
 		}
+
+		c.rateLimits.Increment()
 	}
+	fmt.Printf("%s %s\n", msg, time.Now().String())
 
 	_, err := writer.Write([]byte(msg + "\r\n"))
 	if err != nil {

@@ -1243,7 +1243,7 @@ func TestCanRespectVerifiedJoinRateLimits(t *testing.T) {
 	}
 
 	var messages []timedMessage
-	targetJoinCount := 2025
+	targetJoinCount := 3000
 
 	host := startServer(t, nothingOnConnect, func(message string) {
 		if strings.HasPrefix(message, "JOIN ") {
@@ -1294,7 +1294,6 @@ func TestCanIgnoreJoinRateLimits(t *testing.T) {
 	host := startServer(t, nothingOnConnect, func(message string) {
 		if strings.HasPrefix(message, "JOIN ") {
 			messages = append(messages, timedMessage{message, time.Now()})
-			fmt.Println(len(messages))
 
 			if len(messages) == targetJoinCount {
 				close(waitEnd)
