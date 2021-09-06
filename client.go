@@ -883,7 +883,7 @@ func (c *Client) writeMessage(writer io.WriteCloser, msg string) {
 	if strings.HasPrefix(msg, "JOIN") {
 		fmt.Println(c.rateLimits.Allowed())
 		if !c.rateLimits.Allowed() {
-			fmt.Println("BRUH not allowed")
+			fmt.Println("not allowed")
 			time.Sleep(time.Millisecond * 100)
 			c.writeMessage(writer, msg)
 			return
