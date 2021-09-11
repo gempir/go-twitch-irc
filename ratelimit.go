@@ -5,7 +5,7 @@ import (
 )
 
 type RateLimits struct {
-	limit    int32
+	limit    int
 	throttle chan time.Time
 }
 
@@ -21,7 +21,7 @@ func CreateVerifiedRateLimits() *RateLimits {
 	return CreateRateLimits(2000)
 }
 
-func CreateRateLimits(limit int32) *RateLimits {
+func CreateRateLimits(limit int) *RateLimits {
 	return &RateLimits{
 		limit:    limit,
 		throttle: make(chan time.Time, 10),
@@ -29,8 +29,16 @@ func CreateRateLimits(limit int32) *RateLimits {
 }
 
 func (r *RateLimits) StartRateLimiter() {
-	ticker := time.NewTicker((10 * time.Second) / time.Duration(r.limit))
-	for t := range ticker.C {
-		r.throttle <- t
+	r.fillThrottle()
+
+	ticker := time.NewTicker(10 * time.Second)
+	for range ticker.C {
+		r.fillThrottle()
+	}
+}
+
+func (r *RateLimits) fillThrottle() {
+	for i := 0; i < r.limit; i++ {
+		r.throttle <- time.Now()
 	}
 }
