@@ -9,8 +9,10 @@ type RateLimits struct {
 	throttle chan time.Time
 }
 
+const Unlimited = -1
+
 func CreateUnlimitedRateLimits() *RateLimits {
-	return CreateRateLimits(-1)
+	return CreateRateLimits(Unlimited)
 }
 
 func CreateDefaultRateLimits() *RateLimits {
@@ -28,7 +30,19 @@ func CreateRateLimits(limit int) *RateLimits {
 	}
 }
 
+func (r *RateLimits) Throttle() {
+	if r.limit == Unlimited {
+		return
+	}
+
+	<-r.throttle
+}
+
 func (r *RateLimits) StartRateLimiter() {
+	if r.limit == Unlimited {
+		return
+	}
+
 	r.fillThrottle()
 
 	ticker := time.NewTicker(10 * time.Second)

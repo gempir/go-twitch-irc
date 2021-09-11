@@ -882,7 +882,7 @@ func (c *Client) startWriter(writer io.WriteCloser, wg *sync.WaitGroup) {
 
 func (c *Client) writeMessage(writer io.WriteCloser, msg string) {
 	if strings.HasPrefix(msg, "JOIN") {
-		<-c.rateLimits.throttle
+		c.rateLimits.Throttle()
 	}
 	fmt.Printf("%s %s\n", msg, time.Now().String())
 
