@@ -11,16 +11,16 @@ type RateLimiter struct {
 
 const Unlimited = -1
 
-func CreateUnlimitedRateLimiter() *RateLimiter {
-	return createRateLimiter(Unlimited)
-}
-
 func CreateDefaultRateLimiter() *RateLimiter {
 	return createRateLimiter(20)
 }
 
 func CreateVerifiedRateLimiter() *RateLimiter {
 	return createRateLimiter(2000)
+}
+
+func CreateUnlimitedRateLimiter() *RateLimiter {
+	return createRateLimiter(Unlimited)
 }
 
 func createRateLimiter(limit int) *RateLimiter {

@@ -780,7 +780,7 @@ func (c *Client) SetIRCToken(ircToken string) {
 }
 
 // SetRateLimiter will set the rate limits for the client.
-// Use the factory methods CreateVerifiedRateLimits and CreateUnverifiedRateLimits to create the rate limits
+// Use the factory methods CreateDefaultRateLimiter, CreateVerifiedRateLimiter or CreateUnlimitedRateLimiter to create the rate limits
 // Creating your own RateLimiter without the factory methods is not recommended, as we will likely break the API in the future
 func (c *Client) SetRateLimiter(rateLimiter *RateLimiter) {
 	c.rateLimiter = rateLimiter
