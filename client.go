@@ -569,7 +569,8 @@ func (c *Client) Whisper(username, text string) {
 }
 
 // Join enter a twitch channel to read more messages.
-// This will put messages into a join queue which will be processed in respect to the ratelimits
+// It will respect the given ratelimits.
+// This is not a blocking operation.
 func (c *Client) Join(channels ...string) {
 	messages, joined := createJoinMessages(c.channels, channels...)
 
