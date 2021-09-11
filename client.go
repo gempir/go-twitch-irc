@@ -43,7 +43,7 @@ var (
 
 	// WriteBufferSize can be modified to change the write channel buffer size.
 	// Must be configured before NewClient is called to take effect
-	WriteBufferSize = 512
+	WriteBufferSize = 2000
 
 	// ReadBufferSize can be modified to change the read channel buffer size.
 	// Must be configured before NewClient is called to take effect
@@ -886,7 +886,6 @@ func (c *Client) writeMessage(writer io.WriteCloser, msg string) {
 	if strings.HasPrefix(msg, "JOIN") {
 		c.rateLimiter.Throttle()
 	}
-	fmt.Printf("%s %s\n", msg, time.Now().String())
 
 	_, err := writer.Write([]byte(msg + "\r\n"))
 	if err != nil {
