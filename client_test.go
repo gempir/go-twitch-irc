@@ -1210,7 +1210,7 @@ func TestCanRespectDefaultJoinRateLimits(t *testing.T) {
 	})
 
 	client := newTestClient(host)
-	client.SetRateLimits(CreateDefaultRateLimits())
+	client.SetRateLimiter(CreateDefaultRateLimiter())
 	go client.Connect() //nolint
 
 	// wait for the connection to go active
@@ -1256,7 +1256,7 @@ func TestCanRespectVerifiedJoinRateLimits(t *testing.T) {
 	})
 
 	client := newTestClient(host)
-	client.SetRateLimits(CreateVerifiedRateLimits())
+	client.SetRateLimiter(CreateVerifiedRateLimiter())
 	go client.Connect() //nolint
 
 	// wait for the connection to go active
@@ -1302,7 +1302,7 @@ func TestCanIgnoreJoinRateLimits(t *testing.T) {
 	})
 
 	client := newTestClient(host)
-	client.SetRateLimits(CreateUnlimitedRateLimits())
+	client.SetRateLimiter(CreateUnlimitedRateLimiter())
 	go client.Connect() //nolint
 
 	// wait for the connection to go active

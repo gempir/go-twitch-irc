@@ -4,42 +4,42 @@ import (
 	"time"
 )
 
-type RateLimits struct {
-	limit    int
-	throttle chan time.Time
+type RateLimiter struct {
+	joinLimit int
+	throttle  chan time.Time
 }
 
 const Unlimited = -1
 
-func CreateUnlimitedRateLimits() *RateLimits {
-	return CreateRateLimits(Unlimited)
+func CreateUnlimitedRateLimiter() *RateLimiter {
+	return createRateLimiter(Unlimited)
 }
 
-func CreateDefaultRateLimits() *RateLimits {
-	return CreateRateLimits(20)
+func CreateDefaultRateLimiter() *RateLimiter {
+	return createRateLimiter(20)
 }
 
-func CreateVerifiedRateLimits() *RateLimits {
-	return CreateRateLimits(2000)
+func CreateVerifiedRateLimiter() *RateLimiter {
+	return createRateLimiter(2000)
 }
 
-func CreateRateLimits(limit int) *RateLimits {
-	return &RateLimits{
-		limit:    limit,
-		throttle: make(chan time.Time, 10),
+func createRateLimiter(limit int) *RateLimiter {
+	return &RateLimiter{
+		joinLimit: limit,
+		throttle:  make(chan time.Time, 10),
 	}
 }
 
-func (r *RateLimits) Throttle() {
-	if r.limit == Unlimited {
+func (r *RateLimiter) Throttle() {
+	if r.joinLimit == Unlimited {
 		return
 	}
 
 	<-r.throttle
 }
 
-func (r *RateLimits) StartRateLimiter() {
-	if r.limit == Unlimited {
+func (r *RateLimiter) Start() {
+	if r.joinLimit == Unlimited {
 		return
 	}
 
@@ -51,8 +51,8 @@ func (r *RateLimits) StartRateLimiter() {
 	}
 }
 
-func (r *RateLimits) fillThrottle() {
-	for i := 0; i < r.limit; i++ {
+func (r *RateLimiter) fillThrottle() {
+	for i := 0; i < r.joinLimit; i++ {
 		r.throttle <- time.Now()
 	}
 }

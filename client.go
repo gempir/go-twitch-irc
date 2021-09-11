@@ -427,7 +427,7 @@ type Client struct {
 	Capabilities []string
 
 	// The ratelimits the client will respect when sending messages
-	rateLimits *RateLimits
+	rateLimiter *RateLimiter
 }
 
 // NewClient to create a new client
@@ -453,7 +453,7 @@ func NewClient(username, oauth string) *Client {
 
 		Capabilities: DefaultCapabilities,
 
-		rateLimits: CreateDefaultRateLimits(),
+		rateLimiter: CreateDefaultRateLimiter(),
 	}
 }
 
@@ -723,7 +723,7 @@ func (c *Client) makeConnection(dialer *net.Dialer, conf *tls.Config) (err error
 	wg.Add(1)
 	go c.startReader(conn, &wg)
 
-	go c.rateLimits.StartRateLimiter()
+	go c.rateLimiter.Start()
 
 	if c.SendPings {
 		// If SendPings is true (which it is by default), start the thread
@@ -779,9 +779,11 @@ func (c *Client) SetIRCToken(ircToken string) {
 	c.ircToken = ircToken
 }
 
-// SetRateLimits will set the rate limits for the client. It recommended to use templates like CreateVerifiedRateLimits()
-func (c *Client) SetRateLimits(rateLimits *RateLimits) {
-	c.rateLimits = rateLimits
+// SetRateLimiter will set the rate limits for the client.
+// Use the factory methods CreateVerifiedRateLimits and CreateUnverifiedRateLimits to create the rate limits
+// Creating your own RateLimiter without the factory methods is not recommended, as we will likely break the API in the future
+func (c *Client) SetRateLimiter(rateLimiter *RateLimiter) {
+	c.rateLimiter = rateLimiter
 }
 
 func (c *Client) startReader(reader io.Reader, wg *sync.WaitGroup) {
@@ -882,7 +884,7 @@ func (c *Client) startWriter(writer io.WriteCloser, wg *sync.WaitGroup) {
 
 func (c *Client) writeMessage(writer io.WriteCloser, msg string) {
 	if strings.HasPrefix(msg, "JOIN") {
-		c.rateLimits.Throttle()
+		c.rateLimiter.Throttle()
 	}
 	fmt.Printf("%s %s\n", msg, time.Now().String())
 
