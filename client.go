@@ -427,7 +427,7 @@ type Client struct {
 	Capabilities []string
 
 	// The ratelimits the client will respect when sending messages
-	rateLimits RateLimits
+	rateLimits *RateLimits
 }
 
 // NewClient to create a new client
@@ -722,7 +722,7 @@ func (c *Client) makeConnection(dialer *net.Dialer, conf *tls.Config) (err error
 	wg.Add(1)
 	go c.startReader(conn, &wg)
 
-	go c.rateLimits.StartFixedWindowLimiter()
+	go c.rateLimits.StartRateLimiter()
 
 	if c.SendPings {
 		// If SendPings is true (which it is by default), start the thread
@@ -779,7 +779,7 @@ func (c *Client) SetIRCToken(ircToken string) {
 }
 
 // SetRateLimits will set the rate limits for the client. It recommended to use templates like CreateVerifiedRateLimits()
-func (c *Client) SetRateLimits(rateLimits RateLimits) {
+func (c *Client) SetRateLimits(rateLimits *RateLimits) {
 	c.rateLimits = rateLimits
 }
 
@@ -881,15 +881,7 @@ func (c *Client) startWriter(writer io.WriteCloser, wg *sync.WaitGroup) {
 
 func (c *Client) writeMessage(writer io.WriteCloser, msg string) {
 	if strings.HasPrefix(msg, "JOIN") {
-		fmt.Println(c.rateLimits.Allowed())
-		if !c.rateLimits.Allowed() {
-			fmt.Println("not allowed")
-			time.Sleep(time.Millisecond * 100)
-			c.writeMessage(writer, msg)
-			return
-		}
-
-		c.rateLimits.Increment()
+		<-c.rateLimits.throttle
 	}
 	fmt.Printf("%s %s\n", msg, time.Now().String())
 
