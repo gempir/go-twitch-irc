@@ -5,14 +5,14 @@ import "sync/atomic"
 // tAtomBool atomic bool for writing/reading across threads
 type tAtomBool struct{ flag int32 }
 
-func (a *tAtomBool) set(value bool) {
+func (b *tAtomBool) set(value bool) {
 	var i int32
 	if value {
 		i = 1
 	}
-	atomic.StoreInt32(&(a.flag), i)
+	atomic.StoreInt32(&(b.flag), i)
 }
 
-func (a *tAtomBool) get() bool {
-	return atomic.LoadInt32(&(a.flag)) != 0
+func (b *tAtomBool) get() bool {
+	return atomic.LoadInt32(&(b.flag)) != 0
 }
