@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"crypto/tls"
 	"fmt"
-	"io"
 	"net"
 	"net/textproto"
 	"reflect"
@@ -18,7 +17,7 @@ import (
 )
 
 var startPortMutex sync.Mutex
-var startPort = 3000
+var startPort = 10000
 
 func newPort() (r int) {
 	startPortMutex.Lock()
@@ -1187,6 +1186,144 @@ func TestCanJoinChannelAfterConnection(t *testing.T) {
 	assertStringsEqual(t, "JOIN #gempir", receivedMsg)
 }
 
+func TestCanRespectDefaultJoinRateLimits(t *testing.T) {
+	t.Parallel()
+	waitEnd := make(chan struct{})
+
+	type timedMessage struct {
+		message string
+		time    time.Time
+	}
+
+	var messages []timedMessage
+	targetJoinCount := 25
+
+	host := startServer(t, nothingOnConnect, func(message string) {
+		if strings.HasPrefix(message, "JOIN ") {
+			messages = append(messages, timedMessage{message, time.Now()})
+
+			if len(messages) == targetJoinCount {
+				close(waitEnd)
+			}
+		}
+	})
+
+	client := newTestClient(host)
+	client.SetRateLimiter(CreateDefaultRateLimiter())
+	go client.Connect() //nolint
+
+	// wait for the connection to go active
+	for !client.connActive.get() {
+		time.Sleep(time.Millisecond * 2)
+	}
+
+	// send enough messages to ensure we hit the rate limit
+	for i := 1; i <= targetJoinCount; i++ {
+		client.Join(fmt.Sprintf("gempir%d", i))
+	}
+
+	// wait for server to receive message
+	select {
+	case <-waitEnd:
+	case <-time.After(time.Second * 30):
+		t.Fatal("didn't receive all messages in time")
+	}
+
+	assertTrue(t, messages[len(messages)-1].time.Sub(messages[0].time).Seconds() >= 10, "join rate limit not respected")
+}
+
+func TestCanRespectVerifiedJoinRateLimits(t *testing.T) {
+	t.Parallel()
+	waitEnd := make(chan struct{})
+
+	type timedMessage struct {
+		message string
+		time    time.Time
+	}
+
+	var messages []timedMessage
+	targetJoinCount := 3000
+
+	host := startServer(t, nothingOnConnect, func(message string) {
+		if strings.HasPrefix(message, "JOIN ") {
+			messages = append(messages, timedMessage{message, time.Now()})
+
+			if len(messages) == targetJoinCount {
+				close(waitEnd)
+			}
+		}
+	})
+
+	client := newTestClient(host)
+	client.SetRateLimiter(CreateVerifiedRateLimiter())
+	go client.Connect() //nolint
+
+	// wait for the connection to go active
+	for !client.connActive.get() {
+		time.Sleep(time.Millisecond * 2)
+	}
+
+	// send enough messages to ensure we hit the rate limit
+	for i := 1; i <= targetJoinCount; i++ {
+		client.Join(fmt.Sprintf("gempir%d", i))
+	}
+
+	// wait for server to receive message
+	select {
+	case <-waitEnd:
+	case <-time.After(time.Second * 30):
+		t.Fatal("didn't receive all messages in time")
+	}
+
+	assertTrue(t, messages[len(messages)-1].time.Sub(messages[0].time).Seconds() >= 10, "join rate limit not respected")
+}
+
+func TestCanIgnoreJoinRateLimits(t *testing.T) {
+	t.Parallel()
+	waitEnd := make(chan struct{})
+
+	type timedMessage struct {
+		message string
+		time    time.Time
+	}
+
+	var messages []timedMessage
+	targetJoinCount := 3000 // this breaks when above 700, why? the fuck?
+
+	host := startServer(t, nothingOnConnect, func(message string) {
+		if strings.HasPrefix(message, "JOIN ") {
+			messages = append(messages, timedMessage{message, time.Now()})
+
+			if len(messages) == targetJoinCount {
+				close(waitEnd)
+			}
+		}
+	})
+
+	client := newTestClient(host)
+	client.SetRateLimiter(CreateUnlimitedRateLimiter())
+	go client.Connect() //nolint
+
+	// wait for the connection to go active
+	for !client.connActive.get() {
+		time.Sleep(time.Millisecond * 2)
+	}
+
+	// send enough messages to ensure we hit the rate limit
+	for i := 1; i <= targetJoinCount; i++ {
+		client.Join(fmt.Sprintf("gempir%d", i))
+	}
+
+	// wait for server to receive message
+	select {
+	case <-waitEnd:
+	case <-time.After(time.Second * 10):
+		t.Fatal("didn't receive all messages in time")
+	}
+
+	assertTrue(t, messages[len(messages)-1].time.Sub(messages[0].time).Seconds() <= 10, "join rate limit respected")
+}
+
 func TestCanDepartChannel(t *testing.T) {
 	t.Parallel()
 	waitEnd := make(chan struct{})
@@ -1604,139 +1741,6 @@ func TestLocalSendingPingsReceivedPongAlsoDisconnect(t *testing.T) {
 	})
 	client := newTestClient(host)
 	client.IdlePingInterval = idlePingInterval
-
-	go client.Connect()
-
-	select {
-	case <-wait:
-	case <-time.After(time.Second * 3):
-		t.Fatal("Did not establish a connection")
-	}
-
-	client.Disconnect()
-}
-
-func TestSendReturnsIfBufferIsFull(t *testing.T) {
-	t.Parallel()
-	client := newTestClient("127.0.0.1:5")
-
-	for i := 0; i < WriteBufferSize; i++ {
-		success := client.send("Pepega")
-		assertTrue(t, success, "Send must succeed in storing messages up to its max buffer size")
-	}
-
-	success := client.send("Pepega")
-	assertFalse(t, success, "Send must not be able to add messages above its buffer")
-}
-
-func TestLocalSendBuffer(t *testing.T) {
-	t.Parallel()
-	const numNumbersToSend = 250
-
-	wait := make(chan bool)
-
-	var connMutex sync.Mutex
-	var conn net.Conn
-
-	host := startServerMultiConnsNoTLS(t, numNumbersToSend/10, func(c net.Conn) {
-		connMutex.Lock()
-		defer connMutex.Unlock()
-		conn = c
-	}, func(message string) {
-		if len(message) < 3 {
-			receivedNumber, err := strconv.Atoi(message)
-			assertErrorsEqual(t, nil, err)
-
-			if receivedNumber%10 == 0 {
-				connMutex.Lock()
-				defer connMutex.Unlock()
-				conn.Close()
-				return
-			}
-		}
-	})
-	client := newTestClient(host)
-	client.TLS = false
-
-	go func() {
-		// sends messages 0 to 10 with a 250 ms delay
-		// we should be able to reasonably expect at least 50% of them to make it through
-		for i := 0; i < numNumbersToSend; i++ {
-			client.send(strconv.Itoa(i))
-		}
-
-		// Wait for the full buffer to be sent
-		for client.sendBufferLength() > 0 {
-			time.Sleep(10 * time.Millisecond)
-		}
-		close(wait)
-	}()
-
-	go client.Connect()
-
-	select {
-	case <-wait:
-	case <-time.After(time.Second * 3):
-		t.Fatal("Did not establish a connection")
-	}
-
-	client.Disconnect()
-}
-
-type WriteOnlyClient struct {
-	*Client
-}
-
-func (wo *WriteOnlyClient) startReader(reader io.Reader, wg *sync.WaitGroup) {
-	wg.Done()
-}
-
-func (wo *WriteOnlyClient) startPinger(closer io.Closer, wg *sync.WaitGroup) {
-	wg.Done()
-}
-
-func TestWriter(t *testing.T) {
-	t.Parallel()
-	const numNumbersToSend = 250
-
-	wait := make(chan bool)
-
-	var connMutex sync.Mutex
-	var conn net.Conn
-
-	host := startServerMultiConnsNoTLS(t, numNumbersToSend/10, func(c net.Conn) {
-		connMutex.Lock()
-		defer connMutex.Unlock()
-		conn = c
-	}, func(message string) {
-		if len(message) < 3 {
-			receivedNumber, err := strconv.Atoi(message)
-			assertErrorsEqual(t, nil, err)
-
-			if receivedNumber%10 == 0 {
-				connMutex.Lock()
-				defer connMutex.Unlock()
-				conn.Close()
-				return
-			}
-		}
-	})
-	client := WriteOnlyClient{newTestClient(host)}
-	client.TLS = false
-
-	go func() {
-		// sends messages 0 to 10 with a 250 ms delay
-		// we should be able to reasonably expect at least 50% of them to make it through
-		for i := 0; i < numNumbersToSend; i++ {
-			client.send(strconv.Itoa(i))
-		}
-
-		// Wait for the full buffer to be sent
-		for client.sendBufferLength() > 0 {
-			time.Sleep(10 * time.Millisecond)
-		}
-		close(wait)
-	}()
 
 	go client.Connect()
 

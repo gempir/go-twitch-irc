@@ -425,6 +425,9 @@ type Client struct {
 	// By default, this is all caps (Tags, Commands, Membership)
 	// If this is an empty list or nil, no CAP REQ message is sent at all
 	Capabilities []string
+
+	// The ratelimits the client will respect when sending messages
+	rateLimiter *RateLimiter
 }
 
 // NewClient to create a new client
@@ -449,6 +452,8 @@ func NewClient(username, oauth string) *Client {
 		channelUserlistMutex: &sync.RWMutex{},
 
 		Capabilities: DefaultCapabilities,
+
+		rateLimiter: CreateDefaultRateLimiter(),
 	}
 }
 
@@ -564,6 +569,8 @@ func (c *Client) Whisper(username, text string) {
 }
 
 // Join enter a twitch channel to read more messages.
+// It will respect the given ratelimits.
+// This is not a blocking operation.
 func (c *Client) Join(channels ...string) {
 	messages, joined := createJoinMessages(c.channels, channels...)
 
@@ -572,7 +579,7 @@ func (c *Client) Join(channels ...string) {
 	c.channelsMtx.Lock()
 	for _, message := range messages {
 		if c.connActive.get() {
-			go c.send(message)
+			c.send(message)
 		}
 	}
 
@@ -639,7 +646,7 @@ func createJoinMessages(joinedChannels map[string]bool, channels ...string) ([]s
 // Depart leave a twitch channel
 func (c *Client) Depart(channel string) {
 	if c.connActive.get() {
-		go c.send(fmt.Sprintf("PART #%s", channel))
+		c.send(fmt.Sprintf("PART #%s", channel))
 	}
 
 	c.channelsMtx.Lock()
@@ -716,6 +723,8 @@ func (c *Client) makeConnection(dialer *net.Dialer, conf *tls.Config) (err error
 	wg.Add(1)
 	go c.startReader(conn, &wg)
 
+	go c.rateLimiter.Start()
+
 	if c.SendPings {
 		// If SendPings is true (which it is by default), start the thread
 		// responsible for managing sending pings and reading pongs
@@ -768,6 +777,13 @@ func (c *Client) Userlist(channel string) ([]string, error) {
 // This will not cause a reconnect, but is meant more for "on next connect, use this new token" in case the old token has expired
 func (c *Client) SetIRCToken(ircToken string) {
 	c.ircToken = ircToken
+}
+
+// SetRateLimiter will set the rate limits for the client.
+// Use the factory methods CreateDefaultRateLimiter, CreateVerifiedRateLimiter or CreateUnlimitedRateLimiter to create the rate limits
+// Creating your own RateLimiter without the factory methods is not recommended, as we will likely break the API in the future
+func (c *Client) SetRateLimiter(rateLimiter *RateLimiter) {
+	c.rateLimiter = rateLimiter
 }
 
 func (c *Client) startReader(reader io.Reader, wg *sync.WaitGroup) {
@@ -858,21 +874,26 @@ func (c *Client) startWriter(writer io.WriteCloser, wg *sync.WaitGroup) {
 		select {
 		case <-c.clientReconnect.channel:
 			return
-
 		case <-c.userDisconnect.channel:
 			return
-
 		case msg := <-c.write:
-			_, err := writer.Write([]byte(msg + "\r\n"))
-			if err != nil {
-				// Attempt to re-send failed messages
-				c.write <- msg
-
-				writer.Close()
-				c.clientReconnect.Close()
-				return
-			}
+			c.writeMessage(writer, msg)
 		}
+	}
+}
+
+func (c *Client) writeMessage(writer io.WriteCloser, msg string) {
+	if strings.HasPrefix(msg, "JOIN") {
+		c.rateLimiter.Throttle()
+	}
+
+	_, err := writer.Write([]byte(msg + "\r\n"))
+	if err != nil {
+		// Attempt to re-send failed messages
+		c.write <- msg
+
+		writer.Close()
+		c.clientReconnect.Close()
 	}
 }
 
@@ -904,18 +925,16 @@ func (c *Client) initialJoins() {
 	c.Join(channels...)
 }
 
-func (c *Client) send(line string) bool {
+func (c *Client) send(line string) {
 	select {
 	case c.write <- line:
-		return true
 	default:
-		return false
+		// The buffer of c.write is full, queue up the message to be sent later.
+		// We have no guarantee of order anymore if the buffer is full
+		go func() {
+			c.write <- line
+		}()
 	}
-}
-
-// Returns how many messages are left in the send buffer. Only used in tests
-func (c *Client) sendBufferLength() int {
-	return len(c.write)
 }
 
 // Errors returned from handleLine break out of readConnections, which starts a reconnect

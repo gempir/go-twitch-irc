@@ -219,6 +219,7 @@ client.IrcAddress = "127.0.0.1:3030" // for custom irc server
 client.TLS = false // enabled by default, will connect to non TLS server of twitch when off or the given client.IrcAddress
 client.SetupCmd = "LOGIN custom_command_here" // Send a custom command on successful IRC connection, before authentication.
 client.Capabilities = []string{twitch.TagsCapability, twitch.CommandsCapability} // Customize which capabilities are sent
+client.SetRateLimiter(twitch.CreateVerifiedRateLimiter()) // If you have a verified bot or other needs use this to set a custom rate limiter
 ```
 
 Option modifications must be done before calling Connect on the client.

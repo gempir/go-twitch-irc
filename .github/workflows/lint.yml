@@ -13,6 +13,6 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2.3.0
         with:
-          version: v1.29
+          version: v1.42
 
           args: --new-from-rev=e0a5614e47d349897~0
