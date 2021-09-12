@@ -43,7 +43,7 @@ var (
 
 	// WriteBufferSize can be modified to change the write channel buffer size.
 	// Must be configured before NewClient is called to take effect
-	WriteBufferSize = 2000
+	WriteBufferSize = 512
 
 	// ReadBufferSize can be modified to change the read channel buffer size.
 	// Must be configured before NewClient is called to take effect
@@ -579,7 +579,7 @@ func (c *Client) Join(channels ...string) {
 	c.channelsMtx.Lock()
 	for _, message := range messages {
 		if c.connActive.get() {
-			go c.send(message)
+			c.send(message)
 		}
 	}
 
@@ -646,7 +646,7 @@ func createJoinMessages(joinedChannels map[string]bool, channels ...string) ([]s
 // Depart leave a twitch channel
 func (c *Client) Depart(channel string) {
 	if c.connActive.get() {
-		go c.send(fmt.Sprintf("PART #%s", channel))
+		c.send(fmt.Sprintf("PART #%s", channel))
 	}
 
 	c.channelsMtx.Lock()
@@ -925,18 +925,16 @@ func (c *Client) initialJoins() {
 	c.Join(channels...)
 }
 
-func (c *Client) send(line string) bool {
+func (c *Client) send(line string) {
 	select {
 	case c.write <- line:
-		return true
 	default:
-		return false
+		// The buffer of c.write is full, queue up the message to be sent later.
+		// We have no guarantee of order anymore if the buffer is full
+		go func() {
+			c.write <- line
+		}()
 	}
-}
-
-// Returns how many messages are left in the send buffer. Only used in tests
-func (c *Client) sendBufferLength() int {
-	return len(c.write)
 }
 
 // Errors returned from handleLine break out of readConnections, which starts a reconnect
