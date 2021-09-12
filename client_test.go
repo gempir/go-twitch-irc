@@ -1993,7 +1993,7 @@ func TestRejoinOnReconnect(t *testing.T) {
 
 	client.Join("gempiR")
 
-	go client.Connect()
+	clientDisconnected := connectAndEnsureGoodDisconnect(t, client)
 
 	// wait for server to receive message
 	select {
@@ -2010,10 +2010,13 @@ func TestRejoinOnReconnect(t *testing.T) {
 	// Manually disconnect
 	client.Disconnect()
 
+	<-clientDisconnected
+
+	waitEnd = make(chan struct{})
+
 	// Manually reconnect
 	go client.Connect()
 
-	waitEnd = make(chan struct{})
 	select {
 	case <-waitEnd:
 	case <-time.After(time.Second * 3):
