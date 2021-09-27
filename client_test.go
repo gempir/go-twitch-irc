@@ -1158,8 +1158,8 @@ func TestCanRunFollowersOff(t *testing.T) {
 func TestCanRunBanUser(t *testing.T) {
 	t.Parallel()
 	
-	var testuser := "testuser123"
-	var testreason := "Test Ban"
+	testuser := "testuser123"
+	testreason := "Test Ban"
 	
 	waitEnd := make(chan struct{})
 	var received string
