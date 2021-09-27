@@ -1183,7 +1183,7 @@ func TestCanRunBanUser(t *testing.T) {
 	select {
 	case <-waitEnd:
 	case <-time.After(time.Second * 3):
-		t.Fatal("no ban received for " +testuser + " with reason: " +testreason)
+		t.Fatal("no ban received for " +testuser + " with reason: " +testreason, received)
 	}
 
 }
