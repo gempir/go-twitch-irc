@@ -603,7 +603,7 @@ func (c *Client) FollowersOff(channel string) {
 }
 
 // Ban run twitch command `/ban username reason` with the given channel and reason in argument
-func (c *Client) Ban(channel string, username string, reason string) {
+func (c *Client) Ban(channel, username, reason string) {
 	c.Say(channel, "/ban "+username+" "+reason)
 }
 
