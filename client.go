@@ -572,7 +572,7 @@ func (c *Client) Whisper(username, text string) {
 // It will respect the given ratelimits.
 // This is not a blocking operation.
 func (c *Client) Join(channels ...string) {
-	messages, joined := createJoinMessages(c.channels, channels...)
+	messages, joined := c.createJoinMessages(channels...)
 
 	// If we have an active connection, explicitly join
 	// before we add the joined channels to our map
@@ -607,7 +607,7 @@ func (c *Client) FollowersOff(channel string) {
 // Returns the join message, any channels included in the join message,
 // and any remaining channels. Channels which have already been joined
 // are not included in the remaining channels that are returned.
-func createJoinMessages(joinedChannels map[string]bool, channels ...string) ([]string, []string) {
+func (c *Client) createJoinMessages(channels ...string) ([]string, []string) {
 	baseMessage := "JOIN"
 	joinMessages := []string{}
 	joined := []string{}
@@ -618,22 +618,29 @@ func createJoinMessages(joinedChannels map[string]bool, channels ...string) ([]s
 
 	sb := strings.Builder{}
 	sb.WriteString(baseMessage)
+	channelsWritten := 0
 
 	for _, channel := range channels {
 		channel = strings.ToLower(channel)
 		// If the channel already exists in the map we don't need to re-join it
-		if joinedChannels[channel] {
+		c.channelsMtx.Lock()
+		if c.channels[channel] {
+			c.channelsMtx.Unlock()
 			continue
 		}
-		if sb.Len()+len(channel)+2 > maxMessageLength {
+		c.channelsMtx.Unlock()
+		if sb.Len()+len(channel)+2 > maxMessageLength || channelsWritten >= c.rateLimiter.joinLimit {
 			joinMessages = append(joinMessages, sb.String())
 			sb.Reset()
 			sb.WriteString(baseMessage)
+			channelsWritten = 0
 		}
 		if sb.Len() == len(baseMessage) {
 			sb.WriteString(" #" + channel)
+			channelsWritten++
 		} else {
 			sb.WriteString(",#" + channel)
+			channelsWritten++
 		}
 		joined = append(joined, channel)
 	}
@@ -884,7 +891,8 @@ func (c *Client) startWriter(writer io.WriteCloser, wg *sync.WaitGroup) {
 
 func (c *Client) writeMessage(writer io.WriteCloser, msg string) {
 	if strings.HasPrefix(msg, "JOIN") {
-		c.rateLimiter.Throttle()
+		splits := strings.Split(msg, ",")
+		c.rateLimiter.Throttle(len(splits))
 	}
 
 	_, err := writer.Write([]byte(msg + "\r\n"))

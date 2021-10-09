@@ -1232,6 +1232,65 @@ func TestCanRespectDefaultJoinRateLimits(t *testing.T) {
 	assertTrue(t, messages[len(messages)-1].time.Sub(messages[0].time).Seconds() >= 10, "join rate limit not respected")
 }
 
+func TestCanRespectDefaultJoinRateLimitsWithBulkJoins(t *testing.T) {
+	t.Parallel()
+	waitEnd := make(chan struct{})
+
+	type timedMessage struct {
+		message string
+		time    time.Time
+	}
+
+	var messages []timedMessage
+	targetJoinCount := 50
+
+	host := startServer(t, nothingOnConnect, func(message string) {
+		if strings.HasPrefix(message, "JOIN ") {
+			splits := strings.Split(message, ",")
+			for _, split := range splits {
+				fmt.Println(split)
+				messages = append(messages, timedMessage{split, time.Now()})
+			}
+			fmt.Println(len(messages))
+
+			if len(messages) == targetJoinCount {
+				close(waitEnd)
+			}
+		}
+	})
+
+	client := newTestClient(host)
+	client.SetRateLimiter(CreateDefaultRateLimiter())
+	go client.Connect() //nolint
+
+	// wait for the connection to go active
+	for !client.connActive.get() {
+		time.Sleep(time.Millisecond * 2)
+	}
+
+	perBulk := 25
+	// send enough messages to ensure we hit the rate limit
+	for i := 1; i <= targetJoinCount; {
+		channels := []string{}
+		for j := i; j < i+perBulk; j++ {
+			channels = append(channels, fmt.Sprintf("gempir%d", j))
+		}
+
+		fmt.Println(channels)
+		client.Join(channels...)
+		i += perBulk
+	}
+
+	// wait for server to receive message
+	select {
+	case <-waitEnd:
+	case <-time.After(time.Second * 40):
+		t.Fatal("didn't receive all messages in time")
+	}
+
+	assertTrue(t, messages[len(messages)-1].time.Sub(messages[0].time).Seconds() >= 10, "join rate limit not respected")
+}
+
 func TestCanRespectVerifiedJoinRateLimits(t *testing.T) {
 	t.Parallel()
 	waitEnd := make(chan struct{})
@@ -1947,8 +2006,11 @@ func TestCreateJoinMessagesCreatesMessages(t *testing.T) {
 		},
 	}
 
+	client := NewAnonymousClient()
+	client.channels = make(map[string]bool)
+
 	for _, test := range cases {
-		messages, joined := createJoinMessages(make(map[string]bool), test.channels...)
+		messages, joined := client.createJoinMessages(test.channels...)
 		assertStringSlicesEqual(t, test.expected.messages, messages)
 		assertStringSlicesEqual(t, test.expected.joined, joined)
 	}
@@ -1960,7 +2022,9 @@ func TestCreateJoinMessageReturnsLowercase(t *testing.T) {
 	expected := []string{"JOIN #pajlada,#forsen"}
 	expectedJoined := []string{"pajlada", "forsen"}
 
-	actual, actualJoined := createJoinMessages(joined, channels...)
+	client := NewAnonymousClient()
+	client.channels = joined
+	actual, actualJoined := client.createJoinMessages(channels...)
 	assertStringSlicesEqual(t, expected, actual)
 	assertStringSlicesEqual(t, expectedJoined, actualJoined)
 }
@@ -1973,7 +2037,9 @@ func TestCreateJoinMessageSkipsJoinedChannels(t *testing.T) {
 	}
 	expected := []string{"forsen", "nymn"}
 
-	_, actual := createJoinMessages(joined, channels...)
+	client := NewAnonymousClient()
+	client.channels = joined
+	_, actual := client.createJoinMessages(channels...)
 	assertStringSlicesEqual(t, expected, actual)
 }
 

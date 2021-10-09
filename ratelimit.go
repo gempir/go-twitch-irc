@@ -30,12 +30,14 @@ func createRateLimiter(limit int) *RateLimiter {
 	}
 }
 
-func (r *RateLimiter) Throttle() {
+func (r *RateLimiter) Throttle(count int) {
 	if r.joinLimit == Unlimited {
 		return
 	}
 
-	<-r.throttle
+	for i := 0; i < count; i++ {
+		<-r.throttle
+	}
 }
 
 func (r *RateLimiter) Start() {
