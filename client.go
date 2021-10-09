@@ -573,12 +573,14 @@ func (c *Client) Whisper(username, text string) {
 // This is not a blocking operation.
 func (c *Client) Join(channels ...string) {
 	messages, joined := c.createJoinMessages(channels...)
+	fmt.Printf("join messages: %s\n", messages)
 
 	// If we have an active connection, explicitly join
 	// before we add the joined channels to our map
 	c.channelsMtx.Lock()
 	for _, message := range messages {
 		if c.connActive.get() {
+			fmt.Println("c.send: " + message)
 			c.send(message)
 		}
 	}
@@ -719,6 +721,7 @@ func (c *Client) makeConnection(dialer *net.Dialer, conf *tls.Config) (err error
 		conn, err = dialer.Dial("tcp", c.IrcAddress)
 	}
 	if err != nil {
+		fmt.Printf("error connecting to %s: %s\n", c.IrcAddress, err)
 		return
 	}
 
@@ -805,6 +808,7 @@ func (c *Client) startReader(reader io.Reader, wg *sync.WaitGroup) {
 	for {
 		line, err := tp.ReadLine()
 		if err != nil {
+			fmt.Printf("Error reading from server: %s\n", err)
 			return
 		}
 		messages := strings.Split(line, "\r\n")
@@ -890,13 +894,17 @@ func (c *Client) startWriter(writer io.WriteCloser, wg *sync.WaitGroup) {
 }
 
 func (c *Client) writeMessage(writer io.WriteCloser, msg string) {
+	fmt.Println("writeMessage: " + msg)
 	if strings.HasPrefix(msg, "JOIN") {
 		splits := strings.Split(msg, ",")
 		c.rateLimiter.Throttle(len(splits))
 	}
 
+	fmt.Printf("actually send: %s\n", msg)
+
 	_, err := writer.Write([]byte(msg + "\r\n"))
 	if err != nil {
+		fmt.Println("writeMessage error: " + err.Error())
 		// Attempt to re-send failed messages
 		c.write <- msg
 
@@ -937,6 +945,7 @@ func (c *Client) send(line string) {
 	select {
 	case c.write <- line:
 	default:
+		fmt.Println("write buffer overshot")
 		// The buffer of c.write is full, queue up the message to be sent later.
 		// We have no guarantee of order anymore if the buffer is full
 		go func() {

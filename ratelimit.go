@@ -25,9 +25,16 @@ func CreateUnlimitedRateLimiter() *RateLimiter {
 }
 
 func createRateLimiter(limit int) *RateLimiter {
+	var throttle chan time.Time
+	if limit == Unlimited {
+		throttle = make(chan time.Time)
+	} else {
+		throttle = make(chan time.Time, limit)
+	}
+
 	return &RateLimiter{
 		joinLimit: limit,
-		throttle:  make(chan time.Time, 10),
+		throttle:  throttle,
 	}
 }
 
@@ -35,13 +42,11 @@ func (r *RateLimiter) Throttle(count int) {
 	if r.joinLimit == Unlimited {
 		return
 	}
+	fmt.Println(count, len(r.throttle))
 
 	for i := 0; i < count; i++ {
-		fmt.Printf("%d\n", i)
 		<-r.throttle
-		fmt.Println("more")
 	}
-	fmt.Println("throttle done")
 }
 
 func (r *RateLimiter) Start() {
@@ -59,6 +64,10 @@ func (r *RateLimiter) Start() {
 
 func (r *RateLimiter) fillThrottle() {
 	for i := 0; i < r.joinLimit; i++ {
-		r.throttle <- time.Now()
+		select {
+		case r.throttle <- time.Now():
+		default:
+			fmt.Printf("discarding rest of throttle %d\n", len(r.throttle))
+		}
 	}
 }

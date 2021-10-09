@@ -106,6 +106,7 @@ func connectAndEnsureGoodDisconnect(t *testing.T, client *Client) chan struct{} 
 func handleTestConnection(t *testing.T, onConnect func(net.Conn), onMessage func(string), listener net.Listener, wg *sync.WaitGroup) {
 	conn, err := listener.Accept()
 	if err != nil {
+		fmt.Printf("error accepting connection: %s\n", err)
 		t.Error(err)
 	}
 	defer func() {
@@ -120,6 +121,7 @@ func handleTestConnection(t *testing.T, onConnect func(net.Conn), onMessage func
 	for {
 		message, err := tp.ReadLine()
 		if err != nil {
+			fmt.Printf("error readLine: %s\n", err)
 			return
 		}
 		message = strings.Replace(message, "\r\n", "", 1)
@@ -181,6 +183,7 @@ func startServer2(t *testing.T, onConnect func(net.Conn), onMessage func(string)
 
 	go func() {
 		wg.Wait()
+		fmt.Println("server stopped")
 		listener.Close()
 
 		close(s.stopped)
@@ -1246,13 +1249,15 @@ func TestCanRespectDefaultJoinRateLimitsWithBulkJoins(t *testing.T) {
 
 	host := startServer(t, nothingOnConnect, func(message string) {
 		if strings.HasPrefix(message, "JOIN ") {
+			fmt.Println("RECEIVED: " + message)
 			splits := strings.Split(message, ",")
 			for _, split := range splits {
 				messages = append(messages, timedMessage{split, time.Now()})
 			}
-			fmt.Printf("received joins: %d\n", len(messages))
+			fmt.Printf("%s received joins: %d\n", time.Now().Format(time.RFC3339), len(messages))
 
 			if len(messages) == targetJoinCount {
+				fmt.Println("============== CLOSING ===============")
 				close(waitEnd)
 			}
 		}
@@ -1275,7 +1280,7 @@ func TestCanRespectDefaultJoinRateLimitsWithBulkJoins(t *testing.T) {
 			channels = append(channels, fmt.Sprintf("gempir%d", j))
 		}
 
-		fmt.Printf("joins: %v\n", channels)
+		fmt.Printf("joins(%d): %v\n", len(channels), channels)
 		client.Join(channels...)
 		i += perBulk
 	}
@@ -1283,7 +1288,7 @@ func TestCanRespectDefaultJoinRateLimitsWithBulkJoins(t *testing.T) {
 	// wait for server to receive message
 	select {
 	case <-waitEnd:
-	case <-time.After(time.Second * 40):
+	case <-time.After(time.Second * 5000):
 		t.Fatal("didn't receive all messages in time")
 	}
 
