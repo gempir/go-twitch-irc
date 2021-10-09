@@ -1248,10 +1248,9 @@ func TestCanRespectDefaultJoinRateLimitsWithBulkJoins(t *testing.T) {
 		if strings.HasPrefix(message, "JOIN ") {
 			splits := strings.Split(message, ",")
 			for _, split := range splits {
-				fmt.Println(split)
 				messages = append(messages, timedMessage{split, time.Now()})
 			}
-			fmt.Println(len(messages))
+			fmt.Printf("received joins: %d\n", len(messages))
 
 			if len(messages) == targetJoinCount {
 				close(waitEnd)
@@ -1276,7 +1275,7 @@ func TestCanRespectDefaultJoinRateLimitsWithBulkJoins(t *testing.T) {
 			channels = append(channels, fmt.Sprintf("gempir%d", j))
 		}
 
-		fmt.Println(channels)
+		fmt.Printf("joins: %v\n", channels)
 		client.Join(channels...)
 		i += perBulk
 	}

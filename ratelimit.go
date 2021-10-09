@@ -1,6 +1,7 @@
 package twitch
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -36,8 +37,11 @@ func (r *RateLimiter) Throttle(count int) {
 	}
 
 	for i := 0; i < count; i++ {
+		fmt.Printf("%d\n", i)
 		<-r.throttle
+		fmt.Println("more")
 	}
+	fmt.Println("throttle done")
 }
 
 func (r *RateLimiter) Start() {
