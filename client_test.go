@@ -1210,6 +1210,7 @@ func TestCanRespectDefaultJoinRateLimits(t *testing.T) {
 	})
 
 	client := newTestClient(host)
+	client.PongTimeout = time.Second * 30
 	client.SetRateLimiter(CreateDefaultRateLimiter())
 	go client.Connect() //nolint
 
@@ -1313,6 +1314,7 @@ func TestCanRespectVerifiedJoinRateLimits(t *testing.T) {
 	})
 
 	client := newTestClient(host)
+	client.PongTimeout = time.Second * 30
 	client.SetRateLimiter(CreateVerifiedRateLimiter())
 	go client.Connect() //nolint
 
@@ -1359,6 +1361,7 @@ func TestCanIgnoreJoinRateLimits(t *testing.T) {
 	})
 
 	client := newTestClient(host)
+	client.PongTimeout = time.Second * 30
 	client.SetRateLimiter(CreateUnlimitedRateLimiter())
 	go client.Connect() //nolint
 
