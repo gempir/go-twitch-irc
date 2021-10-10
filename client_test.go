@@ -1191,19 +1191,14 @@ func TestCanRespectDefaultJoinRateLimits(t *testing.T) {
 	t.Parallel()
 	waitEnd := make(chan struct{})
 
-	type timedMessage struct {
-		message string
-		time    time.Time
-	}
-
-	var messages []timedMessage
+	var joinMessages []timedTestMessage
 	targetJoinCount := 25
 
 	host := startServer(t, nothingOnConnect, func(message string) {
 		if strings.HasPrefix(message, "JOIN ") {
-			messages = append(messages, timedMessage{message, time.Now()})
+			joinMessages = append(joinMessages, timedTestMessage{message, time.Now()})
 
-			if len(messages) == targetJoinCount {
+			if len(joinMessages) == targetJoinCount {
 				close(waitEnd)
 			}
 		}
@@ -1231,32 +1226,24 @@ func TestCanRespectDefaultJoinRateLimits(t *testing.T) {
 		t.Fatal("didn't receive all messages in time")
 	}
 
-	lastMessageTime := messages[len(messages)-1].time
-	firstMessageTime := messages[0].time
-
-	assertTrue(t, lastMessageTime.Sub(firstMessageTime).Seconds() >= 10, fmt.Sprintf("join ratelimit not resepected last message time: %s, first message time: %s", lastMessageTime, firstMessageTime))
+	assertJoinRatelimitRespected(t, client.rateLimiter.joinLimit, joinMessages)
 }
 
 func TestCanRespectDefaultJoinRateLimitsWithBulkJoins(t *testing.T) {
 	t.Parallel()
 	waitEnd := make(chan struct{})
 
-	type timedMessage struct {
-		message string
-		time    time.Time
-	}
-
-	var messages []timedMessage
+	var joinMessages []timedTestMessage
 	targetJoinCount := 50
 
 	host := startServer(t, nothingOnConnect, func(message string) {
 		if strings.HasPrefix(message, "JOIN ") {
 			splits := strings.Split(message, ",")
 			for _, split := range splits {
-				messages = append(messages, timedMessage{split, time.Now()})
+				joinMessages = append(joinMessages, timedTestMessage{split, time.Now()})
 			}
 
-			if len(messages) == targetJoinCount {
+			if len(joinMessages) == targetJoinCount {
 				close(waitEnd)
 			}
 		}
@@ -1291,29 +1278,21 @@ func TestCanRespectDefaultJoinRateLimitsWithBulkJoins(t *testing.T) {
 		t.Fatal("didn't receive all messages in time")
 	}
 
-	lastMessageTime := messages[len(messages)-1].time
-	firstMessageTime := messages[0].time
-
-	assertTrue(t, lastMessageTime.Sub(firstMessageTime).Seconds() >= 10, fmt.Sprintf("join ratelimit not resepected last message time: %s, first message time: %s", lastMessageTime, firstMessageTime))
+	assertJoinRatelimitRespected(t, client.rateLimiter.joinLimit, joinMessages)
 }
 
 func TestCanRespectVerifiedJoinRateLimits(t *testing.T) {
 	t.Parallel()
 	waitEnd := make(chan struct{})
 
-	type timedMessage struct {
-		message string
-		time    time.Time
-	}
-
-	var messages []timedMessage
+	var joinMessages []timedTestMessage
 	targetJoinCount := 3000
 
 	host := startServer(t, nothingOnConnect, func(message string) {
 		if strings.HasPrefix(message, "JOIN ") {
-			messages = append(messages, timedMessage{message, time.Now()})
+			joinMessages = append(joinMessages, timedTestMessage{message, time.Now()})
 
-			if len(messages) == targetJoinCount {
+			if len(joinMessages) == targetJoinCount {
 				close(waitEnd)
 			}
 		}
@@ -1341,27 +1320,19 @@ func TestCanRespectVerifiedJoinRateLimits(t *testing.T) {
 		t.Fatal("didn't receive all messages in time")
 	}
 
-	lastMessageTime := messages[len(messages)-1].time
-	firstMessageTime := messages[0].time
-
-	assertTrue(t, lastMessageTime.Sub(firstMessageTime).Seconds() >= 10, fmt.Sprintf("join ratelimit not resepected last message time: %s, first message time: %s", lastMessageTime, firstMessageTime))
+	assertJoinRatelimitRespected(t, client.rateLimiter.joinLimit, joinMessages)
 }
 
 func TestCanIgnoreJoinRateLimits(t *testing.T) {
 	t.Parallel()
 	waitEnd := make(chan struct{})
 
-	type timedMessage struct {
-		message string
-		time    time.Time
-	}
-
-	var messages []timedMessage
+	var messages []timedTestMessage
 	targetJoinCount := 3000 // this breaks when above 700, why? the fuck?
 
 	host := startServer(t, nothingOnConnect, func(message string) {
 		if strings.HasPrefix(message, "JOIN ") {
-			messages = append(messages, timedMessage{message, time.Now()})
+			messages = append(messages, timedTestMessage{message, time.Now()})
 
 			if len(messages) == targetJoinCount {
 				close(waitEnd)
