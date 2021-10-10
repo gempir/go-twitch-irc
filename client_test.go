@@ -170,6 +170,7 @@ func startServer2(t *testing.T, onConnect func(net.Conn), onMessage func(string)
 		t.Fatal(err)
 	}
 	config := &tls.Config{
+		MinVersion:   tls.VersionTLS12,
 		Certificates: []tls.Certificate{cert},
 	}
 	listener, err := tls.Listen("tcp", s.host, config)
@@ -1249,15 +1250,13 @@ func TestCanRespectDefaultJoinRateLimitsWithBulkJoins(t *testing.T) {
 
 	host := startServer(t, nothingOnConnect, func(message string) {
 		if strings.HasPrefix(message, "JOIN ") {
-			fmt.Println("RECEIVED: " + message)
 			splits := strings.Split(message, ",")
 			for _, split := range splits {
 				messages = append(messages, timedMessage{split, time.Now()})
 			}
-			fmt.Printf("%s received joins: %d\n", time.Now().Format(time.RFC3339), len(messages))
+			fmt.Printf("received joins [%s]: %d\n", time.Now().Format(time.RFC3339), len(messages))
 
 			if len(messages) == targetJoinCount {
-				fmt.Println("============== CLOSING ===============")
 				close(waitEnd)
 			}
 		}
@@ -1280,7 +1279,6 @@ func TestCanRespectDefaultJoinRateLimitsWithBulkJoins(t *testing.T) {
 			channels = append(channels, fmt.Sprintf("gempir%d", j))
 		}
 
-		fmt.Printf("joins(%d): %v\n", len(channels), channels)
 		client.Join(channels...)
 		i += perBulk
 	}

@@ -1,7 +1,6 @@
 package twitch
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -42,7 +41,6 @@ func (r *RateLimiter) Throttle(count int) {
 	if r.joinLimit == Unlimited {
 		return
 	}
-	fmt.Println(count, len(r.throttle))
 
 	for i := 0; i < count; i++ {
 		<-r.throttle
@@ -67,7 +65,7 @@ func (r *RateLimiter) fillThrottle() {
 		select {
 		case r.throttle <- time.Now():
 		default:
-			fmt.Printf("discarding rest of throttle %d\n", len(r.throttle))
+			// discarding rest, throttle already filled
 		}
 	}
 }
