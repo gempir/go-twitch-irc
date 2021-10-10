@@ -447,7 +447,7 @@ func NewClient(username, oauth string) *Client {
 		// NOTE: IdlePingInterval must be higher than PongTimeout
 		SendPings:        true,
 		IdlePingInterval: time.Second * 15,
-		PongTimeout:      time.Second * 15,
+		PongTimeout:      time.Second * 5,
 
 		channelUserlistMutex: &sync.RWMutex{},
 
