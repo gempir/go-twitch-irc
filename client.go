@@ -688,13 +688,16 @@ func (c *Client) Connect() error {
 	}
 
 	var conf *tls.Config
-	// This means we are connecting to "localhost". Disable certificate chain check
 	if strings.HasPrefix(c.IrcAddress, "127.0.0.1:") {
 		conf = &tls.Config{
+			MinVersion: tls.VersionTLS12,
+			//nolint:gosec // disable certificate chain check locally
 			InsecureSkipVerify: true,
 		}
 	} else {
-		conf = &tls.Config{}
+		conf = &tls.Config{
+			MinVersion: tls.VersionTLS12,
+		}
 	}
 
 	for {
