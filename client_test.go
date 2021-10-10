@@ -106,7 +106,6 @@ func connectAndEnsureGoodDisconnect(t *testing.T, client *Client) chan struct{} 
 func handleTestConnection(t *testing.T, onConnect func(net.Conn), onMessage func(string), listener net.Listener, wg *sync.WaitGroup) {
 	conn, err := listener.Accept()
 	if err != nil {
-		fmt.Printf("error accepting connection: %s\n", err)
 		t.Error(err)
 	}
 	defer func() {
@@ -121,7 +120,6 @@ func handleTestConnection(t *testing.T, onConnect func(net.Conn), onMessage func
 	for {
 		message, err := tp.ReadLine()
 		if err != nil {
-			fmt.Printf("error readLine: %s\n", err)
 			return
 		}
 		message = strings.Replace(message, "\r\n", "", 1)
@@ -184,7 +182,6 @@ func startServer2(t *testing.T, onConnect func(net.Conn), onMessage func(string)
 
 	go func() {
 		wg.Wait()
-		fmt.Println("server stopped")
 		listener.Close()
 
 		close(s.stopped)
@@ -1254,7 +1251,6 @@ func TestCanRespectDefaultJoinRateLimitsWithBulkJoins(t *testing.T) {
 			for _, split := range splits {
 				messages = append(messages, timedMessage{split, time.Now()})
 			}
-			fmt.Printf("received joins [%s]: %d\n", time.Now().Format(time.RFC3339), len(messages))
 
 			if len(messages) == targetJoinCount {
 				close(waitEnd)
@@ -1263,6 +1259,7 @@ func TestCanRespectDefaultJoinRateLimitsWithBulkJoins(t *testing.T) {
 	})
 
 	client := newTestClient(host)
+	client.PongTimeout = time.Second * 30
 	client.SetRateLimiter(CreateDefaultRateLimiter())
 	go client.Connect() //nolint
 
@@ -1286,7 +1283,7 @@ func TestCanRespectDefaultJoinRateLimitsWithBulkJoins(t *testing.T) {
 	// wait for server to receive message
 	select {
 	case <-waitEnd:
-	case <-time.After(time.Second * 5000):
+	case <-time.After(time.Second * 30):
 		t.Fatal("didn't receive all messages in time")
 	}
 

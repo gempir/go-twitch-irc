@@ -447,7 +447,7 @@ func NewClient(username, oauth string) *Client {
 		// NOTE: IdlePingInterval must be higher than PongTimeout
 		SendPings:        true,
 		IdlePingInterval: time.Second * 15,
-		PongTimeout:      time.Second * 5,
+		PongTimeout:      time.Second * 15,
 
 		channelUserlistMutex: &sync.RWMutex{},
 
@@ -719,7 +719,6 @@ func (c *Client) makeConnection(dialer *net.Dialer, conf *tls.Config) (err error
 		conn, err = dialer.Dial("tcp", c.IrcAddress)
 	}
 	if err != nil {
-		fmt.Printf("error connecting to %s: %s\n", c.IrcAddress, err)
 		return
 	}
 
@@ -806,7 +805,6 @@ func (c *Client) startReader(reader io.Reader, wg *sync.WaitGroup) {
 	for {
 		line, err := tp.ReadLine()
 		if err != nil {
-			fmt.Printf("Error reading from server: %s\n", err)
 			return
 		}
 		messages := strings.Split(line, "\r\n")
@@ -899,7 +897,6 @@ func (c *Client) writeMessage(writer io.WriteCloser, msg string) {
 
 	_, err := writer.Write([]byte(msg + "\r\n"))
 	if err != nil {
-		fmt.Println("writeMessage error: " + err.Error())
 		// Attempt to re-send failed messages
 		c.write <- msg
 
