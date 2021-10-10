@@ -1229,7 +1229,7 @@ func TestCanRespectDefaultJoinRateLimits(t *testing.T) {
 	assertJoinRatelimitRespected(t, client.rateLimiter.joinLimit, joinMessages)
 }
 
-func TestCanRespectDefaultJoinRateLimitsWithBulkJoins(t *testing.T) {
+func TestCanRespectBulkDefaultJoinRateLimits(t *testing.T) {
 	t.Parallel()
 	waitEnd := make(chan struct{})
 

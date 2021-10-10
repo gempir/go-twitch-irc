@@ -10,6 +10,7 @@ type RateLimiter struct {
 }
 
 const Unlimited = -1
+const TwitchRatelimitWindow = 10 * time.Second
 
 func CreateDefaultRateLimiter() *RateLimiter {
 	return createRateLimiter(20)
@@ -52,20 +53,19 @@ func (r *RateLimiter) Start() {
 		return
 	}
 
-	r.fillThrottle()
-
-	ticker := time.NewTicker(10 * time.Second)
-	for range ticker.C {
-		r.fillThrottle()
-	}
-}
-
-func (r *RateLimiter) fillThrottle() {
 	for i := 0; i < r.joinLimit; i++ {
+		r.throttle <- time.Now()
+	}
+
+	tickerTime := TwitchRatelimitWindow / time.Duration(r.joinLimit)
+	time.Sleep(TwitchRatelimitWindow)
+
+	ticker := time.NewTicker(tickerTime)
+	for range ticker.C {
 		select {
 		case r.throttle <- time.Now():
 		default:
-			// discarding rest, throttle already filled
+			// discard
 		}
 	}
 }

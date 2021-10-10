@@ -130,14 +130,14 @@ type timedTestMessage struct {
 func assertJoinRatelimitRespected(t *testing.T, joinLimit int, joinMessages []timedTestMessage) {
 	messageBuckets := make(map[string][]timedTestMessage)
 	currentMessage := joinMessages[0]
-	currentBucket := currentMessage.time.Add(time.Second * 10)
+	currentBucket := currentMessage.time.Add(TwitchRatelimitWindow)
 
 	for _, msg := range joinMessages {
 		if msg.time.Before(currentBucket) {
 			key := currentMessage.time.Format("15:04:05") + " -> " + currentBucket.Format("15:04:05")
 			messageBuckets[key] = append(messageBuckets[key], msg)
 		} else {
-			currentBucket = msg.time.Add(time.Second * 10)
+			currentBucket = msg.time.Add(TwitchRatelimitWindow)
 			currentMessage = msg
 		}
 	}
