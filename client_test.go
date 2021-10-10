@@ -279,6 +279,7 @@ func TestCanConnectAndAuthenticateWithoutTLS(t *testing.T) {
 	client := NewClient("justinfan123123", oauthCode)
 	client.TLS = false
 	client.IrcAddress = host
+	client.PongTimeout = time.Second * 30
 	go client.Connect()
 
 	select {
@@ -359,7 +360,6 @@ func TestCanCreateClient(t *testing.T) {
 }
 
 func TestCanConnectAndAuthenticate(t *testing.T) {
-	t.Parallel()
 	const oauthCode = "oauth:123123132"
 	wait := make(chan struct{})
 
@@ -373,6 +373,7 @@ func TestCanConnectAndAuthenticate(t *testing.T) {
 	})
 
 	client := newTestClient(host)
+	client.PongTimeout = time.Second * 30
 	connectAndEnsureGoodDisconnect(t, client)
 	defer client.Disconnect()
 
@@ -387,7 +388,6 @@ func TestCanConnectAndAuthenticate(t *testing.T) {
 
 // This test is meant to be a blueprint for a test that needs the flow completely from server start to server stop
 func TestFullConnectAndDisconnect(t *testing.T) {
-	t.Parallel()
 	const oauthCode = "oauth:123123132"
 	waitPass := make(chan struct{})
 	waitServerConnect := make(chan struct{})
@@ -432,7 +432,6 @@ func TestFullConnectAndDisconnect(t *testing.T) {
 }
 
 func TestCanConnectAndAuthenticateAnonymous(t *testing.T) {
-	t.Parallel()
 	const oauthCode = "oauth:59301"
 	waitPass := make(chan struct{})
 	waitServerConnect := make(chan struct{})
