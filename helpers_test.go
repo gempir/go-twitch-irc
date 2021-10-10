@@ -127,7 +127,7 @@ type timedTestMessage struct {
 	time    time.Time
 }
 
-func assertJoinRatelimitRespected(t *testing.T, joinLimit int, joinMessages []timedTestMessage) {
+func assertJoinRateLimitRespected(t *testing.T, joinLimit int, joinMessages []timedTestMessage) {
 	messageBuckets := make(map[string][]timedTestMessage)
 	startBucketTime := joinMessages[0].time
 	endBucketTime := startBucketTime.Add(TwitchRateLimitWindow)
