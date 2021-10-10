@@ -1231,7 +1231,10 @@ func TestCanRespectDefaultJoinRateLimits(t *testing.T) {
 		t.Fatal("didn't receive all messages in time")
 	}
 
-	assertTrue(t, messages[len(messages)-1].time.Sub(messages[0].time).Seconds() >= 10, "join rate limit not respected")
+	lastMessageTime := messages[len(messages)-1].time
+	firstMessageTime := messages[0].time
+
+	assertTrue(t, lastMessageTime.Sub(firstMessageTime).Seconds() >= 10, fmt.Sprintf("join ratelimit not resepected last message time: %s, first message time: %s", lastMessageTime, firstMessageTime))
 }
 
 func TestCanRespectDefaultJoinRateLimitsWithBulkJoins(t *testing.T) {
@@ -1288,7 +1291,10 @@ func TestCanRespectDefaultJoinRateLimitsWithBulkJoins(t *testing.T) {
 		t.Fatal("didn't receive all messages in time")
 	}
 
-	assertTrue(t, messages[len(messages)-1].time.Sub(messages[0].time).Seconds() >= 10, "join rate limit not respected")
+	lastMessageTime := messages[len(messages)-1].time
+	firstMessageTime := messages[0].time
+
+	assertTrue(t, lastMessageTime.Sub(firstMessageTime).Seconds() >= 10, fmt.Sprintf("join ratelimit not resepected last message time: %s, first message time: %s", lastMessageTime, firstMessageTime))
 }
 
 func TestCanRespectVerifiedJoinRateLimits(t *testing.T) {
@@ -1335,7 +1341,10 @@ func TestCanRespectVerifiedJoinRateLimits(t *testing.T) {
 		t.Fatal("didn't receive all messages in time")
 	}
 
-	assertTrue(t, messages[len(messages)-1].time.Sub(messages[0].time).Seconds() >= 10, "join rate limit not respected")
+	lastMessageTime := messages[len(messages)-1].time
+	firstMessageTime := messages[0].time
+
+	assertTrue(t, lastMessageTime.Sub(firstMessageTime).Seconds() >= 10, fmt.Sprintf("join ratelimit not resepected last message time: %s, first message time: %s", lastMessageTime, firstMessageTime))
 }
 
 func TestCanIgnoreJoinRateLimits(t *testing.T) {
@@ -1382,7 +1391,10 @@ func TestCanIgnoreJoinRateLimits(t *testing.T) {
 		t.Fatal("didn't receive all messages in time")
 	}
 
-	assertTrue(t, messages[len(messages)-1].time.Sub(messages[0].time).Seconds() <= 10, "join rate limit respected")
+	lastMessageTime := messages[len(messages)-1].time
+	firstMessageTime := messages[0].time
+
+	assertTrue(t, lastMessageTime.Sub(firstMessageTime).Seconds() <= 10, fmt.Sprintf("join ratelimit not skipped last message time: %s, first message time: %s", lastMessageTime, firstMessageTime))
 }
 
 func TestCanDepartChannel(t *testing.T) {
