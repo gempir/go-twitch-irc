@@ -115,7 +115,7 @@ func TestCanParseWHISPERActionMessage(t *testing.T) {
 }
 
 func TestCanParsePRIVMSGMessage(t *testing.T) {
-	testMessage := "@badges=premium/1;color=#DAA520;display-name=FletcherCodes;emotes=;flags=;id=6efffc70-27a1-4637-9111-44e5104bb7da;mod=0;room-id=408892348;subscriber=0;tmi-sent-ts=1551473087761;turbo=0;user-id=269899575;user-type= :fletchercodes!fletchercodes@fletchercodes.tmi.twitch.tv PRIVMSG #clippyassistant :Chew your food slower... it's healthier"
+	testMessage := "@badges=premium/1;color=#DAA520;display-name=FletcherCodes;emotes=;first-msg=1;flags=;id=6efffc70-27a1-4637-9111-44e5104bb7da;mod=0;room-id=408892348;subscriber=0;tmi-sent-ts=1551473087761;turbo=0;user-id=269899575;user-type= :fletchercodes!fletchercodes@fletchercodes.tmi.twitch.tv PRIVMSG #clippyassistant :Chew your food slower... it's healthier"
 
 	message := ParseMessage(testMessage)
 	privateMessage := message.(*PrivateMessage)
@@ -142,6 +142,7 @@ func TestCanParsePRIVMSGMessage(t *testing.T) {
 	assertFalse(t, privateMessage.Action, "parsing Action failed")
 	assertIntsEqual(t, 0, len(privateMessage.Emotes))
 	assertIntsEqual(t, 0, privateMessage.Bits)
+	assertTrue(t, privateMessage.FirstMessage, "first message not correctly read")
 }
 
 func TestCanParsePRIVMSGActionMessage(t *testing.T) {
