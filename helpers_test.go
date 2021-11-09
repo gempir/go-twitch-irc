@@ -22,6 +22,12 @@ func assertInt32sEqual(t *testing.T, expected, actual int32) {
 	}
 }
 
+func assertBoolEqual(t *testing.T, expected, actual bool) {
+	if expected != actual {
+		t.Errorf("failed asserting that \"%t\" is expected \"%t\"", actual, expected)
+	}
+}
+
 func assertTrue(t *testing.T, actual bool, errorMessage string) {
 	if !actual {
 		t.Error(errorMessage)

@@ -115,34 +115,108 @@ func TestCanParseWHISPERActionMessage(t *testing.T) {
 }
 
 func TestCanParsePRIVMSGMessage(t *testing.T) {
-	testMessage := "@badges=premium/1;color=#DAA520;display-name=FletcherCodes;emotes=;first-msg=1;flags=;id=6efffc70-27a1-4637-9111-44e5104bb7da;mod=0;room-id=408892348;subscriber=0;tmi-sent-ts=1551473087761;turbo=0;user-id=269899575;user-type= :fletchercodes!fletchercodes@fletchercodes.tmi.twitch.tv PRIVMSG #clippyassistant :Chew your food slower... it's healthier"
-
-	message := ParseMessage(testMessage)
-	privateMessage := message.(*PrivateMessage)
-	user := privateMessage.User
-
-	assertStringsEqual(t, "269899575", user.ID)
-	assertStringsEqual(t, "fletchercodes", user.Name)
-	assertStringsEqual(t, "FletcherCodes", user.DisplayName)
-	assertStringsEqual(t, "#DAA520", user.Color)
-
-	expectedBadges := map[string]int{
-		"premium": 1,
+	type test struct {
+		name            string
+		message         string
+		expectedMessage PrivateMessage
 	}
-	assertStringIntMapsEqual(t, expectedBadges, user.Badges)
-
-	if privateMessage.Type != PRIVMSG {
-		t.Error("parsing MessageType failed")
+	var tests = []test{
+		{
+			"Message With First Message",
+			"@badges=premium/1;color=#DAA520;display-name=FletcherCodes;emotes=;first-msg=1;flags=;id=6efffc70-27a1-4637-9111-44e5104bb7da;mod=0;room-id=408892348;subscriber=0;tmi-sent-ts=1551473087761;turbo=0;user-id=269899575;user-type= :fletchercodes!fletchercodes@fletchercodes.tmi.twitch.tv PRIVMSG #clippyassistant :Chew your food slower... it's healthier",
+			PrivateMessage{
+				User: User{
+					ID:          "269899575",
+					Name:        "fletchercodes",
+					DisplayName: "FletcherCodes",
+					Color:       "#DAA520",
+					Badges: map[string]int{
+						"premium": 1,
+					},
+				},
+				Type:         PRIVMSG,
+				RawType:      "PRIVMSG",
+				Message:      "Chew your food slower... it's healthier",
+				Channel:      "clippyassistant",
+				RoomID:       "408892348",
+				ID:           "6efffc70-27a1-4637-9111-44e5104bb7da",
+				FirstMessage: true,
+			},
+		},
+		{
+			"Message Without First Message",
+			"@badges=premium/1;color=#DAA520;display-name=FletcherCodes;emotes=;first-msg=0;flags=;id=6efffc70-27a1-4637-9111-44e5104bb7da;mod=0;room-id=408892348;subscriber=0;tmi-sent-ts=1551473087761;turbo=0;user-id=269899575;user-type= :fletchercodes!fletchercodes@fletchercodes.tmi.twitch.tv PRIVMSG #clippyassistant :Chew your food slower... it's healthier",
+			PrivateMessage{
+				User: User{
+					ID:          "269899575",
+					Name:        "fletchercodes",
+					DisplayName: "FletcherCodes",
+					Color:       "#DAA520",
+					Badges: map[string]int{
+						"premium": 1,
+					},
+				},
+				Type:         PRIVMSG,
+				RawType:      "PRIVMSG",
+				Message:      "Chew your food slower... it's healthier",
+				Channel:      "clippyassistant",
+				RoomID:       "408892348",
+				ID:           "6efffc70-27a1-4637-9111-44e5104bb7da",
+				FirstMessage: false,
+			},
+		},
+		{
+			"Message With Missing First Message",
+			"@badges=premium/1;color=#DAA520;display-name=FletcherCodes;emotes=;flags=;id=6efffc70-27a1-4637-9111-44e5104bb7da;mod=0;room-id=408892348;subscriber=0;tmi-sent-ts=1551473087761;turbo=0;user-id=269899575;user-type= :fletchercodes!fletchercodes@fletchercodes.tmi.twitch.tv PRIVMSG #clippyassistant :Chew your food slower... it's healthier",
+			PrivateMessage{
+				User: User{
+					ID:          "269899575",
+					Name:        "fletchercodes",
+					DisplayName: "FletcherCodes",
+					Color:       "#DAA520",
+					Badges: map[string]int{
+						"premium": 1,
+					},
+				},
+				Type:         PRIVMSG,
+				RawType:      "PRIVMSG",
+				Message:      "Chew your food slower... it's healthier",
+				Channel:      "clippyassistant",
+				RoomID:       "408892348",
+				ID:           "6efffc70-27a1-4637-9111-44e5104bb7da",
+				FirstMessage: false,
+			},
+		},
 	}
-	assertStringsEqual(t, "PRIVMSG", privateMessage.RawType)
-	assertStringsEqual(t, "Chew your food slower... it's healthier", privateMessage.Message)
-	assertStringsEqual(t, "clippyassistant", privateMessage.Channel)
-	assertStringsEqual(t, "408892348", privateMessage.RoomID)
-	assertStringsEqual(t, "6efffc70-27a1-4637-9111-44e5104bb7da", privateMessage.ID)
-	assertFalse(t, privateMessage.Action, "parsing Action failed")
-	assertIntsEqual(t, 0, len(privateMessage.Emotes))
-	assertIntsEqual(t, 0, privateMessage.Bits)
-	assertTrue(t, privateMessage.FirstMessage, "first message not correctly read")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			message := ParseMessage(tt.message)
+			privateMessage := message.(*PrivateMessage)
+			user := privateMessage.User
+
+			assertStringsEqual(t, tt.expectedMessage.User.ID, user.ID)
+			assertStringsEqual(t, tt.expectedMessage.User.Name, user.Name)
+			assertStringsEqual(t, tt.expectedMessage.User.DisplayName, user.DisplayName)
+			assertStringsEqual(t, tt.expectedMessage.User.Color, user.Color)
+			assertStringIntMapsEqual(t, tt.expectedMessage.User.Badges, user.Badges)
+
+			if privateMessage.Type != tt.expectedMessage.Type {
+				t.Error("parsing MessageType failed")
+			}
+
+			assertStringsEqual(t, tt.expectedMessage.RawType, privateMessage.RawType)
+			assertStringsEqual(t, tt.expectedMessage.Message, privateMessage.Message)
+			assertStringsEqual(t, tt.expectedMessage.Channel, privateMessage.Channel)
+			assertStringsEqual(t, tt.expectedMessage.RoomID, privateMessage.RoomID)
+			assertStringsEqual(t, tt.expectedMessage.ID, privateMessage.ID)
+			assertBoolEqual(t, tt.expectedMessage.Action, privateMessage.Action)
+
+			assertIntsEqual(t, len(tt.expectedMessage.Emotes), len(privateMessage.Emotes))
+			assertIntsEqual(t, tt.expectedMessage.Bits, privateMessage.Bits)
+			assertBoolEqual(t, tt.expectedMessage.FirstMessage, privateMessage.FirstMessage)
+		})
+	}
+
 }
 
 func TestCanParsePRIVMSGActionMessage(t *testing.T) {

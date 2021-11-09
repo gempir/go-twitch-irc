@@ -239,13 +239,11 @@ func parsePrivateMessage(message *ircMessage) Message {
 	privateMessage.Emotes = parseEmotes(message.Tags["emotes"], privateMessage.Message)
 
 	firstMessage, ok := message.Tags["first-msg"]
+
 	if ok {
-		if firstMessage == "0" {
-			privateMessage.FirstMessage = false
-		} else {
-			privateMessage.FirstMessage = true
-		}
+		privateMessage.FirstMessage = firstMessage == "1"
 	}
+
 	return &privateMessage
 }
 
