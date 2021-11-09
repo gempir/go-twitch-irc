@@ -188,6 +188,7 @@ func TestCanParsePRIVMSGMessage(t *testing.T) {
 			},
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			message := ParseMessage(tt.message)
@@ -216,7 +217,6 @@ func TestCanParsePRIVMSGMessage(t *testing.T) {
 			assertBoolEqual(t, tt.expectedMessage.FirstMessage, privateMessage.FirstMessage)
 		})
 	}
-
 }
 
 func TestCanParsePRIVMSGActionMessage(t *testing.T) {
