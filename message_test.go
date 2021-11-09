@@ -190,32 +190,34 @@ func TestCanParsePRIVMSGMessage(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			message := ParseMessage(tt.message)
-			privateMessage := message.(*PrivateMessage)
-			user := privateMessage.User
+		func(tt test) {
+			t.Run(tt.name, func(t *testing.T) {
+				message := ParseMessage(tt.message)
+				privateMessage := message.(*PrivateMessage)
+				user := privateMessage.User
 
-			assertStringsEqual(t, tt.expectedMessage.User.ID, user.ID)
-			assertStringsEqual(t, tt.expectedMessage.User.Name, user.Name)
-			assertStringsEqual(t, tt.expectedMessage.User.DisplayName, user.DisplayName)
-			assertStringsEqual(t, tt.expectedMessage.User.Color, user.Color)
-			assertStringIntMapsEqual(t, tt.expectedMessage.User.Badges, user.Badges)
+				assertStringsEqual(t, tt.expectedMessage.User.ID, user.ID)
+				assertStringsEqual(t, tt.expectedMessage.User.Name, user.Name)
+				assertStringsEqual(t, tt.expectedMessage.User.DisplayName, user.DisplayName)
+				assertStringsEqual(t, tt.expectedMessage.User.Color, user.Color)
+				assertStringIntMapsEqual(t, tt.expectedMessage.User.Badges, user.Badges)
 
-			if privateMessage.Type != tt.expectedMessage.Type {
-				t.Error("parsing MessageType failed")
-			}
+				if privateMessage.Type != tt.expectedMessage.Type {
+					t.Error("parsing MessageType failed")
+				}
 
-			assertStringsEqual(t, tt.expectedMessage.RawType, privateMessage.RawType)
-			assertStringsEqual(t, tt.expectedMessage.Message, privateMessage.Message)
-			assertStringsEqual(t, tt.expectedMessage.Channel, privateMessage.Channel)
-			assertStringsEqual(t, tt.expectedMessage.RoomID, privateMessage.RoomID)
-			assertStringsEqual(t, tt.expectedMessage.ID, privateMessage.ID)
-			assertBoolEqual(t, tt.expectedMessage.Action, privateMessage.Action)
+				assertStringsEqual(t, tt.expectedMessage.RawType, privateMessage.RawType)
+				assertStringsEqual(t, tt.expectedMessage.Message, privateMessage.Message)
+				assertStringsEqual(t, tt.expectedMessage.Channel, privateMessage.Channel)
+				assertStringsEqual(t, tt.expectedMessage.RoomID, privateMessage.RoomID)
+				assertStringsEqual(t, tt.expectedMessage.ID, privateMessage.ID)
+				assertBoolEqual(t, tt.expectedMessage.Action, privateMessage.Action)
 
-			assertIntsEqual(t, len(tt.expectedMessage.Emotes), len(privateMessage.Emotes))
-			assertIntsEqual(t, tt.expectedMessage.Bits, privateMessage.Bits)
-			assertBoolEqual(t, tt.expectedMessage.FirstMessage, privateMessage.FirstMessage)
-		})
+				assertIntsEqual(t, len(tt.expectedMessage.Emotes), len(privateMessage.Emotes))
+				assertIntsEqual(t, tt.expectedMessage.Bits, privateMessage.Bits)
+				assertBoolEqual(t, tt.expectedMessage.FirstMessage, privateMessage.FirstMessage)
+			})
+		}(tt)
 	}
 }
 
