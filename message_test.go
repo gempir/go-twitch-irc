@@ -2,8 +2,6 @@ package twitch
 
 import (
 	"testing"
-	"os"
-	"bufio"
 )
 
 func TestCanPraseBadActionMessageWithoutPanic(t *testing.T) {
