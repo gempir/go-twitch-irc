@@ -15,12 +15,10 @@ func TestCanParseUserLogWithoutPanic(t *testing.T) {
 
     scanner := bufio.NewScanner(file)
     for scanner.Scan() {
-		message := ParseMessage( scanner.Text())
-		rawMessage := message.(*RawMessage)
+		message := ParseMessage(scanner.Text())
+		msg := message.(*PrivateMessage)
 
-		if rawMessage.Type != UNSET {
-			t.Errorf("parsing MessageType failed")
-		}
+		assertIntsEqual(t, PRIVMSG, msg.Type)
     }	
 }
 
