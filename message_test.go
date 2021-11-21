@@ -4,6 +4,25 @@ import (
 	"testing"
 )
 
+func TestCanParseUserLogWithoutPanic(t *testing.T) {
+	file, err := os.Open("./test_resources/user.txt")
+    if err != nil {
+        t.Error("failed to read test log")
+    }
+    defer file.Close()
+
+    var lines []string
+    scanner := bufio.NewScanner(file)
+    for scanner.Scan() {
+		message := ParseMessage( scanner.Text())
+		rawMessage := message.(*RawMessage)
+
+		if rawMessage.Type != UNSET {
+			t.Errorf("parsing MessageType failed")
+		}
+    }	
+}
+
 func TestCantParseNoTagsMessage(t *testing.T) {
 	testMessage := "my test message"
 
