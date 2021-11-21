@@ -6,22 +6,11 @@ import (
 	"bufio"
 )
 
-func TestCanParseUserLogWithoutPanic(t *testing.T) {
-	file, err := os.Open("./test_resources/user.txt")
-    if err != nil {
-        t.Error("failed to read test log")
-    }
-    defer file.Close()
+func TestCanPraseBadActionMessageWithoutPanic(t *testing.T) {
+	message := ParseMessage("@badges=;color=;display-name=pajlada;emotes=;mod=0;room-id=11148817;subscriber=0;tmi-sent-ts=1522855191000;turbo=0;user-id=11148817;user-type= :pajlada!pajlada@pajlada.tmi.twitch.tv PRIVMSG #pajlada :ACTION")
+	msg := message.(*PrivateMessage)
 
-    scanner := bufio.NewScanner(file)
-    for scanner.Scan() {
-		message := ParseMessage(scanner.Text())
-		msg := message.(*PrivateMessage)
-
-		if msg.Type != PRIVMSG {
-			t.Error("message not of type PRIVMSG: " + msg.Raw)
-		}
-    }	
+	assertStringsEqual("11148817", msg.User.ID)
 }
 
 func TestCantParseNoTagsMessage(t *testing.T) {
