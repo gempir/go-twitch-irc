@@ -13,7 +13,6 @@ func TestCanParseUserLogWithoutPanic(t *testing.T) {
     }
     defer file.Close()
 
-    var lines []string
     scanner := bufio.NewScanner(file)
     for scanner.Scan() {
 		message := ParseMessage( scanner.Text())
