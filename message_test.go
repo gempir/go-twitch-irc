@@ -18,7 +18,9 @@ func TestCanParseUserLogWithoutPanic(t *testing.T) {
 		message := ParseMessage(scanner.Text())
 		msg := message.(*PrivateMessage)
 
-		assertIntsEqual(t, PRIVMSG, msg.Type)
+		if msg.Type != PRIVMSG {
+			t.Error("message not of type PRIVMSG: " + msg.Raw)
+		}
     }	
 }
 
