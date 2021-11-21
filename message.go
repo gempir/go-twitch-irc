@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 	"log"
-	"debug"
+	"runtime/debug"
 )
 
 // ADDING A NEW MESSAGE TYPE:
