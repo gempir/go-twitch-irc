@@ -2,6 +2,8 @@ package twitch
 
 import (
 	"testing"
+	"os"
+	"bufio"
 )
 
 func TestCanParseUserLogWithoutPanic(t *testing.T) {
