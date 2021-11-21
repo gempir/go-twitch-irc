@@ -8,7 +8,7 @@ func TestCanPraseBadActionMessageWithoutPanic(t *testing.T) {
 	message := ParseMessage("@badges=;color=;display-name=pajlada;emotes=;mod=0;room-id=11148817;subscriber=0;tmi-sent-ts=1522855191000;turbo=0;user-id=11148817;user-type= :pajlada!pajlada@pajlada.tmi.twitch.tv PRIVMSG #pajlada :ACTION")
 	msg := message.(*PrivateMessage)
 
-	assertStringsEqual("11148817", msg.User.ID)
+	assertStringsEqual(t, "11148817", msg.User.ID)
 }
 
 func TestCantParseNoTagsMessage(t *testing.T) {
