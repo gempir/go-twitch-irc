@@ -10,6 +10,7 @@ func TestCanPraseBadActionMessageWithoutPanic(t *testing.T) {
 	msg := message.(*PrivateMessage)
 
 	assertStringsEqual(t, "11148817", msg.User.ID)
+	assertStringsEqual(t, "", msg.Message)
 }
 
 func TestCantParseNoTagsMessage(t *testing.T) {
