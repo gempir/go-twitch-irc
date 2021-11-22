@@ -5,7 +5,7 @@ import (
 )
 
 func TestCanPraseBadActionMessageWithoutPanic(t *testing.T) {
-	testMessage := "@badges=;color=;display-name=pajlada;emotes=;mod=0;room-id=11148817;subscriber=0;tmi-sent-ts=1522855191000;turbo=0;user-id=11148817;user-type= :pajlada!pajlada@pajlada.tmi.twitch.tv PRIVMSG #pajlada :ACTION"
+	testMessage := "@badges=;color=;display-name=pajlada;emotes=;mod=0;room-id=11148817;subscriber=0;tmi-sent-ts=1522855191000;turbo=0;user-id=11148817;user-type= :pajlada!pajlada@pajlada.tmi.twitch.tv PRIVMSG #pajlada :\u0001ACTION\u0001"
 	message := ParseMessage(testMessage)
 	msg := message.(*PrivateMessage)
 
