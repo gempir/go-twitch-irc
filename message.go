@@ -232,11 +232,21 @@ func parsePrivateMessage(message *ircMessage) Message {
 
 	text := privateMessage.Message
 	if strings.HasPrefix(text, "\u0001ACTION") && strings.HasSuffix(text, "\u0001") {
-		privateMessage.Message = text[8 : len(text)-1]
 		privateMessage.Action = true
+		if len(text) == 8 {
+			privateMessage.Message = ""
+		} else {
+			privateMessage.Message = text[8 : len(text)-1]
+		}
 	}
 
 	privateMessage.Emotes = parseEmotes(message.Tags["emotes"], privateMessage.Message)
+
+	firstMessage, ok := message.Tags["first-msg"]
+
+	if ok {
+		privateMessage.FirstMessage = firstMessage == "1"
+	}
 
 	return &privateMessage
 }
