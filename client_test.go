@@ -1249,7 +1249,7 @@ func TestCanRespectBulkDefaultJoinRateLimits(t *testing.T) {
 	})
 
 	client := newTestClient(host)
-	client.PongTimeout = time.Second * 30
+	client.PongTimeout = time.Second * 60
 	client.SetRateLimiter(CreateDefaultRateLimiter())
 	go client.Connect() //nolint
 

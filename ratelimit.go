@@ -1,6 +1,7 @@
 package twitch
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -48,18 +49,32 @@ func (r *RateLimiter) Throttle(count int) {
 	}
 }
 
+func (r *RateLimiter) isUnlimited() bool {
+	return r.joinLimit == Unlimited
+}
+
 func (r *RateLimiter) Start() {
 	if r.joinLimit == Unlimited {
 		return
 	}
 
-	tickerTime := TwitchRateLimitWindow / time.Duration(r.joinLimit)
+	r.fillBucket()
 
-	ticker := time.NewTicker(tickerTime)
+	ticker := time.NewTicker(TwitchRateLimitWindow)
 	for range ticker.C {
+		r.fillBucket()
+	}
+}
+
+func (r *RateLimiter) fillBucket() {
+	fmt.Printf("%s Filling bucket %d\n", time.Now(), len(r.throttle))
+
+	fillSize := r.joinLimit - len(r.throttle)
+	for i := 0; i < fillSize; i++ {
 		select {
 		case r.throttle <- time.Now():
 		default:
+			fmt.Printf("%s Bucket is full\n", time.Now())
 			// discard
 		}
 	}

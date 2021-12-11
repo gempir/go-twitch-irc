@@ -630,7 +630,7 @@ func (c *Client) createJoinMessages(channels ...string) ([]string, []string) {
 			continue
 		}
 		c.channelsMtx.Unlock()
-		if sb.Len()+len(channel)+2 > maxMessageLength || channelsWritten >= c.rateLimiter.joinLimit {
+		if sb.Len()+len(channel)+2 > maxMessageLength || (!c.rateLimiter.isUnlimited() && channelsWritten >= c.rateLimiter.joinLimit) {
 			joinMessages = append(joinMessages, sb.String())
 			sb.Reset()
 			sb.WriteString(baseMessage)
@@ -898,6 +898,7 @@ func (c *Client) writeMessage(writer io.WriteCloser, msg string) {
 		splits := strings.Split(msg, ",")
 		c.rateLimiter.Throttle(len(splits))
 	}
+	fmt.Printf("%s sending %d %s\n", time.Now(), len(c.rateLimiter.throttle), msg)
 
 	_, err := writer.Write([]byte(msg + "\r\n"))
 	if err != nil {
