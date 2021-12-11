@@ -53,12 +53,7 @@ func (r *RateLimiter) Start() {
 		return
 	}
 
-	for i := 0; i < r.joinLimit; i++ {
-		r.throttle <- time.Now()
-	}
-
 	tickerTime := TwitchRateLimitWindow / time.Duration(r.joinLimit)
-	time.Sleep(TwitchRateLimitWindow)
 
 	ticker := time.NewTicker(tickerTime)
 	for range ticker.C {
