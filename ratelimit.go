@@ -55,6 +55,7 @@ func (r *RateLimiter) Throttle(count int) {
 	}
 
 	time.Sleep(time.Until(r.window[0].Add(TwitchRateLimitWindow)))
+	time.Sleep(time.Second)
 	r.Throttle(count)
 }
 
