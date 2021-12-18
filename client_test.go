@@ -1273,7 +1273,7 @@ func TestCanRespectBulkDefaultJoinRateLimits(t *testing.T) {
 	// wait for server to receive message
 	select {
 	case <-waitEnd:
-	case <-time.After(time.Second * 30):
+	case <-time.After(time.Second * 60):
 		t.Fatal("didn't receive all messages in time")
 	}
 

@@ -734,8 +734,6 @@ func (c *Client) makeConnection(dialer *net.Dialer, conf *tls.Config) (err error
 	wg.Add(1)
 	go c.startReader(conn, &wg)
 
-	go c.rateLimiter.Start()
-
 	if c.SendPings {
 		// If SendPings is true (which it is by default), start the thread
 		// responsible for managing sending pings and reading pongs
@@ -898,7 +896,6 @@ func (c *Client) writeMessage(writer io.WriteCloser, msg string) {
 		splits := strings.Split(msg, ",")
 		c.rateLimiter.Throttle(len(splits))
 	}
-	fmt.Printf("%s sending %d %s\n", time.Now(), len(c.rateLimiter.throttle), msg)
 
 	_, err := writer.Write([]byte(msg + "\r\n"))
 	if err != nil {
