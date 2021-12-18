@@ -1,7 +1,6 @@
 package twitch
 
 import (
-	"sort"
 	"time"
 )
 
@@ -47,7 +46,6 @@ func (r *RateLimiter) Throttle(count int) {
 		}
 	}
 
-	sort.Slice(newWindow, func(i, j int) bool { return newWindow[i].Before(newWindow[j]) })
 	if r.joinLimit-len(newWindow) > count || len(newWindow) == 0 {
 		for i := 0; i < count; i++ {
 			newWindow = append(newWindow, time.Now())
