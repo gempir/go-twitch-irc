@@ -636,7 +636,7 @@ func (c *Client) createJoinMessages(channels ...string) ([]string, []string) {
 			sb.WriteString(baseMessage)
 			channelsWritten = 0
 		}
-		if sb.Len() == len(baseMessage) {
+		if channelsWritten == 0 {
 			sb.WriteString(" #" + channel)
 			channelsWritten++
 		} else {
