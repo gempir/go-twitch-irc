@@ -168,6 +168,7 @@ func startServer2(t *testing.T, onConnect func(net.Conn), onMessage func(string)
 		t.Fatal(err)
 	}
 	config := &tls.Config{
+		MinVersion:   tls.VersionTLS12,
 		Certificates: []tls.Certificate{cert},
 	}
 	listener, err := tls.Listen("tcp", s.host, config)
@@ -278,6 +279,7 @@ func TestCanConnectAndAuthenticateWithoutTLS(t *testing.T) {
 	client := NewClient("justinfan123123", oauthCode)
 	client.TLS = false
 	client.IrcAddress = host
+	client.PongTimeout = time.Second * 30
 	go client.Connect()
 
 	select {
@@ -358,7 +360,6 @@ func TestCanCreateClient(t *testing.T) {
 }
 
 func TestCanConnectAndAuthenticate(t *testing.T) {
-	t.Parallel()
 	const oauthCode = "oauth:123123132"
 	wait := make(chan struct{})
 
@@ -372,6 +373,7 @@ func TestCanConnectAndAuthenticate(t *testing.T) {
 	})
 
 	client := newTestClient(host)
+	client.PongTimeout = time.Second * 30
 	connectAndEnsureGoodDisconnect(t, client)
 	defer client.Disconnect()
 
@@ -386,7 +388,6 @@ func TestCanConnectAndAuthenticate(t *testing.T) {
 
 // This test is meant to be a blueprint for a test that needs the flow completely from server start to server stop
 func TestFullConnectAndDisconnect(t *testing.T) {
-	t.Parallel()
 	const oauthCode = "oauth:123123132"
 	waitPass := make(chan struct{})
 	waitServerConnect := make(chan struct{})
@@ -431,7 +432,6 @@ func TestFullConnectAndDisconnect(t *testing.T) {
 }
 
 func TestCanConnectAndAuthenticateAnonymous(t *testing.T) {
-	t.Parallel()
 	const oauthCode = "oauth:59301"
 	waitPass := make(chan struct{})
 	waitServerConnect := make(chan struct{})
@@ -1190,25 +1190,21 @@ func TestCanRespectDefaultJoinRateLimits(t *testing.T) {
 	t.Parallel()
 	waitEnd := make(chan struct{})
 
-	type timedMessage struct {
-		message string
-		time    time.Time
-	}
-
-	var messages []timedMessage
+	var joinMessages []timedTestMessage
 	targetJoinCount := 25
 
 	host := startServer(t, nothingOnConnect, func(message string) {
 		if strings.HasPrefix(message, "JOIN ") {
-			messages = append(messages, timedMessage{message, time.Now()})
+			joinMessages = append(joinMessages, timedTestMessage{message, time.Now()})
 
-			if len(messages) == targetJoinCount {
+			if len(joinMessages) == targetJoinCount {
 				close(waitEnd)
 			}
 		}
 	})
 
 	client := newTestClient(host)
+	client.PongTimeout = time.Second * 30
 	client.SetRateLimiter(CreateDefaultRateLimiter())
 	go client.Connect() //nolint
 
@@ -1229,32 +1225,80 @@ func TestCanRespectDefaultJoinRateLimits(t *testing.T) {
 		t.Fatal("didn't receive all messages in time")
 	}
 
-	assertTrue(t, messages[len(messages)-1].time.Sub(messages[0].time).Seconds() >= 10, "join rate limit not respected")
+	assertJoinRateLimitRespected(t, client.rateLimiter.joinLimit, joinMessages)
 }
 
-func TestCanRespectVerifiedJoinRateLimits(t *testing.T) {
+func TestCanRespectBulkDefaultJoinRateLimits(t *testing.T) {
 	t.Parallel()
 	waitEnd := make(chan struct{})
 
-	type timedMessage struct {
-		message string
-		time    time.Time
-	}
-
-	var messages []timedMessage
-	targetJoinCount := 3000
+	var joinMessages []timedTestMessage
+	targetJoinCount := 50
 
 	host := startServer(t, nothingOnConnect, func(message string) {
 		if strings.HasPrefix(message, "JOIN ") {
-			messages = append(messages, timedMessage{message, time.Now()})
+			splits := strings.Split(message, ",")
+			for _, split := range splits {
+				joinMessages = append(joinMessages, timedTestMessage{split, time.Now()})
+			}
 
-			if len(messages) == targetJoinCount {
+			if len(joinMessages) == targetJoinCount {
 				close(waitEnd)
 			}
 		}
 	})
 
 	client := newTestClient(host)
+	client.PongTimeout = time.Second * 60
+	client.SetRateLimiter(CreateDefaultRateLimiter())
+	go client.Connect() //nolint
+
+	// wait for the connection to go active
+	for !client.connActive.get() {
+		time.Sleep(time.Millisecond * 2)
+	}
+
+	perBulk := 25
+	// send enough messages to ensure we hit the rate limit
+	for i := 1; i <= targetJoinCount; {
+		channels := []string{}
+		for j := i; j < i+perBulk; j++ {
+			channels = append(channels, fmt.Sprintf("gempir%d", j))
+		}
+
+		client.Join(channels...)
+		i += perBulk
+	}
+
+	// wait for server to receive message
+	select {
+	case <-waitEnd:
+	case <-time.After(time.Second * 60):
+		t.Fatal("didn't receive all messages in time")
+	}
+
+	assertJoinRateLimitRespected(t, client.rateLimiter.joinLimit, joinMessages)
+}
+
+func TestCanRespectVerifiedJoinRateLimits(t *testing.T) {
+	t.Parallel()
+	waitEnd := make(chan struct{})
+
+	var joinMessages []timedTestMessage
+	targetJoinCount := 3000
+
+	host := startServer(t, nothingOnConnect, func(message string) {
+		if strings.HasPrefix(message, "JOIN ") {
+			joinMessages = append(joinMessages, timedTestMessage{message, time.Now()})
+
+			if len(joinMessages) == targetJoinCount {
+				close(waitEnd)
+			}
+		}
+	})
+
+	client := newTestClient(host)
+	client.PongTimeout = time.Second * 30
 	client.SetRateLimiter(CreateVerifiedRateLimiter())
 	go client.Connect() //nolint
 
@@ -1275,24 +1319,19 @@ func TestCanRespectVerifiedJoinRateLimits(t *testing.T) {
 		t.Fatal("didn't receive all messages in time")
 	}
 
-	assertTrue(t, messages[len(messages)-1].time.Sub(messages[0].time).Seconds() >= 10, "join rate limit not respected")
+	assertJoinRateLimitRespected(t, client.rateLimiter.joinLimit, joinMessages)
 }
 
 func TestCanIgnoreJoinRateLimits(t *testing.T) {
 	t.Parallel()
 	waitEnd := make(chan struct{})
 
-	type timedMessage struct {
-		message string
-		time    time.Time
-	}
-
-	var messages []timedMessage
+	var messages []timedTestMessage
 	targetJoinCount := 3000 // this breaks when above 700, why? the fuck?
 
 	host := startServer(t, nothingOnConnect, func(message string) {
 		if strings.HasPrefix(message, "JOIN ") {
-			messages = append(messages, timedMessage{message, time.Now()})
+			messages = append(messages, timedTestMessage{message, time.Now()})
 
 			if len(messages) == targetJoinCount {
 				close(waitEnd)
@@ -1301,6 +1340,7 @@ func TestCanIgnoreJoinRateLimits(t *testing.T) {
 	})
 
 	client := newTestClient(host)
+	client.PongTimeout = time.Second * 30
 	client.SetRateLimiter(CreateUnlimitedRateLimiter())
 	go client.Connect() //nolint
 
@@ -1321,7 +1361,10 @@ func TestCanIgnoreJoinRateLimits(t *testing.T) {
 		t.Fatal("didn't receive all messages in time")
 	}
 
-	assertTrue(t, messages[len(messages)-1].time.Sub(messages[0].time).Seconds() <= 10, "join rate limit respected")
+	lastMessageTime := messages[len(messages)-1].time
+	firstMessageTime := messages[0].time
+
+	assertTrue(t, lastMessageTime.Sub(firstMessageTime).Seconds() <= 10, fmt.Sprintf("join ratelimit not skipped last message time: %s, first message time: %s", lastMessageTime, firstMessageTime))
 }
 
 func TestCanDepartChannel(t *testing.T) {
@@ -1947,8 +1990,11 @@ func TestCreateJoinMessagesCreatesMessages(t *testing.T) {
 		},
 	}
 
+	client := NewAnonymousClient()
+	client.channels = make(map[string]bool)
+
 	for _, test := range cases {
-		messages, joined := createJoinMessages(make(map[string]bool), test.channels...)
+		messages, joined := client.createJoinMessages(test.channels...)
 		assertStringSlicesEqual(t, test.expected.messages, messages)
 		assertStringSlicesEqual(t, test.expected.joined, joined)
 	}
@@ -1960,7 +2006,9 @@ func TestCreateJoinMessageReturnsLowercase(t *testing.T) {
 	expected := []string{"JOIN #pajlada,#forsen"}
 	expectedJoined := []string{"pajlada", "forsen"}
 
-	actual, actualJoined := createJoinMessages(joined, channels...)
+	client := NewAnonymousClient()
+	client.channels = joined
+	actual, actualJoined := client.createJoinMessages(channels...)
 	assertStringSlicesEqual(t, expected, actual)
 	assertStringSlicesEqual(t, expectedJoined, actualJoined)
 }
@@ -1973,7 +2021,9 @@ func TestCreateJoinMessageSkipsJoinedChannels(t *testing.T) {
 	}
 	expected := []string{"forsen", "nymn"}
 
-	_, actual := createJoinMessages(joined, channels...)
+	client := NewAnonymousClient()
+	client.channels = joined
+	_, actual := client.createJoinMessages(channels...)
 	assertStringSlicesEqual(t, expected, actual)
 }
 

@@ -2,6 +2,7 @@ package twitch
 
 import (
 	"testing"
+	"time"
 )
 
 func assertStringsEqual(t *testing.T, expected, actual string) {
@@ -125,4 +126,31 @@ func assertMessageTypesEqual(t *testing.T, expected, actual MessageType) {
 // formats a ping-signature (i.e. go-twitch-irc) into a full-fledged pong response (i.e. ":tmi.twitch.tv PONG tmi.twitch.tv :go-twitch-irc")
 func formatPong(signature string) string {
 	return ":tmi.twitch.tv PONG tmi.twitch.tv :" + signature
+}
+
+type timedTestMessage struct {
+	message string
+	time    time.Time
+}
+
+func assertJoinRateLimitRespected(t *testing.T, joinLimit int, joinMessages []timedTestMessage) {
+	messageBuckets := make(map[string][]timedTestMessage)
+	startBucketTime := joinMessages[0].time
+	endBucketTime := startBucketTime.Add(TwitchRateLimitWindow)
+
+	for _, msg := range joinMessages {
+		if !msg.time.Before(endBucketTime) {
+			startBucketTime = msg.time
+			endBucketTime = startBucketTime.Add(TwitchRateLimitWindow)
+		}
+
+		key := startBucketTime.Format("15:04:05") + " -> " + endBucketTime.Format("15:04:05")
+		messageBuckets[key] = append(messageBuckets[key], msg)
+	}
+
+	for key, bucket := range messageBuckets {
+		if len(bucket) > joinLimit {
+			t.Errorf("%s has %d joins", key, len(bucket))
+		}
+	}
 }

@@ -6,10 +6,11 @@ import (
 
 type RateLimiter struct {
 	joinLimit int
-	throttle  chan time.Time
+	window    []time.Time
 }
 
 const Unlimited = -1
+const TwitchRateLimitWindow = 10 * time.Second
 
 func CreateDefaultRateLimiter() *RateLimiter {
 	return createRateLimiter(20)
@@ -24,35 +25,39 @@ func CreateUnlimitedRateLimiter() *RateLimiter {
 }
 
 func createRateLimiter(limit int) *RateLimiter {
+	var window []time.Time
+
 	return &RateLimiter{
 		joinLimit: limit,
-		throttle:  make(chan time.Time, 10),
+		window:    window,
 	}
 }
 
-func (r *RateLimiter) Throttle() {
+func (r *RateLimiter) Throttle(count int) {
 	if r.joinLimit == Unlimited {
 		return
 	}
 
-	<-r.throttle
-}
+	newWindow := []time.Time{}
 
-func (r *RateLimiter) Start() {
-	if r.joinLimit == Unlimited {
+	for i := 0; i < len(r.window); i++ {
+		if r.window[i].Add(TwitchRateLimitWindow).After(time.Now()) {
+			newWindow = append(newWindow, r.window[i])
+		}
+	}
+
+	if r.joinLimit-len(newWindow) > count || len(newWindow) == 0 {
+		for i := 0; i < count; i++ {
+			newWindow = append(newWindow, time.Now())
+		}
+		r.window = newWindow
 		return
 	}
 
-	r.fillThrottle()
-
-	ticker := time.NewTicker(10 * time.Second)
-	for range ticker.C {
-		r.fillThrottle()
-	}
+	time.Sleep(time.Until(r.window[0].Add(TwitchRateLimitWindow).Add(time.Millisecond * 100)))
+	r.Throttle(count)
 }
 
-func (r *RateLimiter) fillThrottle() {
-	for i := 0; i < r.joinLimit; i++ {
-		r.throttle <- time.Now()
-	}
+func (r *RateLimiter) isUnlimited() bool {
+	return r.joinLimit == Unlimited
 }
