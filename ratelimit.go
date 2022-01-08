@@ -47,13 +47,10 @@ func (r *WindowRateLimiter) GetJoinLimit() int {
 }
 
 func (r *WindowRateLimiter) Throttle(count int) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
 	if r.joinLimit == Unlimited {
 		return
 	}
-
+	r.mutex.Lock()
 	newWindow := []time.Time{}
 
 	for i := 0; i < len(r.window); i++ {
@@ -67,10 +64,12 @@ func (r *WindowRateLimiter) Throttle(count int) {
 			newWindow = append(newWindow, time.Now())
 		}
 		r.window = newWindow
+		r.mutex.Unlock()
 		return
 	}
 
 	time.Sleep(time.Until(r.window[0].Add(TwitchRateLimitWindow).Add(time.Millisecond * 100)))
+	r.mutex.Unlock()
 	r.Throttle(count)
 }
 
