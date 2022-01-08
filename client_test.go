@@ -1157,10 +1157,10 @@ func TestCanRunFollowersOff(t *testing.T) {
 
 func TestCanRunBanUser(t *testing.T) {
 	t.Parallel()
-	
+
 	const testuser = "testuser123"
 	const testreason = "Test Ban"
-	
+
 	waitEnd := make(chan struct{})
 	var received string
 
@@ -1183,7 +1183,7 @@ func TestCanRunBanUser(t *testing.T) {
 	select {
 	case <-waitEnd:
 	case <-time.After(time.Second * 3):
-		t.Fatal("no ban received for " +testuser + " with reason: " +testreason, received)
+		t.Fatal("no ban received for "+testuser+" with reason: "+testreason, received)
 	}
 
 }
