@@ -428,7 +428,7 @@ type Client struct {
 	Capabilities []string
 
 	// The ratelimits the client will respect when sending messages
-	rateLimiter *RateLimiter
+	rateLimiter RateLimiter
 }
 
 // NewClient to create a new client
@@ -630,7 +630,7 @@ func (c *Client) createJoinMessages(channels ...string) ([]string, []string) {
 			continue
 		}
 		c.channelsMtx.Unlock()
-		if sb.Len()+len(channel)+2 > maxMessageLength || (!c.rateLimiter.isUnlimited() && channelsWritten >= c.rateLimiter.joinLimit) {
+		if sb.Len()+len(channel)+2 > maxMessageLength || (!c.rateLimiter.isUnlimited() && channelsWritten >= c.rateLimiter.GetJoinLimit()) {
 			joinMessages = append(joinMessages, sb.String())
 			sb.Reset()
 			sb.WriteString(baseMessage)
@@ -790,8 +790,8 @@ func (c *Client) SetIRCToken(ircToken string) {
 
 // SetRateLimiter will set the rate limits for the client.
 // Use the factory methods CreateDefaultRateLimiter, CreateVerifiedRateLimiter or CreateUnlimitedRateLimiter to create the rate limits
-// Creating your own RateLimiter without the factory methods is not recommended, as we will likely break the API in the future
-func (c *Client) SetRateLimiter(rateLimiter *RateLimiter) {
+// or make your own RateLimiter based on the interface
+func (c *Client) SetRateLimiter(rateLimiter RateLimiter) {
 	c.rateLimiter = rateLimiter
 }
 

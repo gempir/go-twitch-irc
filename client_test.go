@@ -1225,7 +1225,7 @@ func TestCanRespectDefaultJoinRateLimits(t *testing.T) {
 		t.Fatal("didn't receive all messages in time")
 	}
 
-	assertJoinRateLimitRespected(t, client.rateLimiter.joinLimit, joinMessages)
+	assertJoinRateLimitRespected(t, client.rateLimiter.GetJoinLimit(), joinMessages)
 }
 
 func TestCanRespectBulkDefaultJoinRateLimits(t *testing.T) {
@@ -1277,7 +1277,7 @@ func TestCanRespectBulkDefaultJoinRateLimits(t *testing.T) {
 		t.Fatal("didn't receive all messages in time")
 	}
 
-	assertJoinRateLimitRespected(t, client.rateLimiter.joinLimit, joinMessages)
+	assertJoinRateLimitRespected(t, client.rateLimiter.GetJoinLimit(), joinMessages)
 }
 
 func TestCanRespectVerifiedJoinRateLimits(t *testing.T) {
@@ -1319,7 +1319,7 @@ func TestCanRespectVerifiedJoinRateLimits(t *testing.T) {
 		t.Fatal("didn't receive all messages in time")
 	}
 
-	assertJoinRateLimitRespected(t, client.rateLimiter.joinLimit, joinMessages)
+	assertJoinRateLimitRespected(t, client.rateLimiter.GetJoinLimit(), joinMessages)
 }
 
 func TestCanIgnoreJoinRateLimits(t *testing.T) {
