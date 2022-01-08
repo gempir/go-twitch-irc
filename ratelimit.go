@@ -1,6 +1,7 @@
 package twitch
 
 import (
+	"sync"
 	"time"
 )
 
@@ -14,6 +15,7 @@ type RateLimiter interface {
 type WindowRateLimiter struct {
 	joinLimit int
 	window    []time.Time
+	mutex     sync.Mutex
 }
 
 const Unlimited = -1
@@ -45,6 +47,9 @@ func (r *WindowRateLimiter) GetJoinLimit() int {
 }
 
 func (r *WindowRateLimiter) Throttle(count int) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
 	if r.joinLimit == Unlimited {
 		return
 	}
