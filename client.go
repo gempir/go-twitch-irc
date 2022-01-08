@@ -603,6 +603,11 @@ func (c *Client) FollowersOff(channel string) {
 	c.Say(channel, "/followersoff")
 }
 
+// Ban run twitch command `/ban username reason` with the given channel and reason in argument
+func (c *Client) Ban(channel, username, reason string) {
+	c.Say(channel, "/ban "+username+" "+reason)
+}
+
 // Creates an irc join message to join the given channels.
 //
 // Returns the join message, any channels included in the join message,

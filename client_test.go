@@ -1155,6 +1155,38 @@ func TestCanRunFollowersOff(t *testing.T) {
 	assertStringsEqual(t, "PRIVMSG #gempir :/followersoff", received)
 }
 
+func TestCanRunBanUser(t *testing.T) {
+	t.Parallel()
+
+	const testuser = "testuser123"
+	const testreason = "Test Ban"
+
+	waitEnd := make(chan struct{})
+	var received string
+
+	host := startServer(t, nothingOnConnect, func(message string) {
+		if strings.HasPrefix(message, "PRIVMSG") {
+			received = message
+			close(waitEnd)
+		}
+	})
+
+	client := newTestClient(host)
+
+	client.OnConnect(func() {
+		client.Ban("gempiR", testuser, testreason)
+	})
+
+	go client.Connect() //nolint
+
+	// wait for server to receive message
+	select {
+	case <-waitEnd:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no ban received for "+testuser+" with reason: "+testreason, received)
+	}
+}
+
 func TestCanJoinChannelAfterConnection(t *testing.T) {
 	t.Parallel()
 	waitEnd := make(chan struct{})
