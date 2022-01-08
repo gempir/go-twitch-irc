@@ -1185,7 +1185,6 @@ func TestCanRunBanUser(t *testing.T) {
 	case <-time.After(time.Second * 3):
 		t.Fatal("no ban received for "+testuser+" with reason: "+testreason, received)
 	}
-
 }
 
 func TestCanJoinChannelAfterConnection(t *testing.T) {
