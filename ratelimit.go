@@ -7,7 +7,7 @@ import (
 
 type RateLimiter interface {
 	// This will impact how go-twitch-irc groups joins together per IRC message
-	GetJoinLimit() int
+	GetLimit() int
 	Throttle(count int)
 	IsUnlimited() bool
 }
@@ -42,7 +42,7 @@ func createRateLimiter(limit int) *WindowRateLimiter {
 	}
 }
 
-func (r *WindowRateLimiter) GetJoinLimit() int {
+func (r *WindowRateLimiter) GetLimit() int {
 	return r.joinLimit
 }
 
