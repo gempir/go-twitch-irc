@@ -50,7 +50,7 @@ var (
 	ReadBufferSize = 64
 
 	// DefaultCapabilities is the default caps when creating a new Client
-	DefaultCapabilities = []string{TagsCapability, CommandsCapability, MembershipCapability}
+	DefaultCapabilities = []string{TagsCapability, CommandsCapability}
 )
 
 // Internal errors
