@@ -21,6 +21,8 @@ type WindowRateLimiter struct {
 const Unlimited = -1
 const TwitchRateLimitWindow = 10 * time.Second
 
+const windowRateLimiterSleepDuration = 100 * time.Millisecond
+
 func CreateDefaultRateLimiter() *WindowRateLimiter {
 	return createRateLimiter(20)
 }
@@ -68,7 +70,7 @@ func (r *WindowRateLimiter) Throttle(count int) {
 		return
 	}
 
-	time.Sleep(time.Until(r.window[0].Add(TwitchRateLimitWindow).Add(time.Millisecond * 100)))
+	time.Sleep(time.Until(r.window[0].Add(TwitchRateLimitWindow).Add(windowRateLimiterSleepDuration)))
 	r.mutex.Unlock()
 	r.Throttle(count)
 }
