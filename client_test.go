@@ -2119,7 +2119,7 @@ func TestCapabilities(t *testing.T) {
 		{
 			"Default Capabilities (not modifying)",
 			nil,
-			"CAP REQ :" + strings.Join([]string{TagsCapability, CommandsCapability, MembershipCapability}, " "),
+			"CAP REQ :" + strings.Join([]string{TagsCapability, CommandsCapability}, " "),
 		},
 		{
 			"Modified Capabilities",
