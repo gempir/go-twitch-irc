@@ -59,7 +59,7 @@ func (r *WindowRateLimiter) Throttle(count int) {
 		}
 	}
 
-	if r.joinLimit-len(newWindow) > count || len(newWindow) == 0 {
+	if r.joinLimit-len(newWindow) >= count || len(newWindow) == 0 {
 		for i := 0; i < count; i++ {
 			newWindow = append(newWindow, time.Now())
 		}
