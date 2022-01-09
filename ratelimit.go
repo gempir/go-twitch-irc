@@ -9,7 +9,7 @@ type RateLimiter interface {
 	// This will impact how go-twitch-irc groups joins together per IRC message
 	GetJoinLimit() int
 	Throttle(count int)
-	isUnlimited() bool
+	IsUnlimited() bool
 }
 
 type WindowRateLimiter struct {
@@ -73,6 +73,6 @@ func (r *WindowRateLimiter) Throttle(count int) {
 	r.Throttle(count)
 }
 
-func (r *WindowRateLimiter) isUnlimited() bool {
+func (r *WindowRateLimiter) IsUnlimited() bool {
 	return r.joinLimit == Unlimited
 }

@@ -630,7 +630,7 @@ func (c *Client) createJoinMessages(channels ...string) ([]string, []string) {
 			continue
 		}
 		c.channelsMtx.Unlock()
-		if sb.Len()+len(channel)+2 > maxMessageLength || (!c.rateLimiter.isUnlimited() && channelsWritten >= c.rateLimiter.GetJoinLimit()) {
+		if sb.Len()+len(channel)+2 > maxMessageLength || (!c.rateLimiter.IsUnlimited() && channelsWritten >= c.rateLimiter.GetJoinLimit()) {
 			joinMessages = append(joinMessages, sb.String())
 			sb.Reset()
 			sb.WriteString(baseMessage)
