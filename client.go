@@ -428,7 +428,7 @@ type Client struct {
 	Capabilities []string
 
 	// The ratelimits the client will respect when sending messages
-	rateLimiter *RateLimiter
+	joinRateLimiter RateLimiter
 }
 
 // NewClient to create a new client
@@ -454,7 +454,7 @@ func NewClient(username, oauth string) *Client {
 
 		Capabilities: DefaultCapabilities,
 
-		rateLimiter: CreateDefaultRateLimiter(),
+		joinRateLimiter: CreateDefaultRateLimiter(),
 	}
 }
 
@@ -635,7 +635,7 @@ func (c *Client) createJoinMessages(channels ...string) ([]string, []string) {
 			continue
 		}
 		c.channelsMtx.Unlock()
-		if sb.Len()+len(channel)+2 > maxMessageLength || (!c.rateLimiter.isUnlimited() && channelsWritten >= c.rateLimiter.joinLimit) {
+		if sb.Len()+len(channel)+2 > maxMessageLength || (!c.joinRateLimiter.IsUnlimited() && channelsWritten >= c.joinRateLimiter.GetLimit()) {
 			joinMessages = append(joinMessages, sb.String())
 			sb.Reset()
 			sb.WriteString(baseMessage)
@@ -793,11 +793,11 @@ func (c *Client) SetIRCToken(ircToken string) {
 	c.ircToken = ircToken
 }
 
-// SetRateLimiter will set the rate limits for the client.
+// SetJoinRateLimiter will set the rate limits for the client.
 // Use the factory methods CreateDefaultRateLimiter, CreateVerifiedRateLimiter or CreateUnlimitedRateLimiter to create the rate limits
-// Creating your own RateLimiter without the factory methods is not recommended, as we will likely break the API in the future
-func (c *Client) SetRateLimiter(rateLimiter *RateLimiter) {
-	c.rateLimiter = rateLimiter
+// or make your own RateLimiter based on the interface
+func (c *Client) SetJoinRateLimiter(rateLimiter RateLimiter) {
+	c.joinRateLimiter = rateLimiter
 }
 
 func (c *Client) startReader(reader io.Reader, wg *sync.WaitGroup) {
@@ -899,7 +899,7 @@ func (c *Client) startWriter(writer io.WriteCloser, wg *sync.WaitGroup) {
 func (c *Client) writeMessage(writer io.WriteCloser, msg string) {
 	if strings.HasPrefix(msg, "JOIN") {
 		splits := strings.Split(msg, ",")
-		c.rateLimiter.Throttle(len(splits))
+		c.joinRateLimiter.Throttle(len(splits))
 	}
 
 	_, err := writer.Write([]byte(msg + "\r\n"))
