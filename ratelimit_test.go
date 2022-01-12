@@ -66,7 +66,7 @@ func TestDefaultRateLimiterBigChunks(t *testing.T) {
 	}
 }
 
-func TestDefaultRateLimiterMT(t *testing.T) {
+func TestDefaultRateLimiterMultiThread(t *testing.T) {
 	limiter := CreateDefaultRateLimiter()
 
 	wg := sync.WaitGroup{}
