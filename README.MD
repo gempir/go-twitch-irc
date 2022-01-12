@@ -3,7 +3,7 @@
 This is an irc client for connecting to twitch. It handles the annoying stuff like irc tag parsing.
 I highly recommend reading the documentation below, but this readme gives a basic overview of the functionality.
 
-Documentation: https://pkg.go.dev/github.com/gempir/go-twitch-irc/v2?tab=doc
+Documentation: https://pkg.go.dev/github.com/gempir/go-twitch-irc/v3?tab=doc
 
 ## Getting Started
 ```go
@@ -12,7 +12,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/gempir/go-twitch-irc/v2"
+	"github.com/gempir/go-twitch-irc/v3"
 )
 
 func main() {

@@ -4,7 +4,7 @@ import (
 	"log"
 	"strings"
 
-	twitch "github.com/gempir/go-twitch-irc/v2"
+	twitch "github.com/gempir/go-twitch-irc/v3"
 )
 
 const (
