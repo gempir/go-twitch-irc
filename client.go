@@ -728,7 +728,7 @@ func (c *Client) makeConnection(dialer *net.Dialer, conf *tls.Config) (err error
 		conn, err = dialer.Dial("tcp", c.IrcAddress)
 	}
 	if err != nil {
-		return
+		return err
 	}
 
 	wg := sync.WaitGroup{}
