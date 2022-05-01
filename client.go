@@ -124,6 +124,15 @@ type PrivateMessage struct {
 	Bits         int
 	Action       bool
 	FirstMessage bool
+	Reply        *Reply
+}
+
+type Reply struct {
+	ParentMsgID       string
+	ParentUserID      string
+	ParentUserLogin   string
+	ParentDisplayName string
+	ParentMsgBody     string
 }
 
 // GetType implements the Message interface, and returns this message's type
@@ -559,6 +568,13 @@ func (c *Client) Say(channel, text string) {
 	channel = strings.ToLower(channel)
 
 	c.send(fmt.Sprintf("PRIVMSG #%s :%s", channel, text))
+}
+
+// Reply to a message previously sent in the same channel using the twitch reply feature
+func (c *Client) Reply(channel, parentMsgId string, text string) {
+	channel = strings.ToLower(channel)
+
+	c.send(fmt.Sprintf("@reply-parent-msg-id=%s PRIVMSG #%s :%s", parentMsgId, channel, text))
 }
 
 // Whisper write something in private to someone on twitch
