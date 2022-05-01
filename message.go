@@ -206,6 +206,17 @@ func parseWhisperMessage(message *ircMessage) Message {
 }
 
 func parsePrivateMessage(message *ircMessage) Message {
+	var reply *Reply
+	if _, ok := message.Tags["reply-parent-msg-id"]; ok {
+		reply = &Reply{
+			ParentMsgID:       message.Tags["reply-parent-msg-id"],
+			ParentUserID:      message.Tags["reply-parent-user-id"],
+			ParentUserLogin:   message.Tags["reply-parent-user-login"],
+			ParentDisplayName: message.Tags["reply-parent-display-name"],
+			ParentMsgBody:     message.Tags["reply-parent-msg-body"],
+		}
+	}
+
 	privateMessage := PrivateMessage{
 		User: parseUser(message),
 
@@ -216,6 +227,7 @@ func parsePrivateMessage(message *ircMessage) Message {
 		RoomID:  message.Tags["room-id"],
 		ID:      message.Tags["id"],
 		Time:    parseTime(message.Tags["tmi-sent-ts"]),
+		Reply:   reply,
 	}
 
 	if len(message.Params) == 2 {

@@ -197,6 +197,35 @@ func TestCanParsePRIVMSGMessage(t *testing.T) {
 				FirstMessage: false,
 			},
 		},
+		{
+			"Reply Message",
+			"@badges=premium/1;color=#DAA520;display-name=FletcherCodes;emotes=;flags=;id=6efffc70-27a1-4637-9111-44e5104bb7da;mod=0;reply-parent-msg-id=b34ccfc7-4977-403a-8a94-33c6bac34fb8;reply-parent-user-id=71601484;reply-parent-user-login=yannismate;reply-parent-display-name=Yannismate;reply-parent-msg-body=This\\smessage\\scontains\\sspecial\\schars\\s!\\:;room-id=408892348;subscriber=0;tmi-sent-ts=1551473087761;turbo=0;user-id=269899575;user-type= :fletchercodes!fletchercodes@fletchercodes.tmi.twitch.tv PRIVMSG #clippyassistant :Chew your food slower... it's healthier",
+			PrivateMessage{
+				User: User{
+					ID:          "269899575",
+					Name:        "fletchercodes",
+					DisplayName: "FletcherCodes",
+					Color:       "#DAA520",
+					Badges: map[string]int{
+						"premium": 1,
+					},
+				},
+				Type:         PRIVMSG,
+				RawType:      "PRIVMSG",
+				Message:      "Chew your food slower... it's healthier",
+				Channel:      "clippyassistant",
+				RoomID:       "408892348",
+				ID:           "6efffc70-27a1-4637-9111-44e5104bb7da",
+				FirstMessage: false,
+				Reply: &Reply{
+					ParentMsgID:       "b34ccfc7-4977-403a-8a94-33c6bac34fb8",
+					ParentUserID:      "71601484",
+					ParentUserLogin:   "yannismate",
+					ParentDisplayName: "Yannismate",
+					ParentMsgBody:     "This message contains special chars !;",
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -226,6 +255,14 @@ func TestCanParsePRIVMSGMessage(t *testing.T) {
 				assertIntsEqual(t, len(tt.expectedMessage.Emotes), len(privateMessage.Emotes))
 				assertIntsEqual(t, tt.expectedMessage.Bits, privateMessage.Bits)
 				assertBoolEqual(t, tt.expectedMessage.FirstMessage, privateMessage.FirstMessage)
+
+				if tt.expectedMessage.Reply != nil {
+					assertStringsEqual(t, tt.expectedMessage.Reply.ParentMsgID, privateMessage.Reply.ParentMsgID)
+					assertStringsEqual(t, tt.expectedMessage.Reply.ParentUserID, privateMessage.Reply.ParentUserID)
+					assertStringsEqual(t, tt.expectedMessage.Reply.ParentUserLogin, privateMessage.Reply.ParentUserLogin)
+					assertStringsEqual(t, tt.expectedMessage.Reply.ParentDisplayName, privateMessage.Reply.ParentDisplayName)
+					assertStringsEqual(t, tt.expectedMessage.Reply.ParentMsgBody, privateMessage.Reply.ParentMsgBody)
+				}
 			})
 		}(tt)
 	}

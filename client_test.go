@@ -1036,6 +1036,39 @@ func TestCanSayMessage(t *testing.T) {
 	assertStringsEqual(t, "PRIVMSG #gempir :"+testMessage, received)
 }
 
+func TestCanReplyMessage(t *testing.T) {
+	t.Parallel()
+	testMessage := "Do not go gentle into that good night."
+	testParentMessageId := "b34ccfc7-4977-403a-8a94-33c6bac34fb8"
+
+	waitEnd := make(chan struct{})
+	var received string
+
+	host := startServer(t, nothingOnConnect, func(message string) {
+		if strings.HasPrefix(message, "@reply") {
+			received = message
+			close(waitEnd)
+		}
+	})
+
+	client := newTestClient(host)
+
+	client.OnConnect(func() {
+		client.Reply("gempir", testParentMessageId, testMessage)
+	})
+
+	go client.Connect()
+
+	// wait for server to receive message
+	select {
+	case <-waitEnd:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no privmsg received")
+	}
+
+	assertStringsEqual(t, "@reply-parent-msg-id="+testParentMessageId+" PRIVMSG #gempir :"+testMessage, received)
+}
+
 func TestCanWhisperMessage(t *testing.T) {
 	t.Parallel()
 	testMessage := "Do not go gentle into that good night."
