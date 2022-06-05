@@ -1056,6 +1056,10 @@ func (c *Client) handleLine(line string) error {
 			if c.onSelfJoinMessage != nil {
 				c.onSelfJoinMessage(*msg)
 			}
+		} else {
+			if c.onUserJoinMessage != nil {
+				c.onUserJoinMessage(*msg)
+			}
 		}
 		return nil
 
@@ -1064,6 +1068,10 @@ func (c *Client) handleLine(line string) error {
 		if msg.User == c.ircUser {
 			if c.onSelfPartMessage != nil {
 				c.onSelfPartMessage(*msg)
+			}
+		} else {
+			if c.onUserPartMessage != nil {
+				c.onUserPartMessage(*msg)
 			}
 		}
 		return nil
