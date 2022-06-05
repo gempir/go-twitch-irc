@@ -389,6 +389,8 @@ type Client struct {
 	onNoticeMessage          func(message NoticeMessage)
 	onUserJoinMessage        func(message UserJoinMessage)
 	onUserPartMessage        func(message UserPartMessage)
+	onSelfJoinMessage        func(message UserJoinMessage)
+	onSelfPartMessage        func(message UserPartMessage)
 	onReconnectMessage       func(message ReconnectMessage)
 	onNamesMessage           func(message NamesMessage)
 	onPingMessage            func(message PingMessage)
@@ -531,6 +533,18 @@ func (c *Client) OnUserJoinMessage(callback func(message UserJoinMessage)) {
 // OnUserPartMessage attaches callback to user parts
 func (c *Client) OnUserPartMessage(callback func(message UserPartMessage)) {
 	c.onUserPartMessage = callback
+}
+
+// OnSelfJoinMessage attaches callback to user JOINs of client's own user
+// Twitch will send us JOIN messages for our own user even without requesting twitch.tv/membership capability
+func (c *Client) OnSelfJoinMessage(callback func(message UserJoinMessage)) {
+	c.onSelfJoinMessage = callback
+}
+
+// OnSelfJoinMessage attaches callback to user PARTs of client's own user
+// Twitch will send us PART messages for our own user even without requesting twitch.tv/membership capability
+func (c *Client) OnSelfPartMessage(callback func(message UserPartMessage)) {
+	c.onSelfPartMessage = callback
 }
 
 // OnReconnectMessage attaches callback that is triggered whenever the twitch servers tell us to reconnect
@@ -1100,8 +1114,11 @@ func (c *Client) handleNoticeMessage(msg NoticeMessage) error {
 }
 
 func (c *Client) handleUserJoinMessage(msg UserJoinMessage) bool {
-	// Ignore own joins
+	// Handle self JOINs on a separate callback
 	if msg.User == c.ircUser {
+		if c.onSelfJoinMessage != nil {
+			c.onSelfJoinMessage(msg)
+		}
 		return false
 	}
 
@@ -1120,8 +1137,11 @@ func (c *Client) handleUserJoinMessage(msg UserJoinMessage) bool {
 }
 
 func (c *Client) handleUserPartMessage(msg UserPartMessage) bool {
-	// Ignore own parts
+	// Handle self PARTs on a separate callback
 	if msg.User == c.ircUser {
+		if c.onSelfPartMessage != nil {
+			c.onSelfPartMessage(msg)
+		}
 		return false
 	}
 
