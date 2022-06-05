@@ -1051,17 +1051,19 @@ func (c *Client) handleLine(line string) error {
 		return c.handleNoticeMessage(*msg)
 
 	case *UserJoinMessage:
-		if c.handleUserJoinMessage(*msg) {
+		c.handleUserJoinMessage(*msg)
+		if msg.User == c.ircUser {
 			if c.onUserJoinMessage != nil {
-				c.onUserJoinMessage(*msg)
+				c.onSelfJoinMessage(*msg)
 			}
 		}
 		return nil
 
 	case *UserPartMessage:
-		if c.handleUserPartMessage(*msg) {
+		c.handleUserPartMessage(*msg)
+		if msg.User == c.ircUser {
 			if c.onUserPartMessage != nil {
-				c.onUserPartMessage(*msg)
+				c.onSelfPartMessage(*msg)
 			}
 		}
 		return nil
@@ -1113,13 +1115,10 @@ func (c *Client) handleNoticeMessage(msg NoticeMessage) error {
 	return nil
 }
 
-func (c *Client) handleUserJoinMessage(msg UserJoinMessage) bool {
+func (c *Client) handleUserJoinMessage(msg UserJoinMessage) {
 	// Handle self JOINs on a separate callback
 	if msg.User == c.ircUser {
-		if c.onSelfJoinMessage != nil {
-			c.onSelfJoinMessage(msg)
-		}
-		return false
+		return
 	}
 
 	c.channelUserlistMutex.Lock()
@@ -1132,25 +1131,18 @@ func (c *Client) handleUserJoinMessage(msg UserJoinMessage) bool {
 	if _, ok := c.channelUserlist[msg.Channel][msg.User]; !ok {
 		c.channelUserlist[msg.Channel][msg.User] = true
 	}
-
-	return true
 }
 
-func (c *Client) handleUserPartMessage(msg UserPartMessage) bool {
+func (c *Client) handleUserPartMessage(msg UserPartMessage) {
 	// Handle self PARTs on a separate callback
 	if msg.User == c.ircUser {
-		if c.onSelfPartMessage != nil {
-			c.onSelfPartMessage(msg)
-		}
-		return false
+		return
 	}
 
 	c.channelUserlistMutex.Lock()
 	defer c.channelUserlistMutex.Unlock()
 
 	delete(c.channelUserlist[msg.Channel], msg.User)
-
-	return true
 }
 
 func (c *Client) handleNamesMessage(msg NamesMessage) {
