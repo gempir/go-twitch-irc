@@ -2,6 +2,7 @@ package twitch
 
 import (
 	"bufio"
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net"
@@ -838,36 +839,55 @@ func TestCanReceiveJOINMessage(t *testing.T) {
 	assertMessageTypesEqual(t, JOIN, received.GetType())
 }
 
-func TestDoesNotReceiveJOINMessageFromSelf(t *testing.T) {
+func TestReceiveJOINMessageWithSelfJOIN(t *testing.T) {
 	t.Parallel()
 	testMessages := []string{
 		`:justinfan123123!justinfan123123@justinfan123123.tmi.twitch.tv JOIN #mychannel`,
 		`:username123!username123@username123.tmi.twitch.tv JOIN #mychannel`,
 	}
 
-	wait := make(chan struct{})
-	var received UserJoinMessage
+	var receivedOther UserJoinMessage
+	var receivedSelf UserJoinMessage
 
 	host := startServer(t, postMessagesOnConnect(testMessages), nothingOnMessage)
 	client := newTestClient(host)
 
+	wg := new(sync.WaitGroup)
+	wg.Add(2)
+
 	client.OnUserJoinMessage(func(message UserJoinMessage) {
-		received = message
-		close(wait)
+		receivedOther = message
+		wg.Done()
+	})
+
+	client.OnSelfJoinMessage(func(message UserJoinMessage) {
+		receivedSelf = message
+		wg.Done()
 	})
 
 	go client.Connect()
 
+	// hack with ctx makes it possible to use it in select statement below
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		wg.Wait()
+		cancel()
+	}()
+
 	// wait for server to start
 	select {
-	case <-wait:
+	case <-ctx.Done():
 	case <-time.After(time.Second * 3):
 		t.Fatal("no message sent")
 	}
 
-	assertStringsEqual(t, "username123", received.User)
-	assertStringsEqual(t, "mychannel", received.Channel)
-	assertMessageTypesEqual(t, JOIN, received.GetType())
+	assertStringsEqual(t, "username123", receivedOther.User)
+	assertStringsEqual(t, "mychannel", receivedOther.Channel)
+	assertMessageTypesEqual(t, JOIN, receivedOther.GetType())
+
+	assertStringsEqual(t, "justinfan123123", receivedSelf.User)
+	assertStringsEqual(t, "mychannel", receivedSelf.Channel)
+	assertMessageTypesEqual(t, JOIN, receivedSelf.GetType())
 }
 
 func TestCanReceivePARTMessage(t *testing.T) {
@@ -899,36 +919,55 @@ func TestCanReceivePARTMessage(t *testing.T) {
 	assertMessageTypesEqual(t, PART, received.GetType())
 }
 
-func TestDoesNotReceivePARTMessageFromSelf(t *testing.T) {
+func TestReceivePARTMessageWithSelfPART(t *testing.T) {
 	t.Parallel()
 	testMessages := []string{
 		`:justinfan123123!justinfan123123@justinfan123123.tmi.twitch.tv PART #mychannel`,
 		`:username123!username123@username123.tmi.twitch.tv PART #mychannel`,
 	}
 
-	wait := make(chan struct{})
-	var received UserPartMessage
+	var receivedOther UserPartMessage
+	var receivedSelf UserPartMessage
 
 	host := startServer(t, postMessagesOnConnect(testMessages), nothingOnMessage)
 	client := newTestClient(host)
 
+	wg := new(sync.WaitGroup)
+	wg.Add(2)
+
 	client.OnUserPartMessage(func(message UserPartMessage) {
-		received = message
-		close(wait)
+		receivedOther = message
+		wg.Done()
+	})
+
+	client.OnSelfPartMessage(func(message UserPartMessage) {
+		receivedSelf = message
+		wg.Done()
 	})
 
 	go client.Connect()
 
+	// hack with ctx makes it possible to use it in select statement below
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		wg.Wait()
+		cancel()
+	}()
+
 	// wait for server to start
 	select {
-	case <-wait:
+	case <-ctx.Done():
 	case <-time.After(time.Second * 3):
 		t.Fatal("no message sent")
 	}
 
-	assertStringsEqual(t, "username123", received.User)
-	assertStringsEqual(t, "mychannel", received.Channel)
-	assertMessageTypesEqual(t, PART, received.GetType())
+	assertStringsEqual(t, "username123", receivedOther.User)
+	assertStringsEqual(t, "mychannel", receivedOther.Channel)
+	assertMessageTypesEqual(t, PART, receivedOther.GetType())
+
+	assertStringsEqual(t, "justinfan123123", receivedSelf.User)
+	assertStringsEqual(t, "mychannel", receivedSelf.Channel)
+	assertMessageTypesEqual(t, PART, receivedSelf.GetType())
 }
 
 func TestCanReceiveUNSETMessage(t *testing.T) {
