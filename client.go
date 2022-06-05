@@ -1053,7 +1053,7 @@ func (c *Client) handleLine(line string) error {
 	case *UserJoinMessage:
 		c.handleUserJoinMessage(*msg)
 		if msg.User == c.ircUser {
-			if c.onUserJoinMessage != nil {
+			if c.onSelfJoinMessage != nil {
 				c.onSelfJoinMessage(*msg)
 			}
 		}
@@ -1062,7 +1062,7 @@ func (c *Client) handleLine(line string) error {
 	case *UserPartMessage:
 		c.handleUserPartMessage(*msg)
 		if msg.User == c.ircUser {
-			if c.onUserPartMessage != nil {
+			if c.onSelfPartMessage != nil {
 				c.onSelfPartMessage(*msg)
 			}
 		}
