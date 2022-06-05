@@ -1116,7 +1116,7 @@ func (c *Client) handleNoticeMessage(msg NoticeMessage) error {
 }
 
 func (c *Client) handleUserJoinMessage(msg UserJoinMessage) {
-	// Handle self JOINs on a separate callback
+	// Self JOINs are handled on a separate callback
 	if msg.User == c.ircUser {
 		return
 	}
@@ -1134,7 +1134,7 @@ func (c *Client) handleUserJoinMessage(msg UserJoinMessage) {
 }
 
 func (c *Client) handleUserPartMessage(msg UserPartMessage) {
-	// Handle self PARTs on a separate callback
+	// Self PARTs are handled on a separate callback
 	if msg.User == c.ircUser {
 		return
 	}
