@@ -244,6 +244,8 @@ client.OnGlobalUserStateMessage(func(message GlobalUserStateMessage) {})
 client.OnNoticeMessage(func(message NoticeMessage) {})
 client.OnUserJoinMessage(func(message UserJoinMessage) {})
 client.OnUserPartMessage(func(message UserPartMessage) {})
+client.OnSelfJoinMessage(func(message UserJoinMessage) {})
+client.OnSelfPartMessage(func(message UserPartMessage) {})
 ```
 
 ### Message Types
