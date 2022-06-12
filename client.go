@@ -389,6 +389,8 @@ type Client struct {
 	onNoticeMessage          func(message NoticeMessage)
 	onUserJoinMessage        func(message UserJoinMessage)
 	onUserPartMessage        func(message UserPartMessage)
+	onSelfJoinMessage        func(message UserJoinMessage)
+	onSelfPartMessage        func(message UserPartMessage)
 	onReconnectMessage       func(message ReconnectMessage)
 	onNamesMessage           func(message NamesMessage)
 	onPingMessage            func(message PingMessage)
@@ -531,6 +533,18 @@ func (c *Client) OnUserJoinMessage(callback func(message UserJoinMessage)) {
 // OnUserPartMessage attaches callback to user parts
 func (c *Client) OnUserPartMessage(callback func(message UserPartMessage)) {
 	c.onUserPartMessage = callback
+}
+
+// OnSelfJoinMessage attaches callback to user JOINs of client's own user
+// Twitch will send us JOIN messages for our own user even without requesting twitch.tv/membership capability
+func (c *Client) OnSelfJoinMessage(callback func(message UserJoinMessage)) {
+	c.onSelfJoinMessage = callback
+}
+
+// OnSelfJoinMessage attaches callback to user PARTs of client's own user
+// Twitch will send us PART messages for our own user even without requesting twitch.tv/membership capability
+func (c *Client) OnSelfPartMessage(callback func(message UserPartMessage)) {
+	c.onSelfPartMessage = callback
 }
 
 // OnReconnectMessage attaches callback that is triggered whenever the twitch servers tell us to reconnect
@@ -1037,7 +1051,12 @@ func (c *Client) handleLine(line string) error {
 		return c.handleNoticeMessage(*msg)
 
 	case *UserJoinMessage:
-		if c.handleUserJoinMessage(*msg) {
+		c.handleUserJoinMessage(*msg)
+		if msg.User == c.ircUser {
+			if c.onSelfJoinMessage != nil {
+				c.onSelfJoinMessage(*msg)
+			}
+		} else {
 			if c.onUserJoinMessage != nil {
 				c.onUserJoinMessage(*msg)
 			}
@@ -1045,7 +1064,12 @@ func (c *Client) handleLine(line string) error {
 		return nil
 
 	case *UserPartMessage:
-		if c.handleUserPartMessage(*msg) {
+		c.handleUserPartMessage(*msg)
+		if msg.User == c.ircUser {
+			if c.onSelfPartMessage != nil {
+				c.onSelfPartMessage(*msg)
+			}
+		} else {
 			if c.onUserPartMessage != nil {
 				c.onUserPartMessage(*msg)
 			}
@@ -1099,10 +1123,10 @@ func (c *Client) handleNoticeMessage(msg NoticeMessage) error {
 	return nil
 }
 
-func (c *Client) handleUserJoinMessage(msg UserJoinMessage) bool {
-	// Ignore own joins
+func (c *Client) handleUserJoinMessage(msg UserJoinMessage) {
+	// Self JOINs are handled on a separate callback
 	if msg.User == c.ircUser {
-		return false
+		return
 	}
 
 	c.channelUserlistMutex.Lock()
@@ -1115,22 +1139,18 @@ func (c *Client) handleUserJoinMessage(msg UserJoinMessage) bool {
 	if _, ok := c.channelUserlist[msg.Channel][msg.User]; !ok {
 		c.channelUserlist[msg.Channel][msg.User] = true
 	}
-
-	return true
 }
 
-func (c *Client) handleUserPartMessage(msg UserPartMessage) bool {
-	// Ignore own parts
+func (c *Client) handleUserPartMessage(msg UserPartMessage) {
+	// Self PARTs are handled on a separate callback
 	if msg.User == c.ircUser {
-		return false
+		return
 	}
 
 	c.channelUserlistMutex.Lock()
 	defer c.channelUserlistMutex.Unlock()
 
 	delete(c.channelUserlist[msg.Channel], msg.User)
-
-	return true
 }
 
 func (c *Client) handleNamesMessage(msg NamesMessage) {
