@@ -1259,6 +1259,39 @@ func TestCanRunBanUser(t *testing.T) {
 	}
 }
 
+func TestCanRunDeleteMessage(t *testing.T) {
+	t.Parallel()
+
+	const testmsgid = "c9c2d88c-74a5-4c12-8342-2e515357738c"
+
+	waitEnd := make(chan struct{})
+	var received string
+
+	host := startServer(t, nothingOnConnect, func(message string) {
+		if strings.HasPrefix(message, "PRIVMSG") {
+			received = message
+			close(waitEnd)
+		}
+	})
+
+	client := newTestClient(host)
+
+	client.OnConnect(func() {
+		client.DeleteMessage("gempiR", testmsgid)
+	})
+
+	go client.Connect() //nolint
+
+	// wait for server to receive message
+	select {
+	case <-waitEnd:
+	case <-time.After(time.Second * 3):
+		t.Fatal("no privmsg received")
+	}
+
+	assertStringsEqual(t, "PRIVMSG #gempir :/delete "+testmsgid, received)
+}
+
 func TestCanJoinChannelAfterConnection(t *testing.T) {
 	t.Parallel()
 	waitEnd := make(chan struct{})

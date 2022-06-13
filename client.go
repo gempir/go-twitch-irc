@@ -638,6 +638,13 @@ func (c *Client) Ban(channel, username, reason string) {
 	c.Say(channel, "/ban "+username+" "+reason)
 }
 
+// DeleteMessage delete message in chat
+//
+// Bot user must be an moderator, channel owner message can't be deleted
+func (c *Client) DeleteMessage(channel, msgID string) {
+	c.Say(channel, "/delete "+msgID)
+}
+
 // Creates an irc join message to join the given channels.
 //
 // Returns the join message, any channels included in the join message,
