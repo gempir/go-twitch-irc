@@ -6,6 +6,9 @@ I highly recommend reading the documentation below, but this readme gives a basi
 Documentation: https://pkg.go.dev/github.com/gempir/go-twitch-irc/v3?tab=doc
 
 ## Getting Started
+
+**Example**: Connect to a server, join a channel and print channel messages (a.k.a. "private messages").
+
 ```go
 package main
 
@@ -19,18 +22,19 @@ func main() {
 	// or client := twitch.NewAnonymousClient() for an anonymous user (no write capabilities)
 	client := twitch.NewClient("yourtwitchusername", "oauth:123123123")
 
-	client.OnPrivateMessage(func(message twitch.PrivateMessage) {
-		fmt.Println(message.Message)
-	})
-
-	client.Join("gempir")
-
 	err := client.Connect()
 	if err != nil {
 		panic(err)
 	}
+
+	client.Join("gempir")
+	
+	client.OnPrivateMessage(func(message twitch.PrivateMessage) {
+		fmt.Println(message.Channel, message.Message)
+	})
 }
 ```
+
 ### Available Data
 
 The twitch.User and MessageType structs reflect the data Twitch provides, minus any fields that have been marked as deprecated:
