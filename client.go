@@ -67,6 +67,26 @@ type User struct {
 	Badges      map[string]int
 }
 
+func (u User) IsBroadcaster() bool {
+	return u.hasRole("broadcaster")
+}
+
+func (u User) IsModerator() bool {
+	return u.hasRole("moderator") || u.IsBroadcaster()
+}
+
+func (u User) IsSubscriber() bool {
+	return u.hasRole("subscriber")
+}
+
+func (u User) hasRole(role string) bool {
+	if value, ok := u.Badges[role]; ok {
+		return value > 0
+	}
+
+	return false
+}
+
 // Message interface that all messages implement
 type Message interface {
 	GetType() MessageType

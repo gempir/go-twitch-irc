@@ -2355,3 +2355,27 @@ func TestEmptyCapabilities(t *testing.T) {
 		}(tt)
 	}
 }
+
+func TestUserRoleMethods(t *testing.T) {
+	type Badges map[string]int
+
+	t.Run("IsBroadcaster", func(t *testing.T) {
+		assertFalse(t, User{Badges: Badges{}}.IsBroadcaster(), "User with empty badges is not a broadcaster")
+		assertFalse(t, User{Badges: Badges{"broadcaster": 0}}.IsBroadcaster(), "User with broadcaster badge=0 is not a broadcaster")
+		assertTrue(t, User{Badges: Badges{"broadcaster": 1}}.IsBroadcaster(), "User with broadcaster badge=1 is a broadcaster")
+	})
+
+	t.Run("IsSubscriber", func(t *testing.T) {
+		assertFalse(t, User{Badges: Badges{}}.IsSubscriber(), "User with empty badges is not a subscriber")
+		assertFalse(t, User{Badges: Badges{"subscriber": 0}}.IsSubscriber(), "User with subscriber badge=0 is not a subscriber")
+		assertTrue(t, User{Badges: Badges{"subscriber": 1}}.IsSubscriber(), "User with subscriber badge=1 is a subscriber")
+		assertTrue(t, User{Badges: Badges{"subscriber": 6}}.IsSubscriber(), "User with subscriber badge>1 is a subscriber")
+	})
+
+	t.Run("IsModerator", func(t *testing.T) {
+		assertFalse(t, User{Badges: Badges{}}.IsModerator(), "User with empty badges is not a moderator")
+		assertFalse(t, User{Badges: Badges{"moderator": 0}}.IsModerator(), "User with moderator badge=0 is not a moderator")
+		assertTrue(t, User{Badges: Badges{"moderator": 1}}.IsModerator(), "User with moderator badge=1 is a moderator")
+		assertTrue(t, User{Badges: Badges{"broadcaster": 1}}.IsModerator(), "User with broadcaster badge=1 is a moderator")
+	})
+}
