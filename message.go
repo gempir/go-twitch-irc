@@ -220,14 +220,15 @@ func parsePrivateMessage(message *ircMessage) Message {
 	privateMessage := PrivateMessage{
 		User: parseUser(message),
 
-		Raw:     message.Raw,
-		Type:    parseMessageType(message.Command),
-		RawType: message.Command,
-		Tags:    message.Tags,
-		RoomID:  message.Tags["room-id"],
-		ID:      message.Tags["id"],
-		Time:    parseTime(message.Tags["tmi-sent-ts"]),
-		Reply:   reply,
+		Raw:            message.Raw,
+		Type:           parseMessageType(message.Command),
+		RawType:        message.Command,
+		Tags:           message.Tags,
+		RoomID:         message.Tags["room-id"],
+		ID:             message.Tags["id"],
+		Time:           parseTime(message.Tags["tmi-sent-ts"]),
+		Reply:          reply,
+		CustomRewardID: message.Tags["custom-reward-id"],
 	}
 
 	if len(message.Params) == 2 {

@@ -226,6 +226,30 @@ func TestCanParsePRIVMSGMessage(t *testing.T) {
 				},
 			},
 		},
+		{
+			"Message With Custom Reward ID",
+			"@badge-info=;badges=vip/1,bits/100;color=#FF69B4;custom-reward-id=ea98be77-c54e-49cd-bc52-d8290cf12ad8;display-name=eloonstra;emotes=;first-msg=0;flags=0-2:S.5;id=c46f5ea8-bbba-499d-a10f-96463d2955c1;mod=0;returning-chatter=0;room-id=75704631;subscriber=0;tmi-sent-ts=1674085692645;turbo=0;user-id=465396358;user-type=;vip=1 :eloonstra!eloonstra@eloonstra.tmi.twitch.tv PRIVMSG #eloonstra :boing",
+			PrivateMessage{
+				User: User{
+					ID:          "465396358",
+					Name:        "eloonstra",
+					DisplayName: "eloonstra",
+					Color:       "#FF69B4",
+					Badges: map[string]int{
+						"vip":  1,
+						"bits": 100,
+					},
+				},
+				Type:           PRIVMSG,
+				RawType:        "PRIVMSG",
+				Message:        "boing",
+				Channel:        "eloonstra",
+				RoomID:         "75704631",
+				ID:             "c46f5ea8-bbba-499d-a10f-96463d2955c1",
+				FirstMessage:   false,
+				CustomRewardID: "ea98be77-c54e-49cd-bc52-d8290cf12ad8",
+			},
+		},
 	}
 
 	for _, tt := range tests {

@@ -111,20 +111,21 @@ func (msg *WhisperMessage) GetType() MessageType {
 type PrivateMessage struct {
 	User User
 
-	Raw          string
-	Type         MessageType
-	RawType      string
-	Tags         map[string]string
-	Message      string
-	Channel      string
-	RoomID       string
-	ID           string
-	Time         time.Time
-	Emotes       []*Emote
-	Bits         int
-	Action       bool
-	FirstMessage bool
-	Reply        *Reply
+	Raw            string
+	Type           MessageType
+	RawType        string
+	Tags           map[string]string
+	Message        string
+	Channel        string
+	RoomID         string
+	ID             string
+	Time           time.Time
+	Emotes         []*Emote
+	Bits           int
+	Action         bool
+	FirstMessage   bool
+	Reply          *Reply
+	CustomRewardID string
 }
 
 type Reply struct {
