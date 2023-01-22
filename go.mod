@@ -1,3 +1,3 @@
-module github.com/gempir/go-twitch-irc/v3
+module github.com/gempir/go-twitch-irc
 
 go 1.12

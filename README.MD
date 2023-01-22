@@ -3,7 +3,7 @@
 This is an irc client for connecting to twitch. It handles the annoying stuff like irc tag parsing.
 I highly recommend reading the documentation below, but this readme gives a basic overview of the functionality.
 
-Documentation: https://pkg.go.dev/github.com/gempir/go-twitch-irc/v3?tab=doc
+Documentation: https://pkg.go.dev/github.com/gempir/go-twitch-irc?tab=doc
 
 ## Getting Started
 ```go
@@ -12,7 +12,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/gempir/go-twitch-irc/v3"
+	"github.com/gempir/go-twitch-irc"
 )
 
 func main() {
@@ -203,13 +203,11 @@ These are the available methods of the client so you can get your bot going:
 
 ```go
 func (c *Client) Say(channel, text string)
-func (c *Client) Whisper(username, text string)
 func (c *Client) Join(channel string)
 func (c *Client) Depart(channel string)
 func (c *Client) Userlist(channel string) ([]string, error)
 func (c *Client) Connect() error
 func (c *Client) Disconnect() error
-func (c *Client) DeleteMessage(channel, msgID string)
 ```
 
 ### Options
