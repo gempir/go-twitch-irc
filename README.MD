@@ -203,13 +203,11 @@ These are the available methods of the client so you can get your bot going:
 
 ```go
 func (c *Client) Say(channel, text string)
-func (c *Client) Whisper(username, text string)
 func (c *Client) Join(channel string)
 func (c *Client) Depart(channel string)
 func (c *Client) Userlist(channel string) ([]string, error)
 func (c *Client) Connect() error
 func (c *Client) Disconnect() error
-func (c *Client) DeleteMessage(channel, msgID string)
 ```
 
 ### Options

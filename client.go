@@ -592,14 +592,6 @@ func (c *Client) Reply(channel, parentMsgId string, text string) {
 	c.send(fmt.Sprintf("@reply-parent-msg-id=%s PRIVMSG #%s :%s", parentMsgId, channel, text))
 }
 
-// Whisper write something in private to someone on twitch
-// whispers are heavily spam protected
-// so your message might get blocked because of this
-// verify your bot to prevent this
-func (c *Client) Whisper(username, text string) {
-	c.send(fmt.Sprintf("PRIVMSG #%s :/w %s %s", c.ircUser, username, text))
-}
-
 // Join enter a twitch channel to read more messages.
 // It will respect the given ratelimits.
 // This is not a blocking operation.
@@ -622,28 +614,6 @@ func (c *Client) Join(channels ...string) {
 		c.channelUserlistMutex.Unlock()
 	}
 	c.channelsMtx.Unlock()
-}
-
-// FollowersOn run twitch command `/followers` with the given channel and duration in argument
-func (c *Client) FollowersOn(channel, duration string) {
-	c.Say(channel, "/followers "+duration)
-}
-
-// FollowersOn run twitch command `/followersoff` with the given channel in argument
-func (c *Client) FollowersOff(channel string) {
-	c.Say(channel, "/followersoff")
-}
-
-// Ban run twitch command `/ban username reason` with the given channel and reason in argument
-func (c *Client) Ban(channel, username, reason string) {
-	c.Say(channel, "/ban "+username+" "+reason)
-}
-
-// DeleteMessage delete message in chat
-//
-// Bot user must be an moderator, channel owner message can't be deleted
-func (c *Client) DeleteMessage(channel, msgID string) {
-	c.Say(channel, "/delete "+msgID)
 }
 
 // Creates an irc join message to join the given channels.
