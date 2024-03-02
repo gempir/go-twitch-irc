@@ -1093,7 +1093,7 @@ func (c *Client) handleLine(line string) error {
 
 func (c *Client) handleNoticeMessage(msg NoticeMessage) error {
 	if msg.Channel == "*" {
-		if msg.Message == "Login authentication failed" || msg.Message == "Improperly formatted auth" || msg.Message == "Invalid NICK" {
+		if msg.Message == "Login authentication failed" || msg.Message == "Improperly formatted auth" || msg.Message == "Invalid NICK" || msg.Message == "Login unsuccessful" {
 			return ErrLoginAuthenticationFailed
 		}
 	}
