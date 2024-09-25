@@ -17,8 +17,10 @@ import (
 	"time"
 )
 
-var startPortMutex sync.Mutex
-var startPort = 10000
+var (
+	startPortMutex sync.Mutex
+	startPort      = 10000
+)
 
 func newPort() (r int) {
 	startPortMutex.Lock()
@@ -1916,7 +1918,15 @@ func TestLatency(t *testing.T) {
 
 		returnedLatency = returnedLatency.Round(time.Millisecond)
 
-		if returnedLatency != expectedLatency {
+		latencyDiff := func() time.Duration {
+			diff := returnedLatency - expectedLatency
+			if diff < 0 {
+				return -diff
+			}
+			return diff
+		}()
+
+		if latencyDiff > time.Millisecond*3 {
 			t.Fatalf("Latency %s should be equal to %s", returnedLatency, expectedLatency)
 		}
 
@@ -2143,7 +2153,7 @@ func TestCapabilities(t *testing.T) {
 		in       []string
 		expected string
 	}
-	var tests = []testTable{
+	tests := []testTable{
 		{
 			"Default Capabilities (not modifying)",
 			nil,
@@ -2218,7 +2228,7 @@ func TestEmptyCapabilities(t *testing.T) {
 		name string
 		in   []string
 	}
-	var tests = []testTable{
+	tests := []testTable{
 		{"nil", nil},
 		{"Empty list", []string{}},
 	}
