@@ -1846,6 +1846,85 @@ func TestPinger(t *testing.T) {
 	client.Disconnect()
 }
 
+func TestLatencySendPingsFalse(t *testing.T) {
+	t.Parallel()
+	client := newTestClient("")
+	client.SendPings = false
+	if _, err := client.Latency(); err == nil {
+		t.Fatal("Should not be able to measure latency when SendPings is false")
+	}
+}
+
+func TestLatencyBeforePings(t *testing.T) {
+	t.Parallel()
+	var (
+		client  *Client
+		latency time.Duration
+		err     error
+	)
+	client = newTestClient("")
+	if latency, err = client.Latency(); err != nil {
+		t.Fatal(fmt.Errorf("Failed to measure latency: %w", err))
+	}
+
+	if latency != 0 {
+		t.Fatal("Latency should be zero before a ping is sent")
+	}
+}
+
+func TestLatency(t *testing.T) {
+	t.Parallel()
+	const idlePingInterval = 10 * time.Millisecond
+	const expectedLatency = 50 * time.Millisecond
+
+	wait := make(chan bool)
+
+	var conn net.Conn
+
+	host := startServer(t, func(c net.Conn) {
+		conn = c
+	}, func(message string) {
+		if message == pingMessage {
+			// Send an emulated pong
+			<-time.After(expectedLatency)
+			wait <- true
+			fmt.Fprintf(conn, formatPong(strings.Split(message, " :")[1])+"\r\n")
+		}
+	})
+	client := newTestClient(host)
+	client.IdlePingInterval = idlePingInterval
+
+	go client.Connect()
+
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("Did not establish a connection")
+	}
+
+	var (
+		returnedLatency time.Duration
+		err             error
+	)
+	for i := 0; i < 5; i++ {
+		// Wait for the client to send a ping
+		<-time.After(idlePingInterval + time.Millisecond*10)
+
+		if returnedLatency, err = client.Latency(); err != nil {
+			t.Fatal(fmt.Errorf("Failed to measure latency: %w", err))
+		}
+
+		returnedLatency = returnedLatency.Round(time.Millisecond)
+
+		if returnedLatency != expectedLatency {
+			t.Fatalf("Latency %s should be equal to %s", returnedLatency, expectedLatency)
+		}
+
+	}
+
+	client.Disconnect()
+}
+
 func TestCanAttachToPongMessageCallback(t *testing.T) {
 	t.Parallel()
 
