@@ -1927,7 +1927,7 @@ func TestLatency(t *testing.T) {
 		}()
 
 		if latencyDiff > time.Millisecond*3 {
-			t.Fatalf("Latency %s should be equal to %s", returnedLatency, expectedLatency)
+			t.Fatalf("Latency %s should be within 3ms of %s", returnedLatency, expectedLatency)
 		}
 
 	}
