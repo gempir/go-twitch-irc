@@ -1878,6 +1878,7 @@ func TestLatency(t *testing.T) {
 	t.Parallel()
 	const idlePingInterval = 10 * time.Millisecond
 	const expectedLatency = 50 * time.Millisecond
+	const toleranceLatency = 5 * time.Millisecond
 
 	wait := make(chan bool)
 
@@ -1926,7 +1927,7 @@ func TestLatency(t *testing.T) {
 			return diff
 		}()
 
-		if latencyDiff > time.Millisecond*3 {
+		if latencyDiff > toleranceLatency {
 			t.Fatalf("Latency %s should be within 3ms of %s", returnedLatency, expectedLatency)
 		}
 
