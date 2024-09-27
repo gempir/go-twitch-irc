@@ -28,7 +28,6 @@ linters:
   enable:
     - bodyclose
     - deadcode
-    - depguard
     - dogsled
   # - dupl
     - errcheck

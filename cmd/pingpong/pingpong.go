@@ -4,7 +4,6 @@ import (
 	"log"
 	"strings"
 
-	//nolint:depguard don't understand the linter error
 	twitch "github.com/gempir/go-twitch-irc/v4"
 )
 
