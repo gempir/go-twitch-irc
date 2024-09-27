@@ -393,7 +393,12 @@ func TestCanConnectAndAuthenticate(t *testing.T) {
 	client := newTestClient(host)
 	client.PongTimeout = time.Second * 30
 	connectAndEnsureGoodDisconnect(t, client)
-	defer client.Disconnect()
+	defer func() {
+		err := client.Disconnect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	select {
 	case <-wait:
@@ -1792,7 +1797,10 @@ func TestCanConnectToTwitch(t *testing.T) {
 	client := NewClient("justinfan123123", "oauth:123123132")
 
 	client.OnConnect(func() {
-		client.Disconnect()
+		err := client.Disconnect()
+		if err != nil {
+			t.Error(err)
+		}
 	})
 
 	err := client.Connect()
@@ -1806,7 +1814,10 @@ func TestCanConnectToTwitchWithoutTLS(t *testing.T) {
 	wait := make(chan struct{})
 
 	client.OnConnect(func() {
-		client.Disconnect()
+		err := client.Disconnect()
+		if err != nil {
+			t.Error(err)
+		}
 	})
 
 	go func() {
@@ -1858,7 +1869,8 @@ func TestLocalSendingPingsReceivedPong(t *testing.T) {
 	}, func(message string) {
 		if message == pingMessage {
 			// Send an emulated pong
-			fmt.Fprintf(conn, formatPong(strings.Split(message, " :")[1])+"\r\n")
+			pongMessage := formatPong(strings.Split(message, " :")[1])
+			fmt.Fprintf(conn, "%s\r\n", pongMessage)
 			wait <- true
 		}
 	})
@@ -1878,7 +1890,10 @@ func TestLocalSendingPingsReceivedPong(t *testing.T) {
 		t.Fatal("Did not establish a connection")
 	}
 
-	client.Disconnect()
+	err := client.Disconnect()
+	if err != nil {
+		t.Error(err)
+	}
 }
 
 func TestLocalCanReconnectAfterNoPongResponse(t *testing.T) {
@@ -1967,7 +1982,10 @@ func TestLocalSendingPingsReceivedPongAlsoDisconnect(t *testing.T) {
 		t.Fatal("Did not establish a connection")
 	}
 
-	client.Disconnect()
+	err := client.Disconnect()
+	if err != nil {
+		t.Error(err)
+	}
 }
 
 func TestPinger(t *testing.T) {
@@ -1987,7 +2005,8 @@ func TestPinger(t *testing.T) {
 	}, func(message string) {
 		if message == pingMessage {
 			// Send an emulated pong
-			fmt.Fprintf(conn, formatPong(strings.Split(message, " :")[1])+"\r\n")
+			pongMessage := formatPong(strings.Split(message, " :")[1])
+			fmt.Fprintf(conn, "%s\r\n", pongMessage)
 			wait <- true
 		}
 	})
@@ -2041,7 +2060,10 @@ func TestPinger(t *testing.T) {
 		t.Fatal("Did not receive a pong")
 	}
 
-	client.Disconnect()
+	err := client.Disconnect()
+	if err != nil {
+		t.Error(err)
+	}
 }
 
 func TestLatencySendPingsFalse(t *testing.T) {
@@ -2087,7 +2109,8 @@ func TestLatency(t *testing.T) {
 			// Send an emulated pong
 			<-time.After(expectedLatency)
 			wait <- true
-			fmt.Fprintf(conn, formatPong(strings.Split(message, " :")[1])+"\r\n")
+			pongMessage := formatPong(strings.Split(message, " :")[1])
+			fmt.Fprintf(conn, "%s\r\n", pongMessage)
 		}
 	})
 	client := newTestClient(host)
@@ -2131,10 +2154,12 @@ func TestLatency(t *testing.T) {
 		if latencyDiff > toleranceLatency {
 			t.Fatalf("Latency %s should be within 3ms of %s", returnedLatency, expectedLatency)
 		}
-
 	}
 
-	client.Disconnect()
+	err = client.Disconnect()
+	if err != nil {
+		t.Error(err)
+	}
 }
 
 func TestCanAttachToPongMessageCallback(t *testing.T) {
@@ -2168,7 +2193,10 @@ func TestCanAttachToPongMessageCallback(t *testing.T) {
 		t.Fatal("Did not establish a connection")
 	}
 
-	client.Disconnect()
+	err := client.Disconnect()
+	if err != nil {
+		t.Error(err)
+	}
 
 	assertStringsEqual(t, "go-twitch-irc", received)
 }
@@ -2335,7 +2363,10 @@ func TestRejoinOnReconnect(t *testing.T) {
 	receivedMsg = ""
 
 	// Manually disconnect
-	client.Disconnect()
+	err := client.Disconnect()
+	if err != nil {
+		t.Error(err)
+	}
 
 	<-clientDisconnected
 
