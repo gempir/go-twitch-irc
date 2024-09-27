@@ -8,7 +8,7 @@ jobs:
 
     strategy:
       matrix:
-        go: [1.22, 1.23]
+        go: [stable, oldstable]
 
     steps:
       - name: Set up Go
