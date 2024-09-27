@@ -4,6 +4,7 @@ import (
 	"log"
 	"strings"
 
+	//nolint:depguard
 	twitch "github.com/gempir/go-twitch-irc/v4"
 )
 

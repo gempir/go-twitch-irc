@@ -595,10 +595,10 @@ func (c *Client) Say(channel, text string) {
 }
 
 // Reply to a message previously sent in the same channel using the twitch reply feature
-func (c *Client) Reply(channel, parentMsgId, text string) {
+func (c *Client) Reply(channel, parentMsgID, text string) {
 	channel = strings.ToLower(channel)
 
-	c.send(fmt.Sprintf("@reply-parent-msg-id=%s PRIVMSG #%s :%s", parentMsgId, channel, text))
+	c.send(fmt.Sprintf("@reply-parent-msg-id=%s PRIVMSG #%s :%s", parentMsgID, channel, text))
 }
 
 // Join enter a twitch channel to read more messages.

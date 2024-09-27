@@ -283,7 +283,12 @@ func TestCanConnectAndAuthenticateWithoutTLS(t *testing.T) {
 	client.TLS = false
 	client.IrcAddress = host
 	client.PongTimeout = time.Second * 30
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	select {
 	case <-wait:
@@ -312,7 +317,12 @@ func TestCanChangeOauthToken(t *testing.T) {
 	client.TLS = false
 	client.IrcAddress = host
 	client.SetIRCToken(oauthCode)
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	select {
 	case <-wait:
@@ -342,7 +352,12 @@ func TestCanAddSetupCmd(t *testing.T) {
 	client.TLS = false
 	client.IrcAddress = host
 	client.SetupCmd = setupCmd
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	select {
 	case <-wait:
@@ -491,7 +506,12 @@ func TestCanDisconnect(t *testing.T) {
 		close(wait)
 	})
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// wait for server to start
 	select {
@@ -530,7 +550,12 @@ func TestCanReceivePRIVMSGMessage(t *testing.T) {
 		close(wait)
 	})
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// wait for server to start
 	select {
@@ -558,7 +583,12 @@ func TestCanReceiveWHISPERMessage(t *testing.T) {
 		close(wait)
 	})
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// wait for server to start
 	select {
@@ -586,7 +616,12 @@ func TestCanReceiveCLEARCHATMessage(t *testing.T) {
 		close(wait)
 	})
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// wait for server to start
 	select {
@@ -614,7 +649,12 @@ func TestCanReceiveCLEARMSGMessage(t *testing.T) {
 		close(wait)
 	})
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// wait for server to start
 	select {
@@ -642,7 +682,12 @@ func TestCanReceiveROOMSTATEMessage(t *testing.T) {
 		close(wait)
 	})
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// wait for server to start
 	select {
@@ -670,7 +715,12 @@ func TestCanReceiveUSERNOTICEMessage(t *testing.T) {
 		close(wait)
 	})
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	select {
 	case <-wait:
@@ -696,7 +746,12 @@ func TestCanReceiveUSERNOTICEMessageResub(t *testing.T) {
 		close(wait)
 	})
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	select {
 	case <-wait:
@@ -723,7 +778,12 @@ func checkNoticeMessage(t *testing.T, testMessage string, requirements map[strin
 		close(wait)
 	})
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	select {
 	case <-wait:
@@ -773,7 +833,12 @@ func TestCanReceiveUSERStateMessage(t *testing.T) {
 		close(wait)
 	})
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	select {
 	case <-wait:
@@ -801,7 +866,12 @@ func TestCanReceiveGlobalUserStateMessage(t *testing.T) {
 	})
 
 	//nolint
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	select {
 	case <-wait:
@@ -827,7 +897,12 @@ func TestCanReceiveJOINMessage(t *testing.T) {
 		close(wait)
 	})
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// wait for server to start
 	select {
@@ -867,7 +942,12 @@ func TestReceiveJOINMessageWithSelfJOIN(t *testing.T) {
 		wg.Done()
 	})
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// hack with ctx makes it possible to use it in select statement below
 	ctx, cancel := context.WithCancel(context.Background())
@@ -907,7 +987,12 @@ func TestCanReceivePARTMessage(t *testing.T) {
 		close(wait)
 	})
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// wait for server to start
 	select {
@@ -947,7 +1032,12 @@ func TestReceivePARTMessageWithSelfPART(t *testing.T) {
 		wg.Done()
 	})
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// hack with ctx makes it possible to use it in select statement below
 	ctx, cancel := context.WithCancel(context.Background())
@@ -989,7 +1079,12 @@ func TestCanReceiveUNSETMessage(t *testing.T) {
 		}
 	})
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	select {
 	case <-wait:
@@ -1023,7 +1118,12 @@ func TestCanHandleRECONNECTMessage(t *testing.T) {
 		received = msg
 	})
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// wait for server to start
 	select {
@@ -1065,7 +1165,12 @@ func TestCanSayMessage(t *testing.T) {
 		client.Say("gempir", testMessage)
 	})
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// wait for server to receive message
 	select {
@@ -1161,7 +1266,12 @@ func TestCanJoinChannelAfterConnection(t *testing.T) {
 	})
 
 	client := newTestClient(host)
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// wait for the connection to go active
 	for !client.connActive.get() {
@@ -1199,7 +1309,12 @@ func TestCanRespectDefaultJoinRateLimits(t *testing.T) {
 	client := newTestClient(host)
 	client.PongTimeout = time.Second * 30
 	client.SetJoinRateLimiter(CreateDefaultRateLimiter())
-	go client.Connect() //nolint
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}() //nolint
 
 	// wait for the connection to go active
 	for !client.connActive.get() {
@@ -1244,7 +1359,12 @@ func TestCanRespectBulkDefaultJoinRateLimits(t *testing.T) {
 	client := newTestClient(host)
 	client.PongTimeout = time.Second * 60
 	client.SetJoinRateLimiter(CreateDefaultRateLimiter())
-	go client.Connect() //nolint
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}() //nolint
 
 	// wait for the connection to go active
 	for !client.connActive.get() {
@@ -1293,7 +1413,12 @@ func TestCanRespectVerifiedJoinRateLimits(t *testing.T) {
 	client := newTestClient(host)
 	client.PongTimeout = time.Second * 30
 	client.SetJoinRateLimiter(CreateVerifiedRateLimiter())
-	go client.Connect() //nolint
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}() //nolint
 
 	// wait for the connection to go active
 	for !client.connActive.get() {
@@ -1335,7 +1460,12 @@ func TestCanIgnoreJoinRateLimits(t *testing.T) {
 	client := newTestClient(host)
 	client.PongTimeout = time.Second * 30
 	client.SetJoinRateLimiter(CreateUnlimitedRateLimiter())
-	go client.Connect() //nolint
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}() //nolint
 
 	// wait for the connection to go active
 	for !client.connActive.get() {
@@ -1373,7 +1503,12 @@ func TestCanDepartChannel(t *testing.T) {
 	})
 
 	client := newTestClient(host)
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// wait for the connection to go active
 	for !client.connActive.get() {
@@ -1434,7 +1569,12 @@ func TestCanGetUserlist(t *testing.T) {
 		}
 	})
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// wait for the connection to go active
 	for !client.connActive.get() {
@@ -1472,7 +1612,12 @@ func TestDepartNegatesJoinIfNotConnected(t *testing.T) {
 	client.Join("gempir")
 	client.Depart("gempir")
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// wait for the connection to go active
 	for !client.connActive.get() {
@@ -1504,7 +1649,12 @@ func TestCanRespondToPING1(t *testing.T) {
 
 	client := newTestClient(host)
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// wait for server to receive message
 	select {
@@ -1529,7 +1679,12 @@ func TestCanRespondToPING2(t *testing.T) {
 
 	client := newTestClient(host)
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// wait for server to receive message
 	select {
@@ -1552,7 +1707,12 @@ func TestCanAttachToPingMessageCallback(t *testing.T) {
 		close(wait)
 	})
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// wait for server to receive message
 	select {
@@ -1577,7 +1737,12 @@ func TestCanPong(t *testing.T) {
 
 	client := newTestClient(host)
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// wait for server to receive message
 	select {
@@ -1700,7 +1865,12 @@ func TestLocalSendingPingsReceivedPong(t *testing.T) {
 	client := newTestClient(host)
 	client.IdlePingInterval = idlePingInterval
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	select {
 	case <-wait:
@@ -1728,7 +1898,12 @@ func TestLocalCanReconnectAfterNoPongResponse(t *testing.T) {
 	client.IdlePingInterval = idlePingInterval
 	client.PongTimeout = pongTimeout
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	select {
 	case <-wait:
@@ -1770,7 +1945,8 @@ func TestLocalSendingPingsReceivedPongAlsoDisconnect(t *testing.T) {
 	}, func(message string) {
 		if message == pingMessage {
 			// Send an emulated pong
-			fmt.Fprintf(conn, formatPong(strings.Split(message, " :")[1])+"\r\n")
+			pongMessage := formatPong(strings.Split(message, " :")[1])
+			fmt.Fprintf(conn, "%s\r\n", pongMessage)
 			conn.Close()
 			wait <- true
 		}
@@ -1778,7 +1954,12 @@ func TestLocalSendingPingsReceivedPongAlsoDisconnect(t *testing.T) {
 	client := newTestClient(host)
 	client.IdlePingInterval = idlePingInterval
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	select {
 	case <-wait:
@@ -1824,7 +2005,12 @@ func TestPinger(t *testing.T) {
 		pingpongMutex.Unlock()
 	})
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	select {
 	case <-wait:
@@ -1907,7 +2093,12 @@ func TestLatency(t *testing.T) {
 	client := newTestClient(host)
 	client.IdlePingInterval = idlePingInterval
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	select {
 	case <-wait:
@@ -1964,7 +2155,12 @@ func TestCanAttachToPongMessageCallback(t *testing.T) {
 		close(wait)
 	})
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	select {
 	case <-wait:
@@ -2146,7 +2342,12 @@ func TestRejoinOnReconnect(t *testing.T) {
 	waitEnd = make(chan struct{})
 
 	// Manually reconnect
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	select {
 	case <-waitEnd:
