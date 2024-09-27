@@ -395,8 +395,8 @@ func TestCanConnectAndAuthenticate(t *testing.T) {
 	connectAndEnsureGoodDisconnect(t, client)
 	defer func() {
 		err := client.Disconnect()
-		if err != nil {
-			t.Error(err)
+		if err == nil {
+			t.Error(err, "connection should not be open")
 		}
 	}()
 
