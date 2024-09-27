@@ -595,7 +595,7 @@ func (c *Client) Say(channel, text string) {
 }
 
 // Reply to a message previously sent in the same channel using the twitch reply feature
-func (c *Client) Reply(channel, parentMsgId string, text string) {
+func (c *Client) Reply(channel, parentMsgId, text string) {
 	channel = strings.ToLower(channel)
 
 	c.send(fmt.Sprintf("@reply-parent-msg-id=%s PRIVMSG #%s :%s", parentMsgId, channel, text))

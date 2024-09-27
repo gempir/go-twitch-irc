@@ -1080,7 +1080,7 @@ func TestCanSayMessage(t *testing.T) {
 func TestCanReplyMessage(t *testing.T) {
 	t.Parallel()
 	testMessage := "Do not go gentle into that good night."
-	testParentMessageId := "b34ccfc7-4977-403a-8a94-33c6bac34fb8"
+	testParentMessageID := "b34ccfc7-4977-403a-8a94-33c6bac34fb8"
 
 	waitEnd := make(chan struct{})
 	var received string
@@ -1095,10 +1095,15 @@ func TestCanReplyMessage(t *testing.T) {
 	client := newTestClient(host)
 
 	client.OnConnect(func() {
-		client.Reply("gempir", testParentMessageId, testMessage)
+		client.Reply("gempir", testParentMessageID, testMessage)
 	})
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// wait for server to receive message
 	select {
@@ -1107,7 +1112,7 @@ func TestCanReplyMessage(t *testing.T) {
 		t.Fatal("no privmsg received")
 	}
 
-	assertStringsEqual(t, "@reply-parent-msg-id="+testParentMessageId+" PRIVMSG #gempir :"+testMessage, received)
+	assertStringsEqual(t, "@reply-parent-msg-id="+testParentMessageID+" PRIVMSG #gempir :"+testMessage, received)
 }
 
 func TestCanJoinChannel(t *testing.T) {
@@ -1126,7 +1131,12 @@ func TestCanJoinChannel(t *testing.T) {
 
 	client.Join("gempiR")
 
-	go client.Connect()
+	go func() {
+		err := client.Connect()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// wait for server to receive message
 	select {
@@ -2158,12 +2168,12 @@ func TestCapabilities(t *testing.T) {
 		{
 			"Default Capabilities (not modifying)",
 			nil,
-			"CAP REQ :" + strings.Join([]string{TagsCapability, CommandsCapability}, " "),
+			"CAP REQ :" + TagsCapability + " " + CommandsCapability,
 		},
 		{
 			"Modified Capabilities",
 			[]string{CommandsCapability, MembershipCapability},
-			"CAP REQ :" + strings.Join([]string{CommandsCapability, MembershipCapability}, " "),
+			"CAP REQ :" + CommandsCapability + " " + MembershipCapability,
 		},
 	}
 
