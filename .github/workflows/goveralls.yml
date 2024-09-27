@@ -1,5 +1,5 @@
 name: Goveralls
-on: [push, pull_request]
+on: [pull_request]
 jobs:
 
   goveralls:
@@ -8,15 +8,15 @@ jobs:
 
     strategy:
       matrix:
-        go: [1.16, 1.17]
+        go: [stable, oldstable]
 
     steps:
       - name: Set up Go
-        uses: actions/setup-go@v1
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - run: go test -coverprofile=coverage.out
       - uses: shogo82148/actions-goveralls@v1
         with:
