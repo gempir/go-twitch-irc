@@ -378,6 +378,7 @@ type Client struct {
 	channelUserlistMutex     *sync.RWMutex
 	channelUserlist          map[string]map[string]bool
 	channelsMtx              *sync.RWMutex
+	latencyMutex             *sync.RWMutex
 	onConnect                func()
 	onWhisperMessage         func(message WhisperMessage)
 	onPrivateMessage         func(message PrivateMessage)
@@ -430,6 +431,13 @@ type Client struct {
 	// The variable may only be modified before calling Connect
 	PongTimeout time.Duration
 
+	// LastSentPing is the time the last ping was sent. Used to measure latency.
+	lastSentPing time.Time
+
+	// Latency is the latency to the irc server measured as the duration
+	// between when the last ping was sent and when the last pong was received
+	latency time.Duration
+
 	// SetupCmd is the command that is ran on successful connection to Twitch. Useful if you are proxying or something to run a custom command on connect.
 	// The variable must be modified before calling Connect or the command will not run.
 	SetupCmd string
@@ -452,6 +460,7 @@ func NewClient(username, oauth string) *Client {
 		channels:        map[string]bool{},
 		channelUserlist: map[string]map[string]bool{},
 		channelsMtx:     &sync.RWMutex{},
+		latencyMutex:    &sync.RWMutex{},
 		messageReceived: make(chan bool),
 
 		read:  make(chan string, ReadBufferSize),
@@ -614,6 +623,23 @@ func (c *Client) Join(channels ...string) {
 		c.channelUserlistMutex.Unlock()
 	}
 	c.channelsMtx.Unlock()
+}
+
+// Latency returns the latency to the irc server measured as the duration
+// between when the last ping was sent and when the last pong was received.
+// Returns zero duration if no ping has been sent yet.
+// Returns an error if SendPings is false.
+func (c *Client) Latency() (latency time.Duration, err error) {
+	if !c.SendPings {
+		err = errors.New("measuring latency requires SendPings to be true")
+		return
+	}
+
+	c.latencyMutex.RLock()
+	defer c.latencyMutex.RUnlock()
+
+	latency = c.latency
+	return
 }
 
 // Creates an irc join message to join the given channels.
@@ -861,6 +887,14 @@ func (c *Client) startPinger(closer io.Closer, wg *sync.WaitGroup) {
 					c.onPingSent()
 				}
 				c.send(pingMessage)
+
+				// update lastSentPing without blocking this goroutine waiting for the lock
+				go func() {
+					timeSent := time.Now()
+					c.latencyMutex.Lock()
+					c.lastSentPing = timeSent
+					c.latencyMutex.Unlock()
+				}()
 
 				select {
 				case <-c.pongReceived:
@@ -1157,6 +1191,9 @@ func (c *Client) handlePongMessage(msg PongMessage) {
 		// Received a pong that was sent by us
 		select {
 		case c.pongReceived <- true:
+			c.latencyMutex.Lock()
+			c.latency = time.Since(c.lastSentPing)
+			c.latencyMutex.Unlock()
 		default:
 		}
 	}

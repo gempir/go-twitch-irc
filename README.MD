@@ -208,6 +208,7 @@ func (c *Client) Depart(channel string)
 func (c *Client) Userlist(channel string) ([]string, error)
 func (c *Client) Connect() error
 func (c *Client) Disconnect() error
+func (c *Client) Latency() (latency time.Duration, err error)
 ```
 
 ### Options

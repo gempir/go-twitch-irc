@@ -17,8 +17,10 @@ import (
 	"time"
 )
 
-var startPortMutex sync.Mutex
-var startPort = 10000
+var (
+	startPortMutex sync.Mutex
+	startPort      = 10000
+)
 
 func newPort() (r int) {
 	startPortMutex.Lock()
@@ -1846,6 +1848,94 @@ func TestPinger(t *testing.T) {
 	client.Disconnect()
 }
 
+func TestLatencySendPingsFalse(t *testing.T) {
+	t.Parallel()
+	client := newTestClient("")
+	client.SendPings = false
+	if _, err := client.Latency(); err == nil {
+		t.Fatal("Should not be able to measure latency when SendPings is false")
+	}
+}
+
+func TestLatencyBeforePings(t *testing.T) {
+	t.Parallel()
+	var (
+		client  *Client
+		latency time.Duration
+		err     error
+	)
+	client = newTestClient("")
+	if latency, err = client.Latency(); err != nil {
+		t.Fatal(fmt.Errorf("Failed to measure latency: %w", err))
+	}
+
+	if latency != 0 {
+		t.Fatal("Latency should be zero before a ping is sent")
+	}
+}
+
+func TestLatency(t *testing.T) {
+	t.Parallel()
+	const idlePingInterval = 10 * time.Millisecond
+	const expectedLatency = 50 * time.Millisecond
+	const toleranceLatency = 5 * time.Millisecond
+
+	wait := make(chan bool)
+
+	var conn net.Conn
+
+	host := startServer(t, func(c net.Conn) {
+		conn = c
+	}, func(message string) {
+		if message == pingMessage {
+			// Send an emulated pong
+			<-time.After(expectedLatency)
+			wait <- true
+			fmt.Fprintf(conn, formatPong(strings.Split(message, " :")[1])+"\r\n")
+		}
+	})
+	client := newTestClient(host)
+	client.IdlePingInterval = idlePingInterval
+
+	go client.Connect()
+
+	select {
+	case <-wait:
+	case <-time.After(time.Second * 3):
+		t.Fatal("Did not establish a connection")
+	}
+
+	var (
+		returnedLatency time.Duration
+		err             error
+	)
+	for i := 0; i < 5; i++ {
+		// Wait for the client to send a ping
+		<-time.After(idlePingInterval + time.Millisecond*10)
+
+		if returnedLatency, err = client.Latency(); err != nil {
+			t.Fatal(fmt.Errorf("Failed to measure latency: %w", err))
+		}
+
+		returnedLatency = returnedLatency.Round(time.Millisecond)
+
+		latencyDiff := func() time.Duration {
+			diff := returnedLatency - expectedLatency
+			if diff < 0 {
+				return -diff
+			}
+			return diff
+		}()
+
+		if latencyDiff > toleranceLatency {
+			t.Fatalf("Latency %s should be within 3ms of %s", returnedLatency, expectedLatency)
+		}
+
+	}
+
+	client.Disconnect()
+}
+
 func TestCanAttachToPongMessageCallback(t *testing.T) {
 	t.Parallel()
 
@@ -2064,7 +2154,7 @@ func TestCapabilities(t *testing.T) {
 		in       []string
 		expected string
 	}
-	var tests = []testTable{
+	tests := []testTable{
 		{
 			"Default Capabilities (not modifying)",
 			nil,
@@ -2139,7 +2229,7 @@ func TestEmptyCapabilities(t *testing.T) {
 		name string
 		in   []string
 	}
-	var tests = []testTable{
+	tests := []testTable{
 		{"nil", nil},
 		{"Empty list", []string{}},
 	}
