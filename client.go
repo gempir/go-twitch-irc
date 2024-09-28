@@ -60,11 +60,14 @@ var (
 
 // User data you receive from TMI
 type User struct {
-	ID          string
-	Name        string
-	DisplayName string
-	Color       string
-	Badges      map[string]int
+	ID            string
+	Name          string
+	DisplayName   string
+	Color         string
+	Badges        map[string]int
+	IsBroadcaster bool
+	IsMod         bool
+	IsVip         bool
 }
 
 // Message interface that all messages implement

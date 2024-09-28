@@ -127,12 +127,27 @@ func parseMessageType(messageType string) MessageType {
 }
 
 func parseUser(message *ircMessage) User {
+	var (
+		isBroadcaster bool
+		isMod         bool
+		isVip         bool
+	)
+
+	isBroadcaster = message.Tags["user-id"] == message.Tags["room-id"]
+	_, isVip = message.Tags["vip"]
+	if value, tagFound := message.Tags["mod"]; tagFound {
+		isMod = value == "1"
+	}
+
 	user := User{
-		ID:          message.Tags["user-id"],
-		Name:        message.Source.Username,
-		DisplayName: message.Tags["display-name"],
-		Color:       message.Tags["color"],
-		Badges:      make(map[string]int),
+		ID:            message.Tags["user-id"],
+		Name:          message.Source.Username,
+		DisplayName:   message.Tags["display-name"],
+		Color:         message.Tags["color"],
+		Badges:        make(map[string]int),
+		IsBroadcaster: isBroadcaster,
+		IsMod:         isMod,
+		IsVip:         isVip,
 	}
 
 	if rawBadges := message.Tags["badges"]; rawBadges != "" {
