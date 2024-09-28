@@ -130,7 +130,7 @@ func TestCanParsePRIVMSGMessage(t *testing.T) {
 		message         string
 		expectedMessage PrivateMessage
 	}
-	var tests = []test{
+	tests := []test{
 		{
 			"Message With First Message",
 			"@badges=premium/1;color=#DAA520;display-name=FletcherCodes;emotes=;first-msg=1;flags=;id=6efffc70-27a1-4637-9111-44e5104bb7da;mod=0;room-id=408892348;subscriber=0;tmi-sent-ts=1551473087761;turbo=0;user-id=269899575;user-type= :fletchercodes!fletchercodes@fletchercodes.tmi.twitch.tv PRIVMSG #clippyassistant :Chew your food slower... it's healthier",
@@ -292,6 +292,107 @@ func TestCanParsePRIVMSGMessage(t *testing.T) {
 	}
 }
 
+func TestCanParsePRIVMSGUserRoles(t *testing.T) {
+	type expectedRoles struct {
+		IsBroadcaster bool
+		IsModerator   bool
+		IsVIP         bool
+	}
+	type test struct {
+		name            string
+		message         string
+		expectedRoles   expectedRoles
+		expectedMessage PrivateMessage
+	}
+	tests := []test{
+		{
+			"Message From Broadcaster",
+			"@badge-info=subscriber/23;badges=broadcaster/1,subscriber/0,sub-gifter/5;client-nonce=8754bd6c285fb6795d58dae6ec70796a;color=#8A2BE2;display-name=hash_table;emotes=;first-msg=0;flags=;id=05eb8c6f-6606-4a44-90f3-fa2d516f9c51;mod=0;returning-chatter=0;room-id=63073510;subscriber=1;tmi-sent-ts=1727526200010;turbo=0;user-id=63073510;user-type= :hash_table!hash_table@hash_table.tmi.twitch.tv PRIVMSG #hash_table :asd",
+			expectedRoles{
+				IsBroadcaster: true,
+				IsModerator:   false,
+				IsVIP:         false,
+			},
+			PrivateMessage{
+				User: User{
+					ID:            "63073510",
+					Name:          "hash_table",
+					DisplayName:   "hash_table",
+					Color:         "#8A2BE2",
+					IsBroadcaster: true,
+					IsMod:         false,
+					IsVip:         false,
+				},
+				Type:    PRIVMSG,
+				RawType: "PRIVMSG",
+				Message: "asd",
+				RoomID:  "63073510",
+			},
+		},
+		{
+			"Message From Moderator",
+			"@badge-info=founder/1;badges=moderator/1,founder/0,game-developer/1;color=#8A2BE2;display-name=hash_table;emotes=;first-msg=0;flags=;id=9e9f5092-2372-47cb-a996-09e055e45480;mod=1;returning-chatter=0;room-id=488227870;subscriber=1;tmi-sent-ts=1727528720632;turbo=0;user-id=63073510;user-type=mod :hash_table!hash_table@hash_table.tmi.twitch.tv PRIVMSG #frizzeh :asd",
+			expectedRoles{
+				IsBroadcaster: false,
+				IsModerator:   true,
+				IsVIP:         false,
+			},
+			PrivateMessage{
+				User: User{
+					ID:            "63073510",
+					Name:          "hash_table",
+					DisplayName:   "hash_table",
+					Color:         "#8A2BE2",
+					IsBroadcaster: false,
+					IsMod:         true,
+					IsVip:         false,
+				},
+				Type:    PRIVMSG,
+				RawType: "PRIVMSG",
+				Message: "asd",
+				RoomID:  "488227870",
+			},
+		},
+		{
+			"Message From VIP",
+			"@badge-info=founder/1;badges=vip/1,founder/0,game-developer/1;color=#8A2BE2;display-name=hash_table;emotes=;first-msg=0;flags=;id=cbbd0def-69e6-4cc1-a3bf-6268e737bd69;mod=0;returning-chatter=0;room-id=488227870;subscriber=1;tmi-sent-ts=1727529432379;turbo=0;user-id=63073510;user-type=;vip=1 :hash_table!hash_table@hash_table.tmi.twitch.tv PRIVMSG #frizzeh :asd",
+			expectedRoles{
+				IsBroadcaster: false,
+				IsModerator:   false,
+				IsVIP:         true,
+			},
+			PrivateMessage{
+				User: User{
+					ID:            "63073510",
+					Name:          "hash_table",
+					DisplayName:   "hash_table",
+					Color:         "#8A2BE2",
+					IsBroadcaster: false,
+					IsMod:         false,
+					IsVip:         true,
+				},
+				Type:    PRIVMSG,
+				RawType: "PRIVMSG",
+				Message: "asd",
+				RoomID:  "488227870",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		func(tt test) {
+			t.Run(tt.name, func(t *testing.T) {
+				message := ParseMessage(tt.message)
+				privateMessage := message.(*PrivateMessage)
+				user := privateMessage.User
+				assertBoolEqual(t, tt.expectedRoles.IsBroadcaster, user.IsBroadcaster)
+				assertBoolEqual(t, tt.expectedRoles.IsModerator, user.IsMod)
+				assertBoolEqual(t, tt.expectedRoles.IsVIP, user.IsVip)
+			})
+		}(tt)
+	}
+}
+
 func TestCanParsePRIVMSGActionMessage(t *testing.T) {
 	testMessage := "@badges=premium/1;color=#DAA520;display-name=FletcherCodes;emotes=;flags=;id=6efffc70-27a1-4637-9111-44e5104bb7da;mod=0;room-id=408892348;subscriber=0;tmi-sent-ts=1551473087761;turbo=0;user-id=269899575;user-type= :fletchercodes!fletchercodes@fletchercodes.tmi.twitch.tv PRIVMSG #clippyassistant :\u0001ACTION Thrashh5, FeelsWayTooAmazingMan kinda\u0001"
 
@@ -320,7 +421,7 @@ func TestCanHandleBadEmoteMessage(t *testing.T) {
 		message        string
 		expectedEmotes []Emote
 	}
-	var tests = []test{
+	tests := []test{
 		{
 			"Broken Emote Message",
 			"@badge-info=subscriber/3;badges=subscriber/3;color=#0000FF;display-name=Linkoping;emotes=25:40-44;flags=17-26:S.6;id=744f9c58-b180-4f46-bd9e-b515b5ef75c1;mod=0;room-id=188442366;subscriber=1;tmi-sent-ts=1566335866017;turbo=0;user-id=91673457;user-type= :linkoping!linkoping@linkoping.tmi.twitch.tv PRIVMSG #queenqarro :Då kan du begära skadestånd och förtal Kappa",
@@ -723,7 +824,7 @@ func TestPRIVMSGEmotesParsedProperly(t *testing.T) {
 		name    string
 		message string
 	}
-	var tests = []test{
+	tests := []test{
 		{
 			"Normal PRIVMSG",
 			"@badge-info=subscriber/52;badges=broadcaster/1,subscriber/48,partner/1;color=#CC44FF;display-name=pajlada;emotes=25:6-10/1902:16-20;flags=;id=2a3f9d35-5487-4239-80b3-6c9a5a1907a9;mod=0;room-id=11148817;subscriber=1;tmi-sent-ts=1587291978478;turbo=0;user-id=11148817;user-type= :pajlada!pajlada@pajlada.tmi.twitch.tv PRIVMSG #pajlada :-tags Kappa 123 Keepo",
@@ -758,7 +859,7 @@ func TestPRIVMSGMalformedEmotesDontCrash(t *testing.T) {
 		name    string
 		message string
 	}
-	var tests = []test{
+	tests := []test{
 		{
 			"Broken #1",
 			"@badge-info=subscriber/52;badges=moderator/1,subscriber/48;color=#2E8B57;display-name=pajbot;emotes=80481_/3:7-14;flags=;id=1ec936d3-7853-4113-9984-664ac5c42694;mod=1;room-id=11148817;subscriber=1;tmi-sent-ts=1589640131796;turbo=0;user-id=82008718;user-type=mod :pajbot!pajbot@pajbot.tmi.twitch.tv PRIVMSG #pajlada :󠀀-tags pajaW_/3.0",
