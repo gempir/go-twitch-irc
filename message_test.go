@@ -323,13 +323,10 @@ func TestCanParsePRIVMSGUserRoles(t *testing.T) {
 					IsMod:         false,
 					IsVip:         false,
 				},
-				Type:         PRIVMSG,
-				RawType:      "PRIVMSG",
-				Message:      "asd",
-				Channel:      "hash_table",
-				RoomID:       "63073510",
-				ID:           "05eb8c6f-6606-4a44-90f3-fa2d516f9c51",
-				FirstMessage: false,
+				Type:    PRIVMSG,
+				RawType: "PRIVMSG",
+				Message: "asd",
+				RoomID:  "63073510",
 			},
 		},
 		{
@@ -350,13 +347,10 @@ func TestCanParsePRIVMSGUserRoles(t *testing.T) {
 					IsMod:         true,
 					IsVip:         false,
 				},
-				Type:         PRIVMSG,
-				RawType:      "PRIVMSG",
-				Message:      "asd",
-				Channel:      "frizzeh",
-				RoomID:       "488227870",
-				ID:           "9e9f5092-2372-47cb-a996-09e055e45480",
-				FirstMessage: false,
+				Type:    PRIVMSG,
+				RawType: "PRIVMSG",
+				Message: "asd",
+				RoomID:  "488227870",
 			},
 		},
 		{
@@ -377,13 +371,10 @@ func TestCanParsePRIVMSGUserRoles(t *testing.T) {
 					IsMod:         false,
 					IsVip:         true,
 				},
-				Type:         PRIVMSG,
-				RawType:      "PRIVMSG",
-				Message:      "asd",
-				Channel:      "frizzeh",
-				RoomID:       "488227870",
-				ID:           "cbbd0def-69e6-4cc1-a3bf-6268e737bd69",
-				FirstMessage: false,
+				Type:    PRIVMSG,
+				RawType: "PRIVMSG",
+				Message: "asd",
+				RoomID:  "488227870",
 			},
 		},
 	}
@@ -394,7 +385,6 @@ func TestCanParsePRIVMSGUserRoles(t *testing.T) {
 				message := ParseMessage(tt.message)
 				privateMessage := message.(*PrivateMessage)
 				user := privateMessage.User
-
 				assertBoolEqual(t, tt.expectedRoles.IsBroadcaster, user.IsBroadcaster)
 				assertBoolEqual(t, tt.expectedRoles.IsModerator, user.IsMod)
 				assertBoolEqual(t, tt.expectedRoles.IsVIP, user.IsVip)
