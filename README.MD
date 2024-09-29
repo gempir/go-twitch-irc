@@ -36,11 +36,14 @@ func main() {
 The twitch.User and MessageType structs reflect the data Twitch provides, minus any fields that have been marked as deprecated:
 ```go
 type User struct {
-	ID          string
-	Name        string
-	DisplayName string
-	Color       string
-	Badges      map[string]int
+	ID            string
+	Name          string
+	DisplayName   string
+	Color         string
+	Badges        map[string]int
+	IsBroadcaster bool
+	IsMod         bool
+	IsVip         bool
 }
 
 type WhisperMessage struct {
