@@ -128,6 +128,7 @@ type PrivateMessage struct {
 	Action         bool
 	FirstMessage   bool
 	Reply          *Reply
+	Source         *Source
 	CustomRewardID string
 }
 
@@ -137,6 +138,13 @@ type Reply struct {
 	ParentUserLogin   string
 	ParentDisplayName string
 	ParentMsgBody     string
+}
+
+type Source struct {
+	RoomID     string
+	ID         string
+	Badges     map[string]int
+	SourceOnly bool
 }
 
 // GetType implements the Message interface, and returns this message's type

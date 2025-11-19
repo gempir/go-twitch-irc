@@ -233,6 +233,19 @@ func parsePrivateMessage(message *ircMessage) Message {
 		}
 	}
 
+	var source *Source
+	if _, ok := message.Tags["source-id"]; ok {
+		source = &Source{
+			RoomID:     message.Tags["source-room-id"],
+			ID:         message.Tags["source-id"],
+			Badges:     parseBadges(message.Tags["source-badges"]),
+			SourceOnly: false,
+		}
+		if _, ok := message.Tags["source-only"]; ok {
+			source.SourceOnly = message.Tags["source-only"] == "1"
+		}
+	}
+
 	privateMessage := PrivateMessage{
 		User: parseUser(message),
 
@@ -244,6 +257,7 @@ func parsePrivateMessage(message *ircMessage) Message {
 		ID:             message.Tags["id"],
 		Time:           parseTime(message.Tags["tmi-sent-ts"]),
 		Reply:          reply,
+		Source:         source,
 		CustomRewardID: message.Tags["custom-reward-id"],
 	}
 
