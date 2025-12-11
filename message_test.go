@@ -928,3 +928,37 @@ func TestCanParseGlobalUserStateMessage(t *testing.T) {
 	expectedEmoteSets := []string{"0", "15961", "24569", "24570"}
 	assertStringSlicesEqual(t, expectedEmoteSets, globalUserStateMessage.EmoteSets)
 }
+
+func TestParseBadgesWithEmptyString(t *testing.T) {
+	// Test that parseBadges handles empty string without panic
+	badges := parseBadges("")
+	expectedBadges := map[string]int{}
+	assertStringIntMapsEqual(t, expectedBadges, badges)
+}
+
+func TestCanParseSharedChatMessageWithEmptySourceBadges(t *testing.T) {
+	// Test parsing a shared chat message with empty source-badges to ensure no panic
+	testMessage := "@badge-info=;badges=moderator/1;color=#FF0000;display-name=TestUser;emotes=;flags=;id=test-id;mod=1;room-id=123456;source-badges=;source-id=source-test-id;source-room-id=654321;subscriber=0;tmi-sent-ts=1234567890000;turbo=0;user-id=987654;user-type=mod :testuser!testuser@testuser.tmi.twitch.tv PRIVMSG #testchannel :Hello from shared chat"
+
+	message := ParseMessage(testMessage)
+	privateMessage := message.(*PrivateMessage)
+
+	// Verify the message parsed correctly
+	if privateMessage.Type != PRIVMSG {
+		t.Error("parsing MessageType failed")
+	}
+	assertStringsEqual(t, "PRIVMSG", privateMessage.RawType)
+	assertStringsEqual(t, "Hello from shared chat", privateMessage.Message)
+	assertStringsEqual(t, "testchannel", privateMessage.Channel)
+
+	// Verify the Source is populated
+	if privateMessage.Source == nil {
+		t.Error("Source should not be nil for shared chat message")
+	} else {
+		assertStringsEqual(t, "source-test-id", privateMessage.Source.ID)
+		assertStringsEqual(t, "654321", privateMessage.Source.RoomID)
+		// Verify that source badges is an empty map (not nil, no panic)
+		expectedBadges := map[string]int{}
+		assertStringIntMapsEqual(t, expectedBadges, privateMessage.Source.Badges)
+	}
+}
