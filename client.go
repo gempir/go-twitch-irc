@@ -960,7 +960,7 @@ func (c *Client) writeMessage(writer io.WriteCloser, msg string) {
 		// Attempt to re-send failed messages
 		c.write <- msg
 
-		writer.Close()
+		_ = writer.Close()
 		c.clientReconnect.Close()
 	}
 }

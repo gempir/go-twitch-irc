@@ -167,6 +167,10 @@ func parseUser(message *ircMessage) User {
 func parseBadges(rawBadges string) map[string]int {
 	badges := make(map[string]int)
 
+	if rawBadges == "" {
+		return badges
+	}
+
 	for _, badge := range strings.Split(rawBadges, ",") {
 		pair := strings.SplitN(badge, "/", 2)
 		badges[pair[0]], _ = strconv.Atoi(pair[1])
