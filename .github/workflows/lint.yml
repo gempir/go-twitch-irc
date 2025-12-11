@@ -1,7 +1,6 @@
 name: Go (Lint)
 on: [pull_request]
 jobs:
-
   golangci-lint:
     name: runner / golangci-lint (pre-build docker image)
     runs-on: ubuntu-latest
@@ -11,7 +10,7 @@ jobs:
           fetch-depth: 0
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v9
         with:
           version: v1.61
 
