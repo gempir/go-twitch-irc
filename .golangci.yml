@@ -50,3 +50,10 @@ linters:
   # - gochecknoglobals
   # - nakedret
   # - gochecknoinits
+
+issues:
+  exclude-rules:
+    # Exclude typecheck import errors caused by Go version mismatches
+    - linters:
+        - typecheck
+      text: "could not import.*could not load export data"
