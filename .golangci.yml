@@ -44,7 +44,7 @@ linters:
       statements: 50
 
 formatters:
-  default: none
-  enable:
-    - gofmt
-    - goimports
+  settings:
+    gofmt:
+      simplify: true
+    goimports: {}
