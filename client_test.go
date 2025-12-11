@@ -1817,7 +1817,7 @@ func TestLocalSendingPingsReceivedPong(t *testing.T) {
 		if message == pingMessage {
 			// Send an emulated pong
 			pongMessage := formatPong(strings.Split(message, " :")[1])
-			fmt.Fprintf(conn, "%s\r\n", pongMessage)
+			_, _ = fmt.Fprintf(conn, "%s\r\n", pongMessage)
 			wait <- true
 		}
 	})
@@ -1902,7 +1902,7 @@ func TestLocalSendingPingsReceivedPongAlsoDisconnect(t *testing.T) {
 		if message == pingMessage {
 			// Send an emulated pong
 			pongMessage := formatPong(strings.Split(message, " :")[1])
-			fmt.Fprintf(conn, "%s\r\n", pongMessage)
+			_, _ = fmt.Fprintf(conn, "%s\r\n", pongMessage)
 			conn.Close()
 			wait <- true
 		}
@@ -1944,7 +1944,7 @@ func TestPinger(t *testing.T) {
 		if message == pingMessage {
 			// Send an emulated pong
 			pongMessage := formatPong(strings.Split(message, " :")[1])
-			fmt.Fprintf(conn, "%s\r\n", pongMessage)
+			_, _ = fmt.Fprintf(conn, "%s\r\n", pongMessage)
 			wait <- true
 		}
 	})
@@ -2045,7 +2045,7 @@ func TestLatency(t *testing.T) {
 			<-time.After(expectedLatency)
 			wait <- true
 			pongMessage := formatPong(strings.Split(message, " :")[1])
-			fmt.Fprintf(conn, "%s\r\n", pongMessage)
+			_, _ = fmt.Fprintf(conn, "%s\r\n", pongMessage)
 		}
 	})
 	client := newTestClient(host)
